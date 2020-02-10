@@ -1,4 +1,4 @@
-package mfreja
+package frejam
 
 import "fmt"
 

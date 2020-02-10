@@ -1,4 +1,4 @@
-package mfreja
+package frejam
 
 import (
 	"encoding/base64"
@@ -155,15 +155,13 @@ func (i SignRequest) Marshal() (s string, err error) {
 		return
 	}
 
-	fmt.Println(string(b))
-
 	return fmt.Sprintf("initSignRequest=%s", base64.StdEncoding.EncodeToString(b)), nil
 }
 
 
 type SignResponse struct {
 	SignRef
-	Status              Status              `json:"status"`
+	Status Status `json:"status"`
 
 	RequestedAttributes RequestedAttributes `json:"requestedAttributes"` // optional
 	Details             string              `json:"details"`             // JWS signed data, see below

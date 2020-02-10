@@ -1,4 +1,4 @@
-package mfreja
+package frejam
 
 type Verifiable interface {
 	JWSToken() string
@@ -13,8 +13,8 @@ type BasicUserInfo struct {
 	Surname string `json:"surname"`
 }
 
-
 type UserInfoType string
+
 const (
 	UIT_PHONE    UserInfoType = "PHONE"
 	UIT_EMAIL    UserInfoType = "EMAIL"
@@ -22,19 +22,20 @@ const (
 	UIT_INFERRED UserInfoType = "INFERRED" // QR code auth
 )
 
-
 type Status string
+
 const (
-	STATUS_STARTED             = "STARTED"             //(the transaction has been started but not yet delivered to Freja eID application associated with the end user),
-	STATUS_DELIVERED_TO_MOBILE = "DELIVERED_TO_MOBILE" //(the Freja eID app has downloaded the transaction),
-	STATUS_CANCELED            = "CANCELED"            //(the end user declined the authentication request),
-	STATUS_RP_CANCELED         = "RP_CANCELED"         //(the authentication request was sent to the user but cancelled by the RP before the user could respond),
-	STATUS_EXPIRED             = "EXPIRED"             //(the authentication request was not approved by the end user within the authentication validity limit of two minutes),
-	STATUS_APPROVED            = "APPROVED"            //(the authentication was successful) or
-	STATUS_REJECTED            = "REJECTED"            //(e.g. if you try to run more than one authentication transaction for the same user at the same time).
+	STATUS_STARTED             Status = "STARTED"             //(the transaction has been started but not yet delivered to Freja eID application associated with the end user),
+	STATUS_DELIVERED_TO_MOBILE Status = "DELIVERED_TO_MOBILE" //(the Freja eID app has downloaded the transaction),
+	STATUS_CANCELED            Status = "CANCELED"            //(the end user declined the authentication request),
+	STATUS_RP_CANCELED         Status = "RP_CANCELED"         //(the authentication request was sent to the user but cancelled by the RP before the user could respond),
+	STATUS_EXPIRED             Status = "EXPIRED"             //(the authentication request was not approved by the end user within the authentication validity limit of two minutes),
+	STATUS_APPROVED            Status = "APPROVED"            //(the authentication was successful) or
+	STATUS_REJECTED            Status = "REJECTED"            //(e.g. if you try to run more than one authentication transaction for the same user at the same time).
 )
 
 type RegistrationLevel string
+
 const (
 	RL_BASIC    RegistrationLevel = "BASIC"
 	RL_EXTENDED RegistrationLevel = "EXTENDED"
@@ -42,6 +43,7 @@ const (
 )
 
 type AttributeName string
+
 const (
 	// (name and surname),
 	ATTR_BASIC_USER_INFO AttributeName = "BASIC_USER_INFO"
@@ -77,7 +79,3 @@ const (
 	// a unique, Relying Party-specific, user identifier, set by the Relying Party through the Custom Identifier Management.
 	ATTR_CUSTOM_IDENTIFIER AttributeName = "CUSTOM_IDENTIFIER"
 )
-
-
-
-

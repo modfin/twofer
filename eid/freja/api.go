@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"twofer/freja/mfreja"
+	"twofer/eid/freja/frejam"
 )
 
 type API struct {
@@ -18,10 +18,7 @@ type API struct {
 
 //// Authentication
 
-func (a *API) AuthInitRequest(ctx context.Context, authReq mfreja.AuthRequest) (authRef string, err error) {
-	if a.parent.Stopped() {
-		return "", frejaStoppedError
-	}
+func (a *API) AuthInitRequest(ctx context.Context, authReq frejam.AuthRequest) (authRef string, err error) {
 
 	strreq, err := authReq.Marshal()
 	if err != nil {
@@ -29,7 +26,7 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq mfreja.AuthRequest) (
 	}
 
 	// implement context and add a deadline
-	resp, err := a.parent.client.Post(a.parent.baseURL()+initAuthURL, "text", bytes.NewBuffer([]byte(strreq)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+initAuthURL, "text", bytes.NewBuffer([]byte(strreq)))
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +37,7 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq mfreja.AuthRequest) (
 	}
 
 	if resp.StatusCode != 200 {
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -48,7 +45,7 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq mfreja.AuthRequest) (
 		return "", err
 	}
 
-	var ref mfreja.AuthRef
+	var ref frejam.AuthRef
 	err = json.Unmarshal(b, &ref)
 	if err != nil {
 		return "", err
@@ -61,11 +58,11 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq mfreja.AuthRequest) (
 // successfully initiated by the relying party within the last 10 minutes will be returned, including results for
 // previously completed authentication results that have been reported through an earlier call to one of the methods
 // for getting authentication results.
-func (a *API) AuthGetResults() ([]mfreja.AuthResponse, error) {
+func (a *API) AuthGetResults() ([]frejam.AuthResponse, error) {
 	//content := []byte(`{"includePrevious":"ALL"}`)
 	//payload := fmt.Sprintf( "getOneAuthResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 	payload := `getAuthResultsRequest=eyJpbmNsdWRlUHJldmlvdXMiOiJBTEwifQ==`
-	resp, err := a.parent.client.Post(a.parent.baseURL()+getAuthResultsURL, "text", bytes.NewBuffer([]byte(payload)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+getAuthResultsURL, "text", bytes.NewBuffer([]byte(payload)))
 
 	if err != nil {
 		return nil, err
@@ -78,7 +75,7 @@ func (a *API) AuthGetResults() ([]mfreja.AuthResponse, error) {
 
 	if resp.StatusCode != 200 {
 
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -87,7 +84,7 @@ func (a *API) AuthGetResults() ([]mfreja.AuthResponse, error) {
 	}
 
 	res := struct {
-		AuthenticationResults []mfreja.AuthResponse `json:"authenticationResults"`
+		AuthenticationResults []frejam.AuthResponse `json:"authenticationResults"`
 	}{}
 
 	err = json.Unmarshal(b, &res)
@@ -104,11 +101,11 @@ func (a *API) AuthGetResults() ([]mfreja.AuthResponse, error) {
 // by a relying party, must be confirmed by an end user within two minutes. Consequently, fetching the result of an
 // authentication for a given authentication reference is only possible within 10 minutes of the call to Initiate
 // authentication method that returned the said reference.
-func (a *API) AuthGetOneResult(authRef string) (*mfreja.AuthResponse, error) {
+func (a *API) AuthGetOneResult(authRef string) (*frejam.AuthResponse, error) {
 	content := []byte(fmt.Sprintf(`{"authRef":"%s"}`, authRef))
 	payload := fmt.Sprintf("getOneAuthResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL()+getOneAuthResultURL, "text", bytes.NewBuffer([]byte(payload)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+getOneAuthResultURL, "text", bytes.NewBuffer([]byte(payload)))
 
 	if err != nil {
 		return nil, err
@@ -120,7 +117,7 @@ func (a *API) AuthGetOneResult(authRef string) (*mfreja.AuthResponse, error) {
 	}
 	if resp.StatusCode != 200 {
 
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -128,7 +125,7 @@ func (a *API) AuthGetOneResult(authRef string) (*mfreja.AuthResponse, error) {
 		return nil, err
 	}
 
-	res := mfreja.AuthResponse{}
+	res := frejam.AuthResponse{}
 
 	err = json.Unmarshal(b, &res)
 
@@ -143,7 +140,7 @@ func (a *API) AuthCancelRequest(authRef string) error {
 	content := []byte(fmt.Sprintf(`{"authRef":"%s"}`, authRef))
 	payload := fmt.Sprintf("cancelAuthRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL()+cancelAuthURL, "text", bytes.NewBuffer([]byte(payload)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+cancelAuthURL, "text", bytes.NewBuffer([]byte(payload)))
 
 	if err != nil {
 		return err
@@ -155,7 +152,7 @@ func (a *API) AuthCancelRequest(authRef string) error {
 	}
 
 	if resp.StatusCode != 200 {
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -173,10 +170,7 @@ func (a *API) AuthCancelRequest(authRef string) error {
 ////// Signing
 
 
-func (a *API) SignInitRequest(ctx context.Context, signReq mfreja.SignRequest) (signRef string, err error) {
-	if a.parent.Stopped() {
-		return "", frejaStoppedError
-	}
+func (a *API) SignInitRequest(ctx context.Context, signReq frejam.SignRequest) (signRef string, err error) {
 
 	strreq, err := signReq.Marshal()
 	if err != nil {
@@ -184,7 +178,7 @@ func (a *API) SignInitRequest(ctx context.Context, signReq mfreja.SignRequest) (
 	}
 
 	// implement context and add a deadline
-	resp, err := a.parent.client.Post(a.parent.baseURL()+initSignURL, "text", bytes.NewBuffer([]byte(strreq)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+initSignURL, "text", bytes.NewBuffer([]byte(strreq)))
 	if err != nil {
 		return "", err
 	}
@@ -195,7 +189,7 @@ func (a *API) SignInitRequest(ctx context.Context, signReq mfreja.SignRequest) (
 	}
 
 	if resp.StatusCode != 200 {
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -203,7 +197,7 @@ func (a *API) SignInitRequest(ctx context.Context, signReq mfreja.SignRequest) (
 		return "", err
 	}
 
-	var ref mfreja.SignRef
+	var ref frejam.SignRef
 	err = json.Unmarshal(b, &ref)
 	if err != nil {
 		return "", err
@@ -212,11 +206,11 @@ func (a *API) SignInitRequest(ctx context.Context, signReq mfreja.SignRequest) (
 	return ref.SignRef, nil
 }
 
-func (a *API) SignGetOneResult(signRef string) (*mfreja.SignResponse, error) {
+func (a *API) SignGetOneResult(signRef string) (*frejam.SignResponse, error) {
 	content := []byte(fmt.Sprintf(`{"signRef":"%s"}`, signRef))
 	payload := fmt.Sprintf("getOneSignResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL()+getOneSignResultURL, "text", bytes.NewBuffer([]byte(payload)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+getOneSignResultURL, "text", bytes.NewBuffer([]byte(payload)))
 
 	if err != nil {
 		return nil, err
@@ -228,7 +222,7 @@ func (a *API) SignGetOneResult(signRef string) (*mfreja.SignResponse, error) {
 	}
 	if resp.StatusCode != 200 {
 
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -236,7 +230,7 @@ func (a *API) SignGetOneResult(signRef string) (*mfreja.SignResponse, error) {
 		return nil, err
 	}
 
-	res := mfreja.SignResponse{}
+	res := frejam.SignResponse{}
 
 	err = json.Unmarshal(b, &res)
 
@@ -247,11 +241,11 @@ func (a *API) SignGetOneResult(signRef string) (*mfreja.SignResponse, error) {
 	return &res, nil
 }
 
-func (a *API) SignGetResults() ([]mfreja.SignResponse, error) {
+func (a *API) SignGetResults() ([]frejam.SignResponse, error) {
 	//content := []byte(`{"includePrevious":"ALL"}`)
 	//payload := fmt.Sprintf( "getOneAuthResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 	payload := `getSignResultsRequest=eyJpbmNsdWRlUHJldmlvdXMiOiJBTEwifQ==`
-	resp, err := a.parent.client.Post(a.parent.baseURL()+getSignResultsURL, "text", bytes.NewBuffer([]byte(payload)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+getSignResultsURL, "text", bytes.NewBuffer([]byte(payload)))
 
 	if err != nil {
 		return nil, err
@@ -264,7 +258,7 @@ func (a *API) SignGetResults() ([]mfreja.SignResponse, error) {
 
 	if resp.StatusCode != 200 {
 
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
@@ -273,7 +267,7 @@ func (a *API) SignGetResults() ([]mfreja.SignResponse, error) {
 	}
 
 	res := struct {
-		SignatureResults []mfreja.SignResponse `json:"signatureResults"`
+		SignatureResults []frejam.SignResponse `json:"signatureResults"`
 	}{}
 
 	err = json.Unmarshal(b, &res)
@@ -291,7 +285,7 @@ func (a *API) SignCancelRequest(signRef string) error {
 	content := []byte(fmt.Sprintf(`{"signRef":"%s"}`, signRef))
 	payload := fmt.Sprintf("cancelSignRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL()+cancelSignURL, "text", bytes.NewBuffer([]byte(payload)))
+	resp, err := a.parent.client.Post(a.parent.baseURL+cancelSignURL, "text", bytes.NewBuffer([]byte(payload)))
 
 	if err != nil {
 		return err
@@ -303,7 +297,7 @@ func (a *API) SignCancelRequest(signRef string) error {
 	}
 
 	if resp.StatusCode != 200 {
-		e := mfreja.FrejaError{}
+		e := frejam.FrejaError{}
 		err = json.Unmarshal(b, &e)
 		if err == nil {
 			err = e
