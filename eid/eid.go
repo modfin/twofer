@@ -2,6 +2,7 @@ package eid
 
 import (
 	"fmt"
+	"sort"
 )
 
 func New() *EID {
@@ -17,8 +18,19 @@ type EID struct {
 
 func (e *EID) Add(provider ToEID){
 	c := provider.EID()
+	fmt.Println("Adding", c.Name())
 	e.providers[c.Name()] = c
 }
+
+func (e *EID) List() []string{
+	var names []string
+	for key := range e.providers{
+		names = append(names, key)
+	}
+	sort.Strings(names)
+	return names
+}
+
 
 
 func (e *EID) Get(name string) (Client, error){
@@ -28,7 +40,6 @@ func (e *EID) Get(name string) (Client, error){
 	}
 	return c, nil
 }
-
 
 
 

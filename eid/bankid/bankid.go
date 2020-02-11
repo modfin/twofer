@@ -93,10 +93,8 @@ func (c *Client) Auth(ctx context.Context, authReq bankidm.AuthRequest) (*bankid
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	return c.Collect(ctx, res.OrderRef.OrderRef)
+	return c.Collect(ctx, res.OrderRef.OrderRef, true)
 }
-
-
 
 func (c *Client) SignInit(ctx context.Context, authReq bankidm.SignRequest) (*bankidm.SignResponse, error) {
 	return c.API().Sign(authReq)
@@ -111,13 +109,13 @@ func (c *Client) Sign(ctx context.Context, authReq bankidm.SignRequest) (*bankid
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	return c.Collect(ctx, res.OrderRef.OrderRef)
+	return c.Collect(ctx, res.OrderRef.OrderRef, true)
 }
 
 
-func (c *Client) Collect(ctx context.Context, orderRef string) (resp *bankidm.CollectResponse, err error) {
+func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool) (resp *bankidm.CollectResponse, err error) {
 	defer func() {
-		if err != nil{
+		if err != nil && cancelOnErr{
 			go func() {
 				fmt.Println("Canceling order,", err)
 				err := c.api.Cancel(orderRef)
@@ -130,7 +128,6 @@ func (c *Client) Collect(ctx context.Context, orderRef string) (resp *bankidm.Co
 
 	for {
 		select {
-
 		case <-ctx.Done():
 			err = ctx.Err()
 			return nil, err

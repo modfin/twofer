@@ -93,11 +93,11 @@ func (a AuthResponse) JWSToken() string{
 }
 
 type RequestedAttributes struct {
-	BasicUserInfo            *BasicUserInfo `json:"basicUserInfo"`
-	EmailAddress             *string        `json:"emailAddress"`
-	DateOfBirth              *string        `json:"dateOfBirth"`
-	CustomIdentifier         *string        `json:"customIdentifier"`
-	SSN                      *SSN           `json:"ssn"`
-	RelyingPartyUserID       *string        `json:"relyingPartyUserId"`
-	IntegratorSpecificUserID *string        `json:"integratorSpecificUserId"`
+	BasicUserInfo            BasicUserInfo `json:"basicUserInfo,omitempty"`
+	EmailAddress             string        `json:"emailAddress,omitempty"`
+	DateOfBirth              string        `json:"dateOfBirth,omitempty"`
+	CustomIdentifier         string        `json:"customIdentifier,omitempty"`
+	SSN                      SSN           `json:"ssn,omitempty"`
+	RelyingPartyUserID       string        `json:"relyingPartyUserId,omitempty"`
+	IntegratorSpecificUserID string        `json:"integratorSpecificUserId,omitempty"`
 }

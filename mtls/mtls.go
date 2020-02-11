@@ -21,7 +21,8 @@ func CreateHTTPClient(pemRootCA []byte, pemClientCert []byte, pemClientKey []byt
 	}
 
 	c = &http.Client{}
-	trans := &(*http.DefaultTransport.(*http.Transport))
+
+	trans := http.DefaultTransport.(*http.Transport).Clone()
 	trans.TLSClientConfig = &tls.Config{
 		Certificates:                []tls.Certificate{cert},
 		RootCAs:                     rootPool,

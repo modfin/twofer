@@ -9,8 +9,8 @@ type SSN struct {
 	SSN     string `json:"ssn"`
 }
 type BasicUserInfo struct {
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
+	Name    string `json:"name,omitempty"`
+	Surname string `json:"surname,omitempty"`
 }
 
 type UserInfoType string
