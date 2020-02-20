@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package twoferrpc;
+
+
+service QR {
+    rpc Generate (QRData) returns (QRImage) {
+    };
+}
+
+message QRData {
+
+    enum Recovery {
+        // Level L: 7% error recovery.
+        LOW = 0;
+
+        // Level M: 15% error recovery. Good default choice.
+        MEDIUM = 1;
+
+        // Level Q: 25% error recovery.
+        HIGH = 2;
+
+        // Level H: 30% error recovery.
+        HIGHEST = 3;
+    }
+
+    Recovery RecoveryLevel = 1;
+    int32 size = 2;
+    string data = 3;
+}
+
+message QRImage {
+    string contentType = 1;
+    bytes data = 2;
+}

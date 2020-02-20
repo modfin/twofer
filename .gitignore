@@ -1,3 +1,4 @@
 certs
 .idea
-cmd
+cmd/twoferd
+cmd/test

@@ -49,7 +49,7 @@ message Req {
 
     message Payload {
         string text = 1;
-        bytes date = 2;
+        bytes data = 2;
     }
     Provider provider = 1;
     User who = 2;
