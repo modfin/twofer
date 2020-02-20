@@ -7,7 +7,7 @@ import (
 	"errors"
 )
 
-func extractKeyFromCertPEM(pubPEM []byte) (*rsa.PublicKey, error){
+func extractKeyFromCertPEM(pubPEM []byte) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode(pubPEM)
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing the key")
@@ -19,8 +19,8 @@ func extractKeyFromCertPEM(pubPEM []byte) (*rsa.PublicKey, error){
 	}
 
 	switch cert.PublicKey.(type) {
-	case  *rsa.PublicKey:
-		return cert.PublicKey.( *rsa.PublicKey), nil
+	case *rsa.PublicKey:
+		return cert.PublicKey.(*rsa.PublicKey), nil
 	}
 	return nil, errors.New("the certificate does not contain a rsa public key")
 }

@@ -41,7 +41,7 @@ type ClientConfig struct {
 	// If present the JWS tokens are validated, otherwise everything is let through
 	PemJWSCert []byte
 
-	Timeout time.Duration
+	Timeout      time.Duration
 	PollInterval time.Duration
 
 	DefaultRegistrationLevel frejam.RegistrationLevel
@@ -49,17 +49,16 @@ type ClientConfig struct {
 
 func New(config ClientConfig) (client *Client, err error) {
 	client = &Client{
-		baseURL: config.BaseURL,
-		pemClientKey:  config.PemClientKey,
-		pemClientCert: config.PemClientCert,
-		pemRootCA:     config.PemRootCA,
-		timeout:       config.Timeout,
-		pollInterval: config.PollInterval,
+		baseURL:                  config.BaseURL,
+		pemClientKey:             config.PemClientKey,
+		pemClientCert:            config.PemClientCert,
+		pemRootCA:                config.PemRootCA,
+		timeout:                  config.Timeout,
+		pollInterval:             config.PollInterval,
 		defaultRegistrationLevel: config.DefaultRegistrationLevel,
-
 	}
 
-	if client.defaultRegistrationLevel == ""{
+	if client.defaultRegistrationLevel == "" {
 		client.defaultRegistrationLevel = frejam.RL_EXTENDED
 	}
 
@@ -90,11 +89,9 @@ func (c *Client) EID() eid.Client {
 	return &eeid{parent: c}
 }
 
-
 func (c *Client) VerifyJWS(v frejam.Verifiable) error {
 	return jws.Verify(v.JWSToken(), c.jwsPubKey)
 }
-
 
 func (c *Client) Ping() (ok bool) {
 
@@ -114,8 +111,8 @@ func (c *Client) API() *API {
 	return c.api
 }
 
-func (c *Client) AuthInit(ctx context.Context, authReq frejam.AuthRequest) (authRef string, err error){
-	if authReq.MinRegistrationLevel == ""{
+func (c *Client) AuthInit(ctx context.Context, authReq frejam.AuthRequest) (authRef string, err error) {
+	if authReq.MinRegistrationLevel == "" {
 		authReq.MinRegistrationLevel = c.defaultRegistrationLevel
 	}
 
@@ -146,11 +143,11 @@ func (c *Client) Auth(ctx context.Context, authReq frejam.AuthRequest) (resp *fr
 
 func (c *Client) AuthCollect(ctx context.Context, authRef string, cancelOnErr bool) (resp *frejam.AuthResponse, err error) {
 	defer func() {
-		if err != nil && cancelOnErr{
+		if err != nil && cancelOnErr {
 			go func() {
 				fmt.Println("Canceling order,", err)
 				err := c.api.AuthCancelRequest(authRef)
-				if err != nil{
+				if err != nil {
 					fmt.Println("could not cancel auth", err)
 				}
 			}()
@@ -178,11 +175,8 @@ func (c *Client) AuthCollect(ctx context.Context, authRef string, cancelOnErr bo
 	}
 }
 
-
-
-
 func (c *Client) SignInit(ctx context.Context, signReq frejam.SignRequest) (signRef string, err error) {
-	if signReq.MinRegistrationLevel == ""{
+	if signReq.MinRegistrationLevel == "" {
 		signReq.MinRegistrationLevel = c.defaultRegistrationLevel
 	}
 	return c.api.SignInitRequest(ctx, signReq)
@@ -200,7 +194,6 @@ func (c *Client) Sign(ctx context.Context, signReq frejam.SignRequest) (resp *fr
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-
 	resp, err = c.SignCollect(ctx, signRef, true)
 	if err != nil {
 		return nil, err
@@ -215,10 +208,10 @@ func (c *Client) Sign(ctx context.Context, signReq frejam.SignRequest) (resp *fr
 
 func (c *Client) SignCollect(ctx context.Context, signRef string, cancelOnErr bool) (resp *frejam.SignResponse, err error) {
 	defer func() {
-		if err != nil && cancelOnErr{
+		if err != nil && cancelOnErr {
 			go func() {
 				err := c.api.SignCancelRequest(signRef)
-				if err != nil{
+				if err != nil {
 					fmt.Println("could not cancel auth", err)
 				}
 			}()

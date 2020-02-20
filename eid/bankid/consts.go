@@ -9,6 +9,6 @@ const signURL = "/rp/v5/sign"
 const collectURL = "/rp/v5/collect"
 const cancelURL = "/rp/v5/cancel"
 
-func Name() string{
+func Name() string {
 	return "BankID"
 }

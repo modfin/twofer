@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-
-
 type Attribute struct {
 	Attribute AttributeName `json:"attribute"`
 }
@@ -75,11 +73,9 @@ func (i AuthRequest) Marshal() (s string, err error) {
 	return fmt.Sprintf("initAuthRequest=%s", base64.StdEncoding.EncodeToString(b)), nil
 }
 
-
 type AuthRef struct {
 	AuthRef string `json:"authRef"` // mandatory. The authentication reference of the authentication.
 }
-
 
 type AuthResponse struct {
 	AuthRef
@@ -88,7 +84,7 @@ type AuthResponse struct {
 	Details             string              `json:"details"`             // JWS signed data, see below
 }
 
-func (a AuthResponse) JWSToken() string{
+func (a AuthResponse) JWSToken() string {
 	return a.Details
 }
 

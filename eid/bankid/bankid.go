@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"twofer/eid/bankid/bankidm"
 	"twofer/eid"
+	"twofer/eid/bankid/bankidm"
 	"twofer/mtls"
 )
 
@@ -62,8 +62,6 @@ type Client struct {
 	timeout time.Duration
 }
 
-
-
 func (c *Client) EID() eid.Client {
 	return &eeid{parent: c}
 }
@@ -83,6 +81,7 @@ func (c *Client) API() *API {
 func (c *Client) AuthInit(ctx context.Context, authReq bankidm.AuthRequest) (*bankidm.AuthResponse, error) {
 	return c.API().Auth(authReq)
 }
+
 // Auth
 // canceling the context will clean up and cancel send a cancel request to freja
 func (c *Client) Auth(ctx context.Context, authReq bankidm.AuthRequest) (*bankidm.CollectResponse, error) {
@@ -100,7 +99,6 @@ func (c *Client) SignInit(ctx context.Context, authReq bankidm.SignRequest) (*ba
 	return c.API().Sign(authReq)
 }
 
-
 func (c *Client) Sign(ctx context.Context, authReq bankidm.SignRequest) (*bankidm.CollectResponse, error) {
 	res, err := c.SignInit(ctx, authReq)
 	if err != nil {
@@ -112,14 +110,13 @@ func (c *Client) Sign(ctx context.Context, authReq bankidm.SignRequest) (*bankid
 	return c.Collect(ctx, res.OrderRef.OrderRef, true)
 }
 
-
 func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool) (resp *bankidm.CollectResponse, err error) {
 	defer func() {
-		if err != nil && cancelOnErr{
+		if err != nil && cancelOnErr {
 			go func() {
 				fmt.Println("Canceling order,", err)
 				err := c.api.Cancel(orderRef)
-				if err != nil{
+				if err != nil {
 					fmt.Println("could not cancel order", err)
 				}
 			}()

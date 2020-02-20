@@ -38,11 +38,10 @@ func main() {
 				return errors.New("freja or bankid must be selected")
 			}
 
-			infered := c.Bool("inferred")
+			inferred := c.Bool("inferred")
 			ssn := c.String("ssn")
-			contry := c.String("country")
+			country := c.String("country")
 			data := c.String("data")
-
 			client := twoferrpc.NewEIDClient(conn)
 
 			switch action {
@@ -50,16 +49,16 @@ func main() {
 				inter, err := client.AuthInit(context.Background(), &twoferrpc.Req{
 					Provider: &twoferrpc.Provider{Name: provider},
 					Who: &twoferrpc.User{
-						Inferred:   infered,
+						Inferred:   inferred,
 						Ssn:        ssn,
-						SsnCountry: contry,
+						SsnCountry: country,
 					},
 				})
 				if err != nil {
 					return err
 				}
 
-				if infered {
+				if inferred {
 					config := qrterminal.Config{
 						Level:     qrterminal.M,
 						Writer:    os.Stdout,
@@ -69,6 +68,7 @@ func main() {
 					}
 					qrterminal.GenerateWithConfig(inter.QrData, config)
 				}
+				fmt.Printf("%+v\n", inter)
 
 				resp, err := client.Collect(context.Background(), inter)
 				if err != nil {
@@ -82,13 +82,12 @@ func main() {
 				if len(ssn) == 0 {
 					return errors.New("an ssn must be provided for signing, this can not be inferred")
 				}
-
 				inter, err := client.SignInit(context.Background(), &twoferrpc.Req{
 					Provider: &twoferrpc.Provider{Name: provider},
 					Who: &twoferrpc.User{
 						Inferred:   false,
 						Ssn:        ssn,
-						SsnCountry: contry,
+						SsnCountry: country,
 					},
 					Payload: &twoferrpc.Req_Payload{
 						Text: data,
@@ -98,7 +97,7 @@ func main() {
 				if err != nil {
 					return err
 				}
-
+				fmt.Printf("EIDRequest%+v\n", inter)
 				resp, err := client.Collect(context.Background(), inter)
 				if err != nil {
 					return err

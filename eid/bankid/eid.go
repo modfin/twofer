@@ -10,11 +10,8 @@ import (
 	"twofer/eid/bankid/bankidm"
 )
 
-
-
-
 type eeid struct {
-	parent *Client	
+	parent *Client
 }
 
 func (e eeid) Name() string {
@@ -22,22 +19,22 @@ func (e eeid) Name() string {
 }
 
 func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err error) {
-	if req.Who == nil{
+	if req.Who == nil {
 		req.Inferred()
 	}
-	if req.Who.IP == nil{
+	if req.Who.IP == nil {
 		req.IP("127.0.0.1")
 	}
 
 	r := bankidm.AuthRequest{
-		EndUserIP:   req.Who.IP.String(),
+		EndUserIP: req.Who.IP.String(),
 	}
 
-	if req.Who.SSN != ""{
+	if req.Who.SSN != "" {
 		r.SSN = req.Who.SSN
 	}
 	resp, err := e.parent.AuthInit(ctx, r)
-	if err != nil{
+	if err != nil {
 		return
 	}
 	in = &eid.Inter{
@@ -51,29 +48,26 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 	return in, nil
 }
 
-
 func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err error) {
-	if req.Who == nil{
+	if req.Who == nil {
 		req.Inferred()
 	}
-	if req.Who.IP == nil{
+	if req.Who.IP == nil {
 		req.IP("127.0.0.1")
 	}
 
-
 	r := bankidm.SignRequest{
-		EndUserIP:  req.Who.IP.String(),
-		SSN: req.Who.SSN,
+		EndUserIP: req.Who.IP.String(),
+		SSN:       req.Who.SSN,
 	}
 
-
-	if req.Payload != nil{
+	if req.Payload != nil {
 		r.UserVisibleData = req.Payload.Text
 		r.UserNonVisibleData = req.Payload.Data
 	}
 
 	resp, err := e.parent.SignInit(ctx, r)
-	if err != nil{
+	if err != nil {
 		return
 	}
 
@@ -84,13 +78,10 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Inferred: resp.AutoStartToken,
 		QRData:   fmt.Sprintf("bankid:///?autostarttoken=%s", resp.AutoStartToken),
 	}
-
 	return
-
 }
 
-func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error){
-
+func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error) {
 	resp = &eid.Resp{}
 
 	switch res.Status {
@@ -118,15 +109,15 @@ func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error){
 		resp.Info.DateOfBirth, _ = time.Parse("20060102", res.CompletionData.User.PersonalNumber[:8])
 
 		resp.Extra = map[string]interface{}{
-			"cert": res.CompletionData.Cert,
+			"cert":     res.CompletionData.Cert,
 			"fullName": res.CompletionData.User.Name,
 		}
 		resp.Signature, err = json.Marshal(struct {
-			Signature string `json:"signature"`
+			Signature    string `json:"signature"`
 			OCSPResponse string `json:"ocspResponse"`
 		}{
-			Signature:res.CompletionData.Signature,
-			OCSPResponse:res.CompletionData.OCSPResponse,
+			Signature:    res.CompletionData.Signature,
+			OCSPResponse: res.CompletionData.OCSPResponse,
 		})
 	default:
 		resp.Status = eid.STATUS_UNKNOWN
@@ -134,9 +125,8 @@ func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error){
 	return
 }
 
-
 func (e eeid) Peek(ctx context.Context, in *eid.Inter) (resp *eid.Resp, err error) {
-	res, err :=  e.parent.api.Collect(in.Ref)
+	res, err := e.parent.api.Collect(in.Ref)
 	if err != nil {
 		return
 	}
@@ -147,7 +137,6 @@ func (e eeid) Peek(ctx context.Context, in *eid.Inter) (resp *eid.Resp, err erro
 	resp.Inter = in
 	return
 }
-
 
 func (e eeid) Collect(ctx context.Context, in *eid.Inter, cancelOnErr bool) (resp *eid.Resp, err error) {
 	res, err := e.parent.Collect(ctx, in.Ref, cancelOnErr)
@@ -165,5 +154,3 @@ func (e eeid) Collect(ctx context.Context, in *eid.Inter, cancelOnErr bool) (res
 func (e eeid) Cancel(intermediate *eid.Inter) error {
 	return e.parent.api.Cancel(intermediate.Ref)
 }
-
-
