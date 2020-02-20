@@ -146,11 +146,15 @@ type Resp struct {
 
 func FromGrpcReq(req *twoferrpc.Req) (r Req, err error) {
 	if req == nil {
-		err = errors.New("WAT")
+		err = errors.New("could not convert nil to request")
 		return
 	}
-	r.ensureWho()
-	r.ensurePayload()
+
+	if req.Who == nil {
+		err = errors.New("who must be defined in request")
+		return
+	}
+
 	r.Who = &User{
 		Inferred:   req.Who.Inferred,
 		SSN:        req.Who.Ssn,
@@ -168,9 +172,9 @@ func FromGrpcReq(req *twoferrpc.Req) (r Req, err error) {
 	return
 }
 
-func FromGrpcInter(inter *twoferrpc.Inter) (i Inter, e error) {
+func FromGrpcInter(inter *twoferrpc.Inter) (i Inter, err error) {
 	if inter == nil {
-		e = errors.New("ALL IS NOT WELL")
+		err = errors.New("ALL IS NOT WELL")
 		return
 	}
 	req, err := FromGrpcReq(inter.Req)
@@ -231,7 +235,7 @@ func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
 		e = errors.New("SOMETHING'S BROKEN")
 		return
 	}
-	inter, err := ToGrpcInter(res.Inter)
+	inter, err := ToGrpcInter(res.Inter, "todo")
 	if err != nil {
 		return
 	}
