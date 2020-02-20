@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package twoferrpc;
+
+
+service OTP {
+    rpc Enroll (OTPEnrollment) returns (OTPEnrollmentResponse) {
+    };
+    rpc Validate (OTPValidate) returns (OTPValidateResponse) {
+    };
+}
+
+enum OTPAlg{
+    SHA_1 = 0;
+    SHA_256 = 1;
+    SHA_512 = 2;
+}
+
+enum OTPMode {
+    TIME = 0;
+    COUNTER = 1;
+}
+
+enum OTPDigits {
+    SIX = 0;
+    EIGHT = 1;
+}
+
+message OTPEnrollment {
+    string issuer = 1;
+    string account = 2;
+    OTPAlg alg = 3;
+    OTPMode mode = 4;
+    OTPDigits digits = 6;
+    uint32 period = 7;
+    uint32 secretSize = 8;
+
+}
+message OTPEnrollmentResponse {
+    string uri = 1;
+    string secret = 2;
+}
+
+message OTPValidate {
+    string otp = 1;
+    string secret = 2;
+}
+
+message OTPValidateResponse {
+    bool valid = 1;
+    string secret = 2;
+}

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"twofer/twoferrpc"
 
 	"github.com/urfave/cli/v2"
@@ -155,6 +156,171 @@ func main() {
 					}
 
 					return ioutil.WriteFile(filename, image.Data, 0660)
+				},
+			},
+			{
+				Name:  "otp",
+				Usage: "Generates a qr image",
+				Subcommands: []*cli.Command{
+					{
+						Name: "enroll",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "issuer",
+								Aliases: []string{"i"},
+								Usage:   "issuer name",
+							},
+							&cli.StringFlag{
+								Name:    "user",
+								Aliases: []string{"u"},
+								Usage:   "username",
+							},
+							&cli.StringFlag{
+								Name:    "alg",
+								Aliases: []string{"a"},
+								Usage:   "algorithm used",
+								Value: "sha1",
+							},
+							&cli.UintFlag{
+								Name:    "period",
+								Aliases: []string{"p"},
+								Usage:   "time window for totp",
+								Value: 30,
+							},
+							&cli.UintFlag{
+								Name:    "digits",
+								Aliases: []string{"d"},
+								Usage:   "otp length, 6/8",
+								Value: 6,
+							},
+
+							&cli.UintFlag{
+								Name:    "secret-size",
+								Aliases: []string{"s"},
+								Usage:   "secret-size in bytes",
+								Value: 32,
+							},
+							&cli.StringFlag{
+								Name:    "mode",
+								Aliases: []string{"m"},
+								Usage:   "otp type, time/counter",
+								Value: "time",
+							},
+						},
+						Action: func(c *cli.Context) error {
+
+							mode := c.String("mode")
+							issuer := c.String("issuer")
+
+							user := c.String("user")
+							alg := c.String("alg")
+							period := c.Uint("period")
+							digits := c.Uint("digits")
+							ss := c.Int("secret-size")
+
+
+							var ralg twoferrpc.OTPAlg
+							switch strings.ToLower(alg) {
+							case "sha1":
+								ralg = twoferrpc.OTPAlg_SHA_1
+							case "sha512":
+								ralg = twoferrpc.OTPAlg_SHA_512
+							case "sha256":
+								fallthrough
+							default:
+								ralg = twoferrpc.OTPAlg_SHA_1
+							}
+
+							var rmode twoferrpc.OTPMode
+							switch mode {
+							case "time":
+								rmode = twoferrpc.OTPMode_TIME
+							case "counter":
+								rmode = twoferrpc.OTPMode_COUNTER
+							default:
+								return errors.New("not a vaild mode")
+							}
+
+							var rdigits twoferrpc.OTPDigits
+							switch digits {
+							case 6:
+								rdigits = twoferrpc.OTPDigits_SIX
+							case 8:
+								rdigits = twoferrpc.OTPDigits_EIGHT
+							default:
+								return errors.New("digits must be 6 or 8")
+							}
+
+
+							client := twoferrpc.NewOTPClient(conn)
+
+							r, err := client.Enroll(context.Background(), &twoferrpc.OTPEnrollment{
+								Issuer:               issuer,
+								Account:              user,
+								Alg:                  ralg,
+								Mode:                 rmode,
+								Digits:               rdigits,
+								Period:               uint32(period),
+								SecretSize:           uint32(ss),
+							})
+
+							if err != nil{
+								return err
+							}
+							config := qrterminal.Config{
+								Level:     qrterminal.M,
+								Writer:    os.Stdout,
+								BlackChar: qrterminal.BLACK,
+								WhiteChar: qrterminal.WHITE,
+								QuietZone: 2,
+							}
+							qrterminal.GenerateWithConfig(r.Uri, config)
+
+							fmt.Println(r.Uri)
+							fmt.Println(r.Secret)
+
+							return nil
+						},
+
+					},
+					{
+						Name: "validate",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "secret",
+								Aliases: []string{"s"},
+								Usage:   "the secret data",
+							},
+							&cli.StringFlag{
+								Name:    "otp",
+								Aliases: []string{"o"},
+								Usage:   "the current otp",
+							},
+						},
+						Action: func(c *cli.Context) error {
+
+							secret := c.String("secret")
+							otp := c.String("otp")
+
+
+							client := twoferrpc.NewOTPClient(conn)
+
+							r, err := client.Validate(context.Background(), &twoferrpc.OTPValidate{
+								Otp:                  otp,
+								Secret:               secret,
+							})
+
+							if err != nil {
+								return err
+							}
+
+							fmt.Println("Valid:", r.Valid)
+							fmt.Println(r.Secret)
+
+							return nil
+						},
+
+					},
 				},
 			},
 			{
