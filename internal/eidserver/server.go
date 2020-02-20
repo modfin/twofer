@@ -114,6 +114,6 @@ func (s Server) Peek(ctx context.Context, inter *twoferrpc.Inter) (res *twoferrp
 	return &grpcRes, nil
 }
 
-func (s Server) Cancel(context.Context, *twoferrpc.Inter) (*twoferrpc.Error, error) {
+func (s Server) Cancel(context.Context, *twoferrpc.Inter) (*twoferrpc.Empty, error) {
 	panic("implement me")
 }
