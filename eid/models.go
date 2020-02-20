@@ -2,8 +2,11 @@ package eid
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"time"
+	"twofer/twoferrpc"
 )
 
 type ToEID interface {
@@ -24,9 +27,11 @@ type Client interface {
 func Request() *Req {
 	return &Req{}
 }
+
 type Req struct {
-	Who     *User `json:"who"`
-	Payload *Payload `json:"payload"`
+	Provider Client
+	Who      *User    `json:"who"`
+	Payload  *Payload `json:"payload"`
 }
 
 func (r *Req) ensureWho() {
@@ -81,16 +86,16 @@ func (r *Req) SignData(data []byte) *Req {
 }
 
 type User struct {
-	Inferred   bool `json:"inferred"`
+	Inferred   bool   `json:"inferred"`
 	SSN        string `json:"ssn"`
-	SSNCountry string`json:"ssn_country"`
-	Email      string`json:"email"`
-	Phone      string`json:"phone"`
-	IP         net.IP`json:"ip"`
+	SSNCountry string `json:"ssn_country"`
+	Email      string `json:"email"`
+	Phone      string `json:"phone"`
+	IP         net.IP `json:"ip"`
 }
 type Payload struct {
-	Text string  `json:"text"`// Display text of what is being signed.
-	Data []byte `json:"data"`// Preferable a digest of a document
+	Text string `json:"text"` // Display text of what is being signed.
+	Data []byte `json:"data"` // Preferable a digest of a document
 }
 
 type Mode string
@@ -103,7 +108,7 @@ const (
 type Inter struct {
 	Req *Req `json:"req"`
 
-	Mode     Mode `json:"mode"`
+	Mode     Mode   `json:"mode"`
 	Ref      string `json:"ref"`
 	Inferred string `json:"inferred"`
 	QRData   string `json:"qr_data"`
@@ -125,16 +130,154 @@ const (
 
 type Info struct {
 	User
-	Name        string `json:"name"`
-	Surname     string `json:"surname"`
+	Name        string    `json:"name"`
+	Surname     string    `json:"surname"`
 	DateOfBirth time.Time `json:"date_of_birth"`
 }
 
 type Resp struct {
 	Inter *Inter `json:"inter"`
 
-	Status    Status `json:"status"`
-	Info      Info `json:"info"`
-	Signature []byte `json:"signature"`
+	Status    Status                 `json:"status"`
+	Info      Info                   `json:"info"`
+	Signature []byte                 `json:"signature"`
 	Extra     map[string]interface{} `json:"extra"`
+}
+
+func FromGrpcReq(req *twoferrpc.Req) (r Req, err error) {
+	if req == nil {
+		err = errors.New("WAT")
+		return
+	}
+	r.ensureWho()
+	r.ensurePayload()
+	r.Who = &User{
+		Inferred:   req.Who.Inferred,
+		SSN:        req.Who.Ssn,
+		SSNCountry: req.Who.SsnCountry,
+		Email:      req.Who.Email,
+		Phone:      req.Who.Phone,
+		IP:         net.ParseIP(req.Who.Ip),
+	}
+	if req.Payload != nil {
+		r.Payload = &Payload{
+			Text: req.Payload.Text,
+			Data: req.Payload.Data,
+		}
+	}
+	return
+}
+
+func FromGrpcInter(inter *twoferrpc.Inter) (i Inter, e error) {
+	if inter == nil {
+		e = errors.New("ALL IS NOT WELL")
+		return
+	}
+	req, err := FromGrpcReq(inter.Req)
+	if err != nil {
+		return
+	}
+	i.Req = &req
+	i.Inferred = inter.Inferred
+	i.QRData = inter.QrData
+	i.Ref = inter.Ref
+	switch inter.Mode {
+	case twoferrpc.Inter_AUTH:
+		i.Mode = AUTH
+	case twoferrpc.Inter_SIGN:
+		i.Mode = SIGN
+	default:
+		fmt.Println("WAAAT")
+	}
+	return
+}
+
+func ToGrpcInter(inter *Inter, provider string) (i twoferrpc.Inter, err error) {
+	if inter.Req == nil {
+		err = errors.New("SOMETHING'S NOT WHAT WE EXPECT")
+		return
+	}
+
+	user := toGrpcUser(*inter.Req.Who)
+	payload := toGrpcPayload(*inter.Req.Payload)
+
+	i.Req = &twoferrpc.Req{
+		Provider: &twoferrpc.Provider{
+			Name: provider,
+		},
+		Who:     &user,
+		Payload: &payload,
+	}
+	switch inter.Mode {
+	case AUTH:
+		i.Mode = twoferrpc.Inter_AUTH
+	case SIGN:
+		i.Mode = twoferrpc.Inter_SIGN
+	default:
+		fmt.Println("WAAAT")
+	}
+	i.Ref = inter.Ref
+	i.Inferred = inter.Inferred
+	i.QrData = inter.QRData
+	return
+}
+
+func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
+	/*	TODO
+		Error
+		Extra
+	*/
+	if res == nil {
+		e = errors.New("SOMETHING'S BROKEN")
+		return
+	}
+	inter, err := ToGrpcInter(res.Inter)
+	if err != nil {
+		return
+	}
+	user := toGrpcUser(res.Info.User)
+
+	r.Inter = &inter
+	r.Signature = res.Signature
+	r.Info = &user
+
+	// DISGUSTINGTOWN
+	switch res.Status {
+	case STATUS_UNKNOWN:
+		r.Status = twoferrpc.Resp_STATUS_UNKNOWN
+	case STATUS_PENDING:
+		r.Status = twoferrpc.Resp_STATUS_PENDING
+	case STATUS_CANCELED:
+		r.Status = twoferrpc.Resp_STATUS_CANCELED
+	case STATUS_RP_CANCELED:
+		r.Status = twoferrpc.Resp_STATUS_RP_CANCELED
+	case STATUS_EXPIRED:
+		r.Status = twoferrpc.Resp_STATUS_EXPIRED
+	case STATUS_APPROVED:
+		r.Status = twoferrpc.Resp_STATUS_APPROVED
+	case STATUS_REJECTED:
+		r.Status = twoferrpc.Resp_STATUS_REJECTED
+	case STATUS_FAILED:
+		r.Status = twoferrpc.Resp_STATUS_FAILED
+	default:
+		err = errors.New("THIS SHOULDN'T HAPPEN")
+		return
+	}
+	return
+}
+
+func toGrpcUser(who User) (u twoferrpc.User) {
+	u.Inferred = who.Inferred
+	u.Ssn = who.SSN
+	u.SsnCountry = who.SSNCountry
+	u.Email = who.Email
+	u.Phone = who.Phone
+	u.Ip = who.IP.String()
+	return
+}
+
+func toGrpcPayload(l Payload) (p twoferrpc.Req_Payload) {
+	p.Text = l.Text
+	p.Data = l.Data
+	return
 }

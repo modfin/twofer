@@ -19,7 +19,7 @@ func (e eeid) Name() string {
 
 func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err error) {
 
-	if req.Who == nil{
+	if req.Who == nil {
 		req.Inferred()
 	}
 
@@ -27,16 +27,16 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 
 	if req.Who.Inferred {
 		r.UseInferred()
-	}else if req.Who.SSNCountry != "" &&  req.Who.SSN != ""{
+	} else if req.Who.SSNCountry != "" && req.Who.SSN != "" {
 		err = r.UseSSN(req.Who.SSNCountry, req.Who.SSN)
 		if err != nil {
 			return nil, err
 		}
-	}else if req.Who.Phone != ""{
+	} else if req.Who.Phone != "" {
 		r.UsePhone(req.Who.Phone)
-	}else if req.Who.Email != ""{
+	} else if req.Who.Email != "" {
 		r.UseEmail(req.Who.Email)
-	}else {
+	} else {
 		r.UseInferred()
 	}
 
@@ -48,7 +48,7 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 	}
 
 	authRef, err := e.parent.AuthInit(ctx, r)
-	if err != nil{
+	if err != nil {
 		return
 	}
 	in = &eid.Inter{
@@ -56,29 +56,29 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Mode:     eid.AUTH,
 		Ref:      authRef,
 		Inferred: authRef,
-		QRData:    fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(authRef)),
+		QRData:   fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(authRef)),
 	}
 	return in, nil
 
 }
 
 func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err error) {
-	if req.Who == nil{
+	if req.Who == nil {
 		req.Inferred()
 	}
 
 	r := frejam.SignRequest{}
 
-	 if req.Who.SSNCountry != "" &&  req.Who.SSN != ""{
+	if req.Who.SSNCountry != "" && req.Who.SSN != "" {
 		err = r.UseSSN(req.Who.SSNCountry, req.Who.SSN)
 		if err != nil {
 			return nil, err
 		}
-	}else if req.Who.Phone != ""{
+	} else if req.Who.Phone != "" {
 		r.UsePhone(req.Who.Phone)
-	}else if req.Who.Email != ""{
+	} else if req.Who.Email != "" {
 		r.UseEmail(req.Who.Email)
-	}else {
+	} else {
 		return nil, fmt.Errorf("ssn, phone or email must be supplied for signing")
 	}
 
@@ -89,13 +89,13 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		{frejam.ATTR_EMAIL_ADDRESS},
 	}
 
-	if req.Payload != nil{
+	if req.Payload != nil {
 		r.DataToSign.Text = req.Payload.Text
 		r.DataToSign.BinaryData = req.Payload.Data
 	}
 
 	signRef, err := e.parent.SignInit(ctx, r)
-	if err != nil{
+	if err != nil {
 		return
 	}
 	in = &eid.Inter{
@@ -103,7 +103,7 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Mode:     eid.SIGN,
 		Ref:      signRef,
 		Inferred: signRef,
-		QRData:    fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(signRef)),
+		QRData:   fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(signRef)),
 	}
 	return in, nil
 
@@ -119,8 +119,6 @@ func (e eeid) Cancel(intermediate *eid.Inter) error {
 	return fmt.Errorf("mode %s is not supported to cancel", intermediate.Mode)
 }
 
-
-
 func (e eeid) Peek(ctx context.Context, inter *eid.Inter) (resp *eid.Resp, err error) {
 	resp = &eid.Resp{
 		Inter: inter,
@@ -130,7 +128,7 @@ func (e eeid) Peek(ctx context.Context, inter *eid.Inter) (resp *eid.Resp, err e
 	switch inter.Mode {
 	case eid.AUTH:
 		res, err := e.parent.api.AuthGetOneResult(inter.Ref)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		resp.Status = mapStatus(res.Status)
@@ -139,7 +137,7 @@ func (e eeid) Peek(ctx context.Context, inter *eid.Inter) (resp *eid.Resp, err e
 
 	case eid.SIGN:
 		res, err := e.parent.api.SignGetOneResult(inter.Ref)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		resp.Status = mapStatus(res.Status)
@@ -158,7 +156,6 @@ func (e eeid) Peek(ctx context.Context, inter *eid.Inter) (resp *eid.Resp, err e
 
 	return
 }
-
 
 func (e eeid) Collect(ctx context.Context, inter *eid.Inter, cancelOnErr bool) (resp *eid.Resp, err error) {
 
@@ -170,7 +167,7 @@ func (e eeid) Collect(ctx context.Context, inter *eid.Inter, cancelOnErr bool) (
 	switch inter.Mode {
 	case eid.AUTH:
 		res, err := e.parent.AuthCollect(ctx, inter.Ref, cancelOnErr)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		resp.Status = mapStatus(res.Status)
@@ -179,7 +176,7 @@ func (e eeid) Collect(ctx context.Context, inter *eid.Inter, cancelOnErr bool) (
 
 	case eid.SIGN:
 		res, err := e.parent.SignCollect(ctx, inter.Ref, cancelOnErr)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		resp.Status = mapStatus(res.Status)
@@ -199,7 +196,7 @@ func (e eeid) Collect(ctx context.Context, inter *eid.Inter, cancelOnErr bool) (
 	return
 }
 
-func mapStatus(status frejam.Status) eid.Status{
+func mapStatus(status frejam.Status) eid.Status {
 	switch status {
 	case frejam.STATUS_STARTED, frejam.STATUS_DELIVERED_TO_MOBILE:
 		return eid.STATUS_PENDING

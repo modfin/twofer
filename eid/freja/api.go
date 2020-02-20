@@ -14,8 +14,6 @@ type API struct {
 	parent *Client
 }
 
-
-
 //// Authentication
 
 func (a *API) AuthInitRequest(ctx context.Context, authReq frejam.AuthRequest) (authRef string, err error) {
@@ -162,13 +160,7 @@ func (a *API) AuthCancelRequest(authRef string) error {
 	return nil
 }
 
-
-
-
-
-
 ////// Signing
-
 
 func (a *API) SignInitRequest(ctx context.Context, signReq frejam.SignRequest) (signRef string, err error) {
 
@@ -278,8 +270,6 @@ func (a *API) SignGetResults() ([]frejam.SignResponse, error) {
 
 	return res.SignatureResults, nil
 }
-
-
 
 func (a *API) SignCancelRequest(signRef string) error {
 	content := []byte(fmt.Sprintf(`{"signRef":"%s"}`, signRef))

@@ -15,7 +15,7 @@ service EID {
     };
     rpc Peek (Inter) returns (Resp) {
     };
-    rpc Cancel (Inter) returns (Error) {
+    rpc Cancel (Inter) returns (Empty) {
     };
 
 }
@@ -29,11 +29,6 @@ message Providers {
 
 message Provider {
     string name = 1;
-}
-
-
-message Error {
-    string value = 1;
 }
 
 message User {
@@ -57,7 +52,6 @@ message Req {
 }
 
 message Inter {
-    Error error = 1;
     Req req = 2;
 
     enum Mode {
@@ -85,7 +79,6 @@ message Info {
 }
 
 message Resp {
-    Error error = 1;
 
     enum Status {
         STATUS_UNKNOWN = 0;

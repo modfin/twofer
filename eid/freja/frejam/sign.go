@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-
 type SignatureType string
+
 const (
-	ST_SIMPLE SignatureType = "SIMPLE"
+	ST_SIMPLE   SignatureType = "SIMPLE"
 	ST_EXTENDED SignatureType = "EXTENDED"
 )
 
@@ -22,9 +22,8 @@ type SignRef struct {
 
 type PushNotification struct {
 	Title string `json:"title"`
-	Text string `json:"text"`
+	Text  string `json:"text"`
 }
-
 
 type DataToSign struct {
 
@@ -43,12 +42,12 @@ func (a DataToSign) MarshalJSON() ([]byte, error) {
 	var res []byte
 	res = append(res, []byte(`{"text":`)...)
 	d, err := json.Marshal(base64.StdEncoding.EncodeToString([]byte(a.Text)))
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	res = append(res, d...)
 
-	if len(a.BinaryData) > 0{
+	if len(a.BinaryData) > 0 {
 		data := base64.StdEncoding.EncodeToString(a.BinaryData)
 		res = append(res, []byte(`,"binaryData":"`)...)
 		res = append(res, data...)
@@ -58,11 +57,8 @@ func (a DataToSign) MarshalJSON() ([]byte, error) {
 	return append(res, []byte(`}`)...), nil
 }
 
-
 type SignRequest struct {
 	UserInfoType UserInfoType `json:"userInfoType"`
-
-
 
 	// 256 characters maximum
 	//EMAIL or PHONE, interpreted as a string value
@@ -104,10 +100,9 @@ type SignRequest struct {
 	//optional
 	// If the requested attribute is BASIC_USER_INFO, DATE_OF_BIRTH or SSN the minRegistrationLevel must be set to EXTENDED or PLUS.
 	AttributesToReturn []Attribute `json:"attributesToReturn"`
-
 }
 
-func (i *SignRequest) SetExpiry(t time.Time){
+func (i *SignRequest) SetExpiry(t time.Time) {
 	i.Expiry = t.UnixNano() / int64(time.Millisecond)
 }
 
@@ -149,7 +144,6 @@ func (i SignRequest) Marshal() (s string, err error) {
 		i.DataToSignType = "EXTENDED_UTF8_TEXT"
 	}
 
-
 	b, err := json.Marshal(i)
 	if err != nil {
 		return
@@ -157,7 +151,6 @@ func (i SignRequest) Marshal() (s string, err error) {
 
 	return fmt.Sprintf("initSignRequest=%s", base64.StdEncoding.EncodeToString(b)), nil
 }
-
 
 type SignResponse struct {
 	SignRef
@@ -167,6 +160,6 @@ type SignResponse struct {
 	Details             string              `json:"details"`             // JWS signed data, see below
 }
 
-func (a SignResponse) JWSToken() string{
+func (a SignResponse) JWSToken() string {
 	return a.Details
 }
