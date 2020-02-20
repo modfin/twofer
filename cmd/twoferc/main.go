@@ -62,8 +62,8 @@ func main() {
 					config := qrterminal.Config{
 						Level:     qrterminal.M,
 						Writer:    os.Stdout,
-						BlackChar: qrterminal.WHITE,
-						WhiteChar: qrterminal.BLACK,
+						BlackChar: qrterminal.BLACK,
+						WhiteChar: qrterminal.WHITE,
 						QuietZone: 2,
 					}
 					qrterminal.GenerateWithConfig(inter.QrData, config)
@@ -178,32 +178,32 @@ func main() {
 								Name:    "alg",
 								Aliases: []string{"a"},
 								Usage:   "algorithm used",
-								Value: "sha1",
+								Value:   "sha1",
 							},
 							&cli.UintFlag{
 								Name:    "period",
 								Aliases: []string{"p"},
 								Usage:   "time window for totp",
-								Value: 30,
+								Value:   30,
 							},
 							&cli.UintFlag{
 								Name:    "digits",
 								Aliases: []string{"d"},
 								Usage:   "otp length, 6/8",
-								Value: 6,
+								Value:   6,
 							},
 
 							&cli.UintFlag{
 								Name:    "secret-size",
 								Aliases: []string{"s"},
 								Usage:   "secret-size in bytes",
-								Value: 32,
+								Value:   32,
 							},
 							&cli.StringFlag{
 								Name:    "mode",
 								Aliases: []string{"m"},
 								Usage:   "otp type, time/counter",
-								Value: "time",
+								Value:   "time",
 							},
 						},
 						Action: func(c *cli.Context) error {
@@ -216,7 +216,6 @@ func main() {
 							period := c.Uint("period")
 							digits := c.Uint("digits")
 							ss := c.Int("secret-size")
-
 
 							var ralg twoferrpc.OTPAlg
 							switch strings.ToLower(alg) {
@@ -250,20 +249,19 @@ func main() {
 								return errors.New("digits must be 6 or 8")
 							}
 
-
 							client := twoferrpc.NewOTPClient(conn)
 
 							r, err := client.Enroll(context.Background(), &twoferrpc.OTPEnrollment{
-								Issuer:               issuer,
-								Account:              user,
-								Alg:                  ralg,
-								Mode:                 rmode,
-								Digits:               rdigits,
-								Period:               uint32(period),
-								SecretSize:           uint32(ss),
+								Issuer:     issuer,
+								Account:    user,
+								Alg:        ralg,
+								Mode:       rmode,
+								Digits:     rdigits,
+								Period:     uint32(period),
+								SecretSize: uint32(ss),
 							})
 
-							if err != nil{
+							if err != nil {
 								return err
 							}
 							config := qrterminal.Config{
@@ -280,7 +278,6 @@ func main() {
 
 							return nil
 						},
-
 					},
 					{
 						Name: "validate",
@@ -301,12 +298,11 @@ func main() {
 							secret := c.String("secret")
 							otp := c.String("otp")
 
-
 							client := twoferrpc.NewOTPClient(conn)
 
 							r, err := client.Validate(context.Background(), &twoferrpc.OTPValidate{
-								Otp:                  otp,
-								Secret:               secret,
+								Otp:    otp,
+								Secret: secret,
 							})
 
 							if err != nil {
@@ -318,7 +314,6 @@ func main() {
 
 							return nil
 						},
-
 					},
 				},
 			},
