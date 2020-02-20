@@ -1,14 +1,13 @@
 package qrserver
 
 import (
+	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/net/context"
 	"twofer/twoferrpc"
-	qrcode "github.com/skip2/go-qrcode"
 )
 
-func New() *Server{
-	return &Server{
-	}
+func New() *Server {
+	return &Server{}
 }
 
 type Server struct {
@@ -17,7 +16,7 @@ type Server struct {
 func (s Server) Generate(ctx context.Context, data *twoferrpc.QRData) (*twoferrpc.QRImage, error) {
 	size := int(data.Size)
 
-	if size < 10{
+	if size < 10 {
 		size = 256
 	}
 
@@ -25,10 +24,7 @@ func (s Server) Generate(ctx context.Context, data *twoferrpc.QRData) (*twoferrp
 	image, err := qrcode.Encode(data.Data, level, size)
 
 	return &twoferrpc.QRImage{
-		Data: image,
+		Data:        image,
 		ContentType: "image/png",
 	}, err
 }
-
-
-

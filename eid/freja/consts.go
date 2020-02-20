@@ -10,7 +10,6 @@ const getSignResultsURL = "/sign/1.0/getResults"
 const getOneSignResultURL = "/sign/1.0/getOneResult"
 const cancelSignURL = "/sign/1.0/cancel"
 
-
-func Name() string{
+func Name() string {
 	return "FrejaID"
 }
