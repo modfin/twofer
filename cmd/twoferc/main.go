@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var serverAddr string = "127.0.0.1:1234"
+var serverAddr string = "127.0.0.1:43210"
 
 func main() {
 
