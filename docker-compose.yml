@@ -1,0 +1,22 @@
+version: "3.0"
+
+
+services:
+  twoferd:
+    build:
+      context: ./cmd/twoferd
+      dockerfile: Dockerfile.dev
+    environment:
+      EID_BANKID_ENABLE: "true"
+      EID_BANKID_URL: "https://appapi2.test.bankid.com"
+
+      EID_FREJA_ENABLE: "true"
+      EID_FREJA_URL: "https://services.test.frejaeid.com"
+    ports:
+       - "9090:80"
+    volumes:
+      - .:/go/src/github.com/modfin/twofer:cached
+      - gopkg:/go/pkg:cached
+
+volumes:
+  gopkg:
