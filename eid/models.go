@@ -3,7 +3,6 @@ package eid
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"time"
 	"twofer/twoferrpc"
@@ -93,6 +92,7 @@ type User struct {
 	Phone      string `json:"phone"`
 	IP         net.IP `json:"ip"`
 }
+
 type Payload struct {
 	Text string `json:"text"` // Display text of what is being signed.
 	Data []byte `json:"data"` // Preferable a digest of a document
@@ -192,7 +192,7 @@ func FromGrpcInter(inter *twoferrpc.Inter, cli Client) (i Inter, err error) {
 	case twoferrpc.Inter_SIGN:
 		i.Mode = SIGN
 	default:
-		fmt.Println("WAAAT")
+		err = errors.New("there should be a mode present")
 	}
 	return
 }
