@@ -112,6 +112,18 @@ func (s Server) Peek(ctx context.Context, inter *twoferrpc.Inter) (res *twoferrp
 	return &grpcRes, nil
 }
 
-func (s Server) Cancel(context.Context, *twoferrpc.Inter) (*twoferrpc.Empty, error) {
-	panic("implement me")
+func (s Server) Cancel(_ context.Context, inter *twoferrpc.Inter) (emp *twoferrpc.Empty, err error) {
+	cli, err := s.Get(inter.Req.Provider.Name)
+	if err != nil {
+		return
+	}
+	eidCancel, err := eid.FromGrpcInter(inter, cli)
+	if err != nil {
+		return
+	}
+	err = cli.Cancel(&eidCancel)
+	if err != nil {
+		return
+	}
+	return &twoferrpc.Empty{}, nil
 }
