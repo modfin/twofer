@@ -30,7 +30,7 @@ func main() {
 
 	fmt.Println("Starting server")
 
-	if cfg.OTPEnabled {
+	if cfg.OTP.Enabled {
 		fmt.Println("- Enabling OTP")
 		rpc.RegisterOTPServer(grpcServer, otpserver.New())
 	}

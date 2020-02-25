@@ -12,12 +12,18 @@ type Config struct {
 	FrejaID FrejaID
 	BankID  BankID
 
-	QREnabled  bool `env:"QR_ENABLE" envDefault:"TRUE"`
-	OTPEnabled bool `env:"OTP_ENABLE" envDefault:"TRUE"`
+	QREnabled bool `env:"QR_ENABLE" envDefault:"TRUE"`
+
+	OTP OTP
 }
 
 func (c Config) EIDEnabled() bool {
 	return c.BankID.Enabled
+}
+
+type OTP struct {
+	Enabled       bool     `env:"OTP_ENABLE" envDefault:"TRUE"`
+	EncryptionKey []string `env:"OTP_ENCRYPTION_KEY" envSeparator:" "`
 }
 
 type BankID struct {
