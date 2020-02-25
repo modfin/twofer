@@ -82,10 +82,10 @@ func (b FrejaID) GetClientKey() []byte {
 	return []byte(b.ClientKey)
 }
 func (b FrejaID) GetJWSCert() []byte {
-	if b.ClientKeyFile != "" {
-		return []byte(b.ClientKeyFile)
+	if b.JWSCertFile != "" {
+		return []byte(b.JWSCertFile)
 	}
-	return []byte(b.ClientKey)
+	return []byte(b.JWSCert)
 }
 
 var once sync.Once
