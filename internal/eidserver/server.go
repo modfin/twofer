@@ -35,7 +35,7 @@ func (s Server) AuthInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc
 	if err != nil {
 		return
 	}
-	eidReq, err := eid.FromGrpcReq(req)
+	eidReq, err := eid.FromGrpcReq(req, cli)
 	if err != nil {
 		return
 	}
@@ -43,7 +43,7 @@ func (s Server) AuthInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc
 	if err != nil {
 		return
 	}
-	grpcInter, err := eid.ToGrpcInter(authInit, req.Provider.Name)
+	grpcInter, err := eid.ToGrpcInter(authInit)
 	if err != nil {
 		return
 	}
@@ -57,17 +57,15 @@ func (s Server) SignInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc
 		return
 	}
 	fmt.Printf("Using provider %s to do sign request\n", cli.Name())
-	eidReq, err := eid.FromGrpcReq(req)
+	eidReq, err := eid.FromGrpcReq(req, cli)
 	if err != nil {
 		return
 	}
-	fmt.Printf("EIDRequest%+v\n", eidReq)
 	signInit, err := cli.SignInit(ctx, &eidReq)
 	if err != nil {
 		return
 	}
-	fmt.Printf("Sign Init: %+v\n", signInit)
-	grpcInter, err := eid.ToGrpcInter(signInit, req.Provider.Name)
+	grpcInter, err := eid.ToGrpcInter(signInit)
 	if err != nil {
 		return
 	}
@@ -79,7 +77,7 @@ func (s Server) Collect(ctx context.Context, inter *twoferrpc.Inter) (r *twoferr
 	if err != nil {
 		return
 	}
-	eidInter, err := eid.FromGrpcInter(inter)
+	eidInter, err := eid.FromGrpcInter(inter, cli)
 	if err != nil {
 		return
 	}
@@ -99,15 +97,15 @@ func (s Server) Peek(ctx context.Context, inter *twoferrpc.Inter) (res *twoferrp
 	if err != nil {
 		return
 	}
-	eidInter, err := eid.FromGrpcInter(inter)
+	eidInter, err := eid.FromGrpcInter(inter, cli)
 	if err != nil {
 		return
 	}
-	collect, err := cli.Peek(ctx, &eidInter)
+	peek, err := cli.Peek(ctx, &eidInter)
 	if err != nil {
 		return
 	}
-	grpcRes, err := eid.ToGrpcResp(collect)
+	grpcRes, err := eid.ToGrpcResp(peek)
 	if err != nil {
 		return
 	}

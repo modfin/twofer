@@ -1,6 +1,7 @@
 package eid
 
 import (
+	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,7 @@ func diffObj(expected interface{}, got interface{}) string {
 	return fmt.Sprintf("expected:\n%s\ngot:\n%s\n", strings.Join(e, "\n"), strings.Join(g, "\n"))
 }
 
+var testClient = &TestClient{}
 var fromGrpcInterTests = []struct {
 	in  *twoferrpc.Inter
 	err string
@@ -46,7 +48,7 @@ var fromGrpcInterTests = []struct {
 		err: "",
 		res: Inter{
 			Req: &Req{
-				Provider: nil,
+				Provider: testClient,
 				Who:      &User{},
 				Payload:  nil,
 			},
@@ -63,7 +65,8 @@ var fromGrpcInterTests = []struct {
 		err: "",
 		res: Inter{
 			Req: &Req{
-				Who: &User{},
+				Provider: testClient,
+				Who:      &User{},
 			},
 			Mode: SIGN,
 		},
@@ -78,7 +81,8 @@ var fromGrpcInterTests = []struct {
 		err: "",
 		res: Inter{
 			Req: &Req{
-				Who: &User{},
+				Provider: testClient,
+				Who:      &User{},
 			},
 			Mode: AUTH,
 		},
@@ -86,9 +90,8 @@ var fromGrpcInterTests = []struct {
 }
 
 func TestFromGrpcInter(t *testing.T) {
-
 	for _, test := range fromGrpcInterTests {
-		i, err := FromGrpcInter(test.in)
+		i, err := FromGrpcInter(test.in, testClient)
 
 		if test.err != "" {
 			assert.EqualError(t, err, test.err)
@@ -100,4 +103,28 @@ func TestFromGrpcInter(t *testing.T) {
 		}
 	}
 
+}
+
+type TestClient struct {
+}
+
+func (c *TestClient) Name() (s string) {
+	return "wat"
+}
+
+func (c *TestClient) AuthInit(ctx context.Context, req *Req) (*Inter, error) {
+	return &Inter{}, nil
+}
+func (c *TestClient) SignInit(ctx context.Context, req *Req) (*Inter, error) {
+	return &Inter{}, nil
+}
+
+func (c *TestClient) Peek(ctx context.Context, req *Inter) (*Resp, error) {
+	return &Resp{}, nil
+}
+func (c *TestClient) Collect(ctx context.Context, req *Inter, cancelOnErr bool) (*Resp, error) {
+	return &Resp{}, nil
+}
+func (c *TestClient) Cancel(intermediate *Inter) error {
+	return nil
 }

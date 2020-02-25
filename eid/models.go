@@ -144,14 +144,14 @@ type Resp struct {
 	Extra     map[string]interface{} `json:"extra"`
 }
 
-func FromGrpcReq(req *twoferrpc.Req) (r Req, err error) {
+func FromGrpcReq(req *twoferrpc.Req, cli Client) (r Req, err error) {
 	if req == nil {
 		err = errors.New("could not convert nil to request")
 		return
 	}
 
 	if req.Who == nil {
-		err = errors.New("who must be defined in request")
+		err = errors.New("who must be defined")
 		return
 	}
 
@@ -163,6 +163,7 @@ func FromGrpcReq(req *twoferrpc.Req) (r Req, err error) {
 		Phone:      req.Who.Phone,
 		IP:         net.ParseIP(req.Who.Ip),
 	}
+	r.Provider = cli
 	if req.Payload != nil {
 		r.Payload = &Payload{
 			Text: req.Payload.Text,
@@ -172,12 +173,12 @@ func FromGrpcReq(req *twoferrpc.Req) (r Req, err error) {
 	return
 }
 
-func FromGrpcInter(inter *twoferrpc.Inter) (i Inter, err error) {
+func FromGrpcInter(inter *twoferrpc.Inter, cli Client) (i Inter, err error) {
 	if inter == nil {
-		err = errors.New("ALL IS NOT WELL")
+		err = errors.New("there must be an intermediate to collect")
 		return
 	}
-	req, err := FromGrpcReq(inter.Req)
+	req, err := FromGrpcReq(inter.Req, cli)
 	if err != nil {
 		return
 	}
@@ -196,18 +197,21 @@ func FromGrpcInter(inter *twoferrpc.Inter) (i Inter, err error) {
 	return
 }
 
-func ToGrpcInter(inter *Inter, provider string) (i twoferrpc.Inter, err error) {
+func ToGrpcInter(inter *Inter) (i twoferrpc.Inter, err error) {
 	if inter.Req == nil {
-		err = errors.New("SOMETHING'S NOT WHAT WE EXPECT")
+		err = errors.New("req is required")
 		return
 	}
-
-	user := toGrpcUser(*inter.Req.Who)
+	if inter.Req.Who == nil {
+		err = errors.New("who must be defined")
+		return
+	}
+	inter.Req.ensurePayload()
 	payload := toGrpcPayload(*inter.Req.Payload)
-
+	user := toGrpcUser(*inter.Req.Who)
 	i.Req = &twoferrpc.Req{
 		Provider: &twoferrpc.Provider{
-			Name: provider,
+			Name: inter.Req.Provider.Name(),
 		},
 		Who:     &user,
 		Payload: &payload,
@@ -218,7 +222,7 @@ func ToGrpcInter(inter *Inter, provider string) (i twoferrpc.Inter, err error) {
 	case SIGN:
 		i.Mode = twoferrpc.Inter_SIGN
 	default:
-		fmt.Println("WAAAT")
+		err = errors.New("this should never happen")
 	}
 	i.Ref = inter.Ref
 	i.Inferred = inter.Inferred
@@ -227,15 +231,11 @@ func ToGrpcInter(inter *Inter, provider string) (i twoferrpc.Inter, err error) {
 }
 
 func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
-	/*	TODO
-		Error
-		Extra
-	*/
 	if res == nil {
 		e = errors.New("SOMETHING'S BROKEN")
 		return
 	}
-	inter, err := ToGrpcInter(res.Inter, "todo")
+	inter, err := ToGrpcInter(res.Inter)
 	if err != nil {
 		return
 	}
@@ -264,7 +264,7 @@ func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
 	case STATUS_FAILED:
 		r.Status = twoferrpc.Resp_STATUS_FAILED
 	default:
-		err = errors.New("THIS SHOULDN'T HAPPEN")
+		err = errors.New("this should never happen")
 		return
 	}
 	return
