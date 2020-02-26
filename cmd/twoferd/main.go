@@ -32,7 +32,16 @@ func main() {
 
 	if cfg.OTP.Enabled {
 		fmt.Println("- Enabling OTP")
-		rpc.RegisterOTPServer(grpcServer, otpserver.New())
+		otpserv, err := otpserver.New(otpserver.OTPConfig{
+			SkewCounter: config.Get().OTP.SkewCounter,
+			SkewTime:    config.Get().OTP.SkewTime,
+			RateLimit:   config.Get().OTP.RateLimit,
+		}, config.Get().OTP.EncryptionKey)
+		if err == nil {
+			rpc.RegisterOTPServer(grpcServer, otpserv)
+		} else {
+			fmt.Println("Could not enable OTP", err)
+		}
 	}
 
 	if cfg.QREnabled {

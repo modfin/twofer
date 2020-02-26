@@ -34,6 +34,9 @@ func TestStore(t *testing.T) {
 		"1:aes128:uTdWcGl+cOnIgHoGnuBF3w==",
 		"2:aes192:vqs/8Sk7H2cpzHvd3lLPn8lOK/j3g/8s",
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	plain, err = store.Decrypt(encrypted)
 	if err != nil {
@@ -57,8 +60,11 @@ func TestStore(t *testing.T) {
 	store, err = New([]string{
 		"1:aes128:uTdWcGl+cOnIgHoGnuBF3w==",
 		"2:aes192:vqs/8Sk7H2cpzHvd3lLPn8lOK/j3g/8s",
-		"3:aes256:X0pV7FJtelsjlRMZrr7lA3QV2KVdYEIsT9lMWNWUFDE=",
+		"3:aes256:atFSKGC+DOD7+WOF/OLordrPbNVIHQvNnMkcRC2qEvI=",
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	plain, err = store.Decrypt(encrypted)
 	if err != nil {

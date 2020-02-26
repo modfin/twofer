@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"github.com/caarlos0/env/v6"
 	"net/url"
+	"strings"
 	"sync"
 )
 
@@ -24,6 +26,9 @@ func (c Config) EIDEnabled() bool {
 type OTP struct {
 	Enabled       bool     `env:"OTP_ENABLE" envDefault:"TRUE"`
 	EncryptionKey []string `env:"OTP_ENCRYPTION_KEY" envSeparator:" "`
+	RateLimit     uint     `env:"OTP_RATE_LIMIT" envDefault:"10"`
+	SkewCounter   uint     `env:"OTP_SKEW_COUNTER" envDefault:"5"`
+	SkewTime      uint     `env:"OTP_SKEW_TIME" envDefault:"1"`
 }
 
 type BankID struct {
@@ -99,7 +104,14 @@ var config Config
 
 func Get() Config {
 	once.Do(func() {
-		if err := env.Parse(&config); err != nil {
+		err := env.Parse(&config)
+
+		if err != nil {
+
+			if strings.HasPrefix(err.Error(), "env: could not load content of file \"\"") {
+				fmt.Printf("%+v\n\n", config)
+			}
+
 			//TODO something smart if things fail
 			panic(err)
 		}

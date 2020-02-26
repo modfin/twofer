@@ -13,6 +13,11 @@ import (
 	"strings"
 )
 
+type Store interface {
+	Encrypt(plaintext []byte) ([]byte, error)
+	Decrypt(ciphertext []byte) ([]byte, error)
+}
+
 type store struct {
 	max  uint32
 	keys map[uint32]*key
@@ -23,7 +28,7 @@ type key struct {
 	block   cipher.Block
 }
 
-func New(keys []string) (*store, error) {
+func New(keys []string) (Store, error) {
 	s := store{
 		max:  0,
 		keys: map[uint32]*key{},
