@@ -1,9 +1,9 @@
 module twofer
 
-go 1.13
+go 1.14
 
 require (
-	github.com/caarlos0/env/v6 v6.2.0
+	github.com/caarlos0/env/v6 v6.2.1
 	github.com/davecgh/go-spew v1.1.0
 	github.com/golang/protobuf v1.3.2
 	github.com/mdp/qrterminal/v3 v3.0.0
