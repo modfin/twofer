@@ -53,13 +53,13 @@ func New(keys []string) (Store, error) {
 		var block cipher.Block
 
 		switch strings.ToLower(parts[1]) {
-		case "aes128", "aes192", "aes256":
+		case "aes":
 			block, err = aes.NewCipher(rawKey)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			return nil, errors.New("expected key type to be aes128, aes192 or aes256")
+			return nil, errors.New("expected key type to be aes")
 		}
 
 		if _, ok := s.keys[version]; ok {
