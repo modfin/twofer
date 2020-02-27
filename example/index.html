@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>WebAuthn Demo</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="js/base64.js"></script>
+</head>
+
+<body>
+<br>
+<br>
+<br>
+<button onclick="registerUser()">Register</button>
+<button onclick="loginUser()">Login</button>
+
+<script>
+    const uuid = "2bc69976-18d2-4162-b18c-f9b6205a69f7";
+    $(document).ready(function () {
+        if (!window.PublicKeyCredential) {
+            alert("Error: this browser does not support WebAuthn");
+        }
+    });
+
+    function loginUser() {
+        $.get(
+            'http://localhost:8080/login/begin/' + uuid,
+            null,
+            function (data) {
+                return data
+            },
+            'json')
+            .then((credentialRequestOptions) => {
+                credentialRequestOptions.publicKey.challenge = bufferDecode(credentialRequestOptions.publicKey.challenge);
+                credentialRequestOptions.publicKey.allowCredentials.forEach(function (listItem) {
+                    listItem.id = bufferDecode(listItem.id);
+                });
+                console.log("Allowing " + credentialRequestOptions.publicKey.allowCredentials.length + " different credentials");
+                return navigator.credentials.get({
+                    publicKey: credentialRequestOptions.publicKey
+                })
+            }).then((assertion) => {
+            let authData = assertion.response.authenticatorData;
+            let clientDataJSON = assertion.response.clientDataJSON;
+            let rawId = assertion.rawId;
+            let sig = assertion.response.signature;
+            let userHandle = assertion.response.userHandle;
+
+            $.post(
+                'http://localhost:8080/login/finish/' + uuid,
+                JSON.stringify({
+                    id: assertion.id,
+                    rawId: bufferEncode(rawId),
+                    type: assertion.type,
+                    response: {
+                        authenticatorData: bufferEncode(authData),
+                        clientDataJSON: bufferEncode(clientDataJSON),
+                        signature: bufferEncode(sig),
+                        userHandle: bufferEncode(userHandle),
+                    },
+                }),
+                function (data) {
+                    return data
+                },
+                'json')
+        })
+    }
+
+    function registerUser() {
+        $.get(
+            'http://localhost:8080/register/' + uuid,
+            null,
+            function (data) {
+                return data
+            },
+            'json')
+            .then((credentialCreationOptions) => {
+                credentialCreationOptions.publicKey.challenge = bufferDecode(credentialCreationOptions.publicKey.challenge);
+                credentialCreationOptions.publicKey.user.id = bufferDecode(credentialCreationOptions.publicKey.user.id);
+                return navigator.credentials.create({
+                    publicKey: credentialCreationOptions.publicKey
+                });
+            }).then((credential) => {
+            let attestationObject = credential.response.attestationObject;
+            let clientDataJSON = credential.response.clientDataJSON;
+            let rawId = credential.rawId;
+
+            $.post(
+                'http://localhost:8080/register/finish/' + uuid,
+                JSON.stringify({
+                    id: credential.id,
+                    rawId: bufferEncode(rawId),
+                    type: credential.type,
+                    response: {
+                        attestationObject: bufferEncode(attestationObject),
+                        clientDataJSON: bufferEncode(clientDataJSON),
+                    },
+                }),
+                function (data) {
+                    return data
+                },
+                'json')
+        }).then(
+
+        )
+    }
+
+    // Base64 to ArrayBuffer
+    function bufferDecode(value) {
+        return b64ToByteArray(value)
+    }
+
+    function createUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function bufferEncode(value) {
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(value)))
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=/g, "");
+    }
+
+</script>
+</body>
+
+</html>

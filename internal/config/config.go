@@ -15,8 +15,8 @@ type Config struct {
 	BankID  BankID
 
 	QREnabled bool `env:"QR_ENABLE" envDefault:"TRUE"`
-
-	OTP OTP
+	OTP       OTP
+	WebAuthn  WebAuthn
 }
 
 func (c Config) EIDEnabled() bool {
@@ -32,7 +32,7 @@ type OTP struct {
 }
 
 type BankID struct {
-	Enabled        bool     `env:"EID_BANKID_ENABLE"`
+	Enabled        bool     `env:"EID_BANKID_ENABLE" envDefault:"FALSE"`
 	URL            *url.URL `env:"EID_BANKID_URL"`
 	RootCA         string   `env:"EID_BANKID_ROOT_CA_PEM"`
 	RootCAFile     string   `env:"EID_BANKID_ROOT_CA_PEM_FILE,file"`
@@ -62,7 +62,7 @@ func (b BankID) GetClientKey() []byte {
 }
 
 type FrejaID struct {
-	Enabled        bool     `env:"EID_FREJA_ENABLE"`
+	Enabled        bool     `env:"EID_FREJA_ENABLE" envDefault:"FALSE"`
 	URL            *url.URL `env:"EID_FREJA_URL"`
 	RootCA         string   `env:"EID_FREJA_ROOT_CA_PEM"`
 	RootCAFile     string   `env:"EID_FREJA_ROOT_CA_PEM_FILE,file"`
@@ -97,6 +97,14 @@ func (b FrejaID) GetJWSCert() []byte {
 		return []byte(b.JWSCertFile)
 	}
 	return []byte(b.JWSCert)
+}
+
+type WebAuthn struct {
+	Enabled       bool   `env:"WEBAUTHN_ENABLED" envDefault:"FALSE"`
+	RPDisplayName string `env:"RELYING_PARTY_DISPLAY_NAME" envDefault:"localhost"`
+	RPID          string `env:"RELYING_PARTY_ID" envDefault:"localhost"`
+	RPOrigin      string `env:"RELYING_PARTY_ORIGIN" envDefault:"localhost"`
+	SigningKey    string `env:"SigningKey" envDefault:""`
 }
 
 var once sync.Once

@@ -10,6 +10,7 @@ import (
 	"twofer/internal/eidserver"
 	"twofer/internal/otpserver"
 	"twofer/internal/qrserver"
+	"twofer/internal/webauthnserver"
 	rpc "twofer/twoferrpc"
 
 	"google.golang.org/grpc"
@@ -51,6 +52,10 @@ func main() {
 
 	if cfg.EIDEnabled() {
 		startEid(grpcServer)
+	}
+
+	if cfg.WebAuthn.Enabled {
+		rpc.RegisterWebauthnServer(grpcServer, webauthnserver.New([]byte("this is a key")))
 	}
 
 	panic(grpcServer.Serve(lis))

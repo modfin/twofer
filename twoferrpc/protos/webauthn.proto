@@ -1,0 +1,84 @@
+syntax = "proto3";
+package twoferrpc;
+
+service Webauthn {
+    rpc BeginRegister (BeginRegisterRequest) returns (BeginRegisterResponse) {
+    };
+    rpc FinishRegister (FinishRegisterRequest) returns (FinishRegisterResponse) {
+    };
+    rpc BeginLogin (BeginLoginRequest) returns (BeginLoginResponse) {
+    };
+    rpc FinishLogin (FinishLoginRequest) returns (FinishLoginResponse) {
+    };
+}
+
+message BeginRegisterRequest {
+    UserInfo user = 1;
+}
+
+message BeginRegisterResponse {
+    string publicKey = 1;
+    SessionData sessionData = 2;
+    UserInfo user = 3;
+}
+message FinishRegisterRequest {
+    SessionData sessionData = 1;
+    UserInfo user = 2;
+    string blob = 3;
+}
+message FinishRegisterResponse {
+    UserInfo user = 1;
+}
+
+message SessionData {
+    string challenge = 1;
+    bytes userId = 2;
+    repeated bytes AllowedCredentials = 3;
+    string UserVerification = 4;
+    string Signature = 5;
+}
+
+message BeginLoginRequest {
+    UserInfo user = 1;
+}
+message BeginLoginResponse {
+    string publicKey = 1;
+    SessionData sessionData = 2;
+    UserInfo user = 3;
+}
+
+message FinishLoginRequest {
+    UserInfo user = 1;
+    SessionData session = 2;
+    string blob = 3;
+}
+message FinishLoginResponse {
+    UserInfo user = 1;
+}
+
+message UserInfo {
+    string id = 1;
+    string name = 2;
+    string displayName = 3;
+    repeated AllowedCredential allowedCredentials = 4;
+}
+
+message AuthenticatorAttestationResponse {
+    string clientDataJSON = 1;
+    string attestationObject = 2;
+}
+
+message AllowedCredential {
+    bytes ID = 1;
+    bytes PublicKey = 2;
+    string AttestationType = 3;
+    Authenticator Authenticator = 4;
+}
+
+message Authenticator {
+    bytes AAGUID = 1;
+    uint32 SignCount = 2;
+    bool CloneWarning = 3;
+}
+
+
