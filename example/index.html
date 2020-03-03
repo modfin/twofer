@@ -5,30 +5,20 @@
     <meta charset="utf-8">
     <title>WebAuthn Demo</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
-    <script src="js/webauthn-client.js"></script>
+    <script src="static/js/webauthn-client.js"></script>
 </head>
 
 <body>
-
-<h1>Twofer Demo</h1>
-
-<div>
-    <h2>WebAuthn</h2>
-    User: test@example.com
-    <hr/>
-    <button onclick="register()">Register 2-Factor</button>  <span id="regStatus"></span>
-    <hr/>
-    <button onclick="login()">Login  2-Factor</button>
-</div>
-
-
-
+<br>
+<br>
+<br>
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
 <script>
 
-
-    const aUser = "test@example.com";
+    const uuid = "2bc69976-18d2-4162-b18c-f9b6205a69f7";
     let headers = {
-        'user': aUser,
+        'Authorization': uuid,
     };
 
     $(document).ready(function () {
@@ -42,6 +32,7 @@
     function login() {
         webAuthnClient.login(headers)
     }
+    
     function register() {
         webAuthnClient.register(headers);
     }

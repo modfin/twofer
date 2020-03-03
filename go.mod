@@ -7,6 +7,7 @@ require (
 	github.com/davecgh/go-spew v1.1.0
 	github.com/duo-labs/webauthn v0.0.0-20200131223046-0864f70a0509
 	github.com/golang/protobuf v1.3.2
+	github.com/gorilla/handlers v1.4.2 // indirect
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/mdp/qrterminal/v3 v3.0.0
 	github.com/pquerna/otp v1.2.0

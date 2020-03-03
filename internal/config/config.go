@@ -104,7 +104,7 @@ type WebAuthn struct {
 	RPDisplayName string `env:"RELYING_PARTY_DISPLAY_NAME" envDefault:"localhost"`
 	RPID          string `env:"RELYING_PARTY_ID" envDefault:"localhost"`
 	RPOrigin      string `env:"RELYING_PARTY_ORIGIN" envDefault:"localhost"`
-	SigningKey    string `env:"SigningKey" envDefault:""`
+	SigningKey    string `env:"WEBAUTHN_SIGNING_KEY" envDefault:""`
 }
 
 var once sync.Once
