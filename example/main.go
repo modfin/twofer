@@ -39,19 +39,18 @@ func main() {
 	_client = gw6n.NewWebAuthnClient(conn)
 
 	m := mux.NewRouter()
-	m.HandleFunc("/register/{userId}", registerBegin).Methods("GET")
-	m.HandleFunc("/register/finish/{userId}", registerFinish).Methods("POST")
-	m.HandleFunc("/login/begin/{userId}", loginBegin).Methods("GET")
-	m.HandleFunc("/login/finish/{userId}", loginFinish).Methods("POST")
+	m.HandleFunc("/register", registerBegin).Methods("GET")
+	m.HandleFunc("/register", registerFinish).Methods("POST")
+	m.HandleFunc("/login", loginBegin).Methods("GET")
+	m.HandleFunc("/login", loginFinish).Methods("POST")
 	m.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
 
 	http.Handle("/", m)
 	_ = http.ListenAndServe(":8080", nil)
 }
 
-func loginBegin(w http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
-	userId := vars["userId"]
+func loginBegin(w http.ResponseWriter, r *http.Request) {
+	userId := r.Header.Get("user")
 	u, ok := dao.Get(userId)
 	if !ok {
 		httpError(w, errors.New("no user "+userId))
@@ -67,6 +66,8 @@ func loginBegin(w http.ResponseWriter, request *http.Request) {
 
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
 	w.Header().Set("Content-Type:", "application/json")
+	fmt.Printf("%s", string(resp.Json))
+
 	_, _ = w.Write(resp.Json)
 }
 
@@ -91,9 +92,7 @@ func loginFinish(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerBegin(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
-
+	userId := r.Header.Get("user")
 	u, _ := dao.Get(userId)
 
 	resp, err := _client.BeginRegister(context.Background(), &gw6n.BeginRegisterRequest{
@@ -110,12 +109,13 @@ func registerBegin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
 	w.Header().Set("Content-Type:", "application/json")
 	w.WriteHeader(200)
+	fmt.Printf("%s", string(resp.Json))
 	_, _ = w.Write(resp.Json)
 }
 
 func registerFinish(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
+
+	userId := r.Header.Get("user")
 
 	session := []byte(r.Header.Get("WebAuthn-Session"))
 	signature, err := ioutil.ReadAll(r.Body)
