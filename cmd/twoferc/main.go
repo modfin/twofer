@@ -9,7 +9,9 @@ import (
 	"log"
 	"os"
 	"strings"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/geid"
+	"twofer/twoferrpc/gotp"
+	"twofer/twoferrpc/gqr"
 
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
@@ -42,13 +44,13 @@ func main() {
 			ssn := c.String("ssn")
 			country := c.String("country")
 			data := c.String("data")
-			client := twoferrpc.NewEIDClient(conn)
+			client := geid.NewEIDClient(conn)
 
 			switch action {
 			case "auth":
-				inter, err := client.AuthInit(context.Background(), &twoferrpc.Req{
-					Provider: &twoferrpc.Provider{Name: provider},
-					Who: &twoferrpc.User{
+				inter, err := client.AuthInit(context.Background(), &geid.Req{
+					Provider: &geid.Provider{Name: provider},
+					Who: &geid.User{
 						Inferred:   inferred,
 						Ssn:        ssn,
 						SsnCountry: country,
@@ -82,14 +84,14 @@ func main() {
 				if len(ssn) == 0 {
 					return errors.New("an ssn must be provided for signing, this can not be inferred")
 				}
-				inter, err := client.SignInit(context.Background(), &twoferrpc.Req{
-					Provider: &twoferrpc.Provider{Name: provider},
-					Who: &twoferrpc.User{
+				inter, err := client.SignInit(context.Background(), &geid.Req{
+					Provider: &geid.Provider{Name: provider},
+					Who: &geid.User{
 						Inferred:   false,
 						Ssn:        ssn,
 						SsnCountry: country,
 					},
-					Payload: &twoferrpc.Req_Payload{
+					Payload: &geid.Req_Payload{
 						Text: data,
 						Data: nil,
 					},
@@ -142,9 +144,9 @@ func main() {
 						return errors.New("a output file must be provided")
 					}
 
-					qr := twoferrpc.NewQRClient(conn)
+					qr := gqr.NewQRClient(conn)
 
-					image, err := qr.Generate(context.Background(), &twoferrpc.QRData{
+					image, err := qr.Generate(context.Background(), &gqr.QRData{
 						RecoveryLevel: 2,
 						Size:          256,
 						Data:          data,
@@ -217,41 +219,41 @@ func main() {
 							digits := c.Uint("digits")
 							ss := c.Int("secret-size")
 
-							var ralg twoferrpc.OTPAlg
+							var ralg gotp.OTPAlg
 							switch strings.ToLower(alg) {
 							case "sha1":
-								ralg = twoferrpc.OTPAlg_SHA_1
+								ralg = gotp.OTPAlg_SHA_1
 							case "sha512":
-								ralg = twoferrpc.OTPAlg_SHA_512
+								ralg = gotp.OTPAlg_SHA_512
 							case "sha256":
 								fallthrough
 							default:
-								ralg = twoferrpc.OTPAlg_SHA_1
+								ralg = gotp.OTPAlg_SHA_1
 							}
 
-							var rmode twoferrpc.OTPMode
+							var rmode gotp.OTPMode
 							switch mode {
 							case "time":
-								rmode = twoferrpc.OTPMode_TIME
+								rmode = gotp.OTPMode_TIME
 							case "counter":
-								rmode = twoferrpc.OTPMode_COUNTER
+								rmode = gotp.OTPMode_COUNTER
 							default:
 								return errors.New("not a vaild mode")
 							}
 
-							var rdigits twoferrpc.OTPDigits
+							var rdigits gotp.OTPDigits
 							switch digits {
 							case 6:
-								rdigits = twoferrpc.OTPDigits_SIX
+								rdigits = gotp.OTPDigits_SIX
 							case 8:
-								rdigits = twoferrpc.OTPDigits_EIGHT
+								rdigits = gotp.OTPDigits_EIGHT
 							default:
 								return errors.New("digits must be 6 or 8")
 							}
 
-							client := twoferrpc.NewOTPClient(conn)
+							client := gotp.NewOTPClient(conn)
 
-							r, err := client.Enroll(context.Background(), &twoferrpc.OTPEnrollment{
+							r, err := client.Enroll(context.Background(), &gotp.OTPEnrollment{
 								Issuer:     issuer,
 								Account:    user,
 								Alg:        ralg,
@@ -298,9 +300,9 @@ func main() {
 							secret := c.String("secret")
 							otp := c.String("otp")
 
-							client := twoferrpc.NewOTPClient(conn)
+							client := gotp.NewOTPClient(conn)
 
-							r, err := client.Validate(context.Background(), &twoferrpc.OTPValidate{
+							r, err := client.Validate(context.Background(), &gotp.OTPValidate{
 								Otp:    otp,
 								Secret: secret,
 							})

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/geid"
 )
 
 func diffObj(expected interface{}, got interface{}) string {
@@ -34,16 +34,16 @@ func diffObj(expected interface{}, got interface{}) string {
 
 var testClient = &TestClient{}
 var fromGrpcInterTests = []struct {
-	in  *twoferrpc.Inter
+	in  *geid.Inter
 	err string
 	res Inter
 }{
 	{
-		in: &twoferrpc.Inter{
-			Req: &twoferrpc.Req{
-				Who: &twoferrpc.User{},
+		in: &geid.Inter{
+			Req: &geid.Req{
+				Who: &geid.User{},
 			},
-			Mode: twoferrpc.Inter_AUTH,
+			Mode: geid.Inter_AUTH,
 		},
 		err: "",
 		res: Inter{
@@ -56,11 +56,11 @@ var fromGrpcInterTests = []struct {
 		},
 	},
 	{
-		in: &twoferrpc.Inter{
-			Req: &twoferrpc.Req{
-				Who: &twoferrpc.User{},
+		in: &geid.Inter{
+			Req: &geid.Req{
+				Who: &geid.User{},
 			},
-			Mode: twoferrpc.Inter_SIGN,
+			Mode: geid.Inter_SIGN,
 		},
 		err: "",
 		res: Inter{
@@ -72,11 +72,11 @@ var fromGrpcInterTests = []struct {
 		},
 	},
 	{
-		in: &twoferrpc.Inter{
-			Req: &twoferrpc.Req{
-				Who: &twoferrpc.User{},
+		in: &geid.Inter{
+			Req: &geid.Req{
+				Who: &geid.User{},
 			},
-			Mode: twoferrpc.Inter_AUTH,
+			Mode: geid.Inter_AUTH,
 		},
 		err: "",
 		res: Inter{

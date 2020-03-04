@@ -10,12 +10,12 @@ import (
 	"log"
 	"net/http"
 	"twofer/example/dao"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/gw6n"
 )
 
 var (
 	serverAddr = "twoferd:43210"
-	_client    twoferrpc.WebauthnClient
+	_client    gw6n.WebAuthnClient
 )
 
 func httpError(writer http.ResponseWriter, err error) {
@@ -36,7 +36,7 @@ func main() {
 	}
 	fmt.Println("connected")
 	defer conn.Close()
-	_client = twoferrpc.NewWebauthnClient(conn)
+	_client = gw6n.NewWebAuthnClient(conn)
 
 	m := mux.NewRouter()
 	m.HandleFunc("/register/{userId}", registerBegin).Methods("GET")
@@ -67,10 +67,10 @@ func loginFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = _client.FinishLogin(context.Background(), &twoferrpc.FinishLoginRequest{
-		Session:       session,
-		UserBlob:      userBlob,
-		UserSignature: signature,
+	_, err = _client.FinishLogin(context.Background(), &gw6n.FinishLoginRequest{
+		Session:   session,
+		UserBlob:  userBlob,
+		Signature: signature,
 	})
 	if err != nil {
 		httpError(w, err)
@@ -87,7 +87,7 @@ func loginBegin(w http.ResponseWriter, request *http.Request) {
 		httpError(w, errors.New("no user "+userId))
 		return
 	}
-	resp, err := _client.BeginLogin(context.Background(), &twoferrpc.BeginLoginRequest{
+	resp, err := _client.BeginLogin(context.Background(), &gw6n.BeginLoginRequest{
 		UserBlob: u.Blob,
 	})
 	if err != nil {
@@ -97,7 +97,7 @@ func loginBegin(w http.ResponseWriter, request *http.Request) {
 
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
 	w.Header().Set("Content-Type:", "application/json")
-	_, _ = w.Write(resp.Response2User)
+	_, _ = w.Write(resp.Json)
 }
 
 func registerBegin(w http.ResponseWriter, r *http.Request) {
@@ -106,8 +106,10 @@ func registerBegin(w http.ResponseWriter, r *http.Request) {
 
 	u, _ := dao.Get(userId)
 
-	resp, err := _client.BeginRegister(context.Background(), &twoferrpc.BeginRegisterRequest{
-		UserId:   userId,
+	resp, err := _client.BeginRegister(context.Background(), &gw6n.BeginRegisterRequest{
+		User: &gw6n.User{
+			Id: userId,
+		},
 		UserBlob: u.Blob,
 	})
 	if err != nil {
@@ -118,7 +120,7 @@ func registerBegin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
 	w.Header().Set("Content-Type:", "application/json")
 	w.WriteHeader(200)
-	_, _ = w.Write(resp.Response2User)
+	_, _ = w.Write(resp.Json)
 }
 
 func registerFinish(w http.ResponseWriter, r *http.Request) {
@@ -134,10 +136,10 @@ func registerFinish(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	resp, err := _client.FinishRegister(context.Background(), &twoferrpc.FinishRegisterRequest{
-		UserBlob:      userBlob,
-		Session:       session,
-		UserSignature: signature,
+	resp, err := _client.FinishRegister(context.Background(), &gw6n.FinishRegisterRequest{
+		UserBlob:  userBlob,
+		Session:   session,
+		Signature: signature,
 	})
 
 	if err != nil {

@@ -11,7 +11,10 @@ import (
 	"twofer/internal/otpserver"
 	"twofer/internal/qrserver"
 	"twofer/internal/webauthnserver"
-	rpc "twofer/twoferrpc"
+	"twofer/twoferrpc/geid"
+	"twofer/twoferrpc/gotp"
+	"twofer/twoferrpc/gqr"
+	"twofer/twoferrpc/gw6n"
 
 	"google.golang.org/grpc"
 )
@@ -39,7 +42,7 @@ func main() {
 			RateLimit:   config.Get().OTP.RateLimit,
 		}, config.Get().OTP.EncryptionKey)
 		if err == nil {
-			rpc.RegisterOTPServer(grpcServer, otpserv)
+			gotp.RegisterOTPServer(grpcServer, otpserv)
 		} else {
 			fmt.Println("Could not enable OTP", err)
 		}
@@ -47,7 +50,7 @@ func main() {
 
 	if cfg.QREnabled {
 		fmt.Println("- Enabling QR")
-		rpc.RegisterQRServer(grpcServer, qrserver.New())
+		gqr.RegisterQRServer(grpcServer, qrserver.New())
 	}
 
 	if cfg.EIDEnabled() {
@@ -60,7 +63,7 @@ func main() {
 		if err != nil {
 			fmt.Println("WebAuthn", err)
 		} else {
-			rpc.RegisterWebauthnServer(grpcServer, authn)
+			gw6n.RegisterWebAuthnServer(grpcServer, authn)
 		}
 	}
 
@@ -71,7 +74,7 @@ func main() {
 func startEid(grpcServer *grpc.Server) {
 	fmt.Println("- Enabling EID")
 	serve := eidserver.New()
-	rpc.RegisterEIDServer(grpcServer, serve)
+	geid.RegisterEIDServer(grpcServer, serve)
 
 	if config.Get().BankID.Enabled {
 		fmt.Println(" - Enabling BankId")

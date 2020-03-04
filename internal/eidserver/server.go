@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"golang.org/x/net/context"
 	"twofer/eid"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/geid"
 )
 
 func New() *Server {
@@ -17,20 +17,20 @@ type Server struct {
 	*eid.EID
 }
 
-func (s Server) GetProviders(context.Context, *twoferrpc.Empty) (*twoferrpc.Providers, error) {
+func (s Server) GetProviders(context.Context, *geid.Empty) (*geid.Providers, error) {
 
 	fmt.Println("Request GetProviders")
 
-	prov := &twoferrpc.Providers{}
+	prov := &geid.Providers{}
 
 	for _, v := range s.List() {
-		p := &twoferrpc.Provider{Name: v}
+		p := &geid.Provider{Name: v}
 		prov.Providers = append(prov.Providers, p)
 	}
 	return prov, nil
 }
 
-func (s Server) AuthInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc.Inter, err error) {
+func (s Server) AuthInit(ctx context.Context, req *geid.Req) (in *geid.Inter, err error) {
 	cli, err := s.Get(req.Provider.Name)
 	if err != nil {
 		return
@@ -50,7 +50,7 @@ func (s Server) AuthInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc
 	return &grpcInter, nil
 }
 
-func (s Server) SignInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc.Inter, err error) {
+func (s Server) SignInit(ctx context.Context, req *geid.Req) (in *geid.Inter, err error) {
 	fmt.Println("Someone's asking about things")
 	cli, err := s.Get(req.Provider.Name)
 	if err != nil {
@@ -72,7 +72,7 @@ func (s Server) SignInit(ctx context.Context, req *twoferrpc.Req) (in *twoferrpc
 	return &grpcInter, nil
 }
 
-func (s Server) Collect(ctx context.Context, inter *twoferrpc.Inter) (r *twoferrpc.Resp, err error) {
+func (s Server) Collect(ctx context.Context, inter *geid.Inter) (r *geid.Resp, err error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
 		return
@@ -92,7 +92,7 @@ func (s Server) Collect(ctx context.Context, inter *twoferrpc.Inter) (r *twoferr
 	return &grpcRes, nil
 }
 
-func (s Server) Peek(ctx context.Context, inter *twoferrpc.Inter) (res *twoferrpc.Resp, err error) {
+func (s Server) Peek(ctx context.Context, inter *geid.Inter) (res *geid.Resp, err error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
 		return
@@ -112,7 +112,7 @@ func (s Server) Peek(ctx context.Context, inter *twoferrpc.Inter) (res *twoferrp
 	return &grpcRes, nil
 }
 
-func (s Server) Cancel(_ context.Context, inter *twoferrpc.Inter) (emp *twoferrpc.Empty, err error) {
+func (s Server) Cancel(_ context.Context, inter *geid.Inter) (emp *geid.Empty, err error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
 		return
@@ -125,5 +125,5 @@ func (s Server) Cancel(_ context.Context, inter *twoferrpc.Inter) (emp *twoferrp
 	if err != nil {
 		return
 	}
-	return &twoferrpc.Empty{}, nil
+	return &geid.Empty{}, nil
 }

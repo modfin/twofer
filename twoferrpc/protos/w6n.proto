@@ -1,7 +1,7 @@
 syntax = "proto3";
-package twoferrpc;
+package gw6n;
 
-service Webauthn {
+service WebAuthn {
     rpc BeginRegister (BeginRegisterRequest) returns (BeginRegisterResponse) {
     };
     rpc FinishRegister (FinishRegisterRequest) returns (FinishRegisterResponse) {
@@ -12,21 +12,30 @@ service Webauthn {
     };
 }
 
+
+
+
+message User {
+    string id = 1;
+    string name = 2;
+}
+
+
 message BeginRegisterRequest {
-    string userId = 1;
+    User user = 1;
     bytes userBlob = 2;
 }
 
 message BeginRegisterResponse {
     bytes session = 1;
-    bytes response2User = 2;
+    bytes json = 2;
 }
 
 
 message FinishRegisterRequest {
     bytes userBlob = 1;
     bytes session = 2;
-    bytes userSignature = 3;
+    bytes signature = 3;
 }
 message FinishRegisterResponse {
     bytes userBlob = 1;
@@ -38,15 +47,14 @@ message BeginLoginRequest {
 }
 message BeginLoginResponse {
     bytes session = 1;
-    bytes response2User = 2;
+    bytes json = 2;
 }
 
 
-
 message FinishLoginRequest {
-    bytes session = 1;
-    bytes userBlob = 2;
-    bytes userSignature = 3;
+    bytes userBlob = 1;
+    bytes session = 2;
+    bytes signature = 3;
 }
 message FinishLoginResponse {
     bytes userBlob = 1;

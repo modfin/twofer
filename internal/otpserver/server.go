@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 	"twofer/internal/crypt"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/gotp"
 )
 
 type OTPConfig struct {
@@ -113,13 +113,13 @@ func (s *Server) ratelimit(uri string) error {
 	return nil
 }
 
-func (s *Server) Enroll(ctx context.Context, en *twoferrpc.OTPEnrollment) (resp *twoferrpc.OTPEnrollmentResponse, err error) {
+func (s *Server) Enroll(ctx context.Context, en *gotp.OTPEnrollment) (resp *gotp.OTPEnrollmentResponse, err error) {
 
 	digits := otp.DigitsSix
 	switch en.Digits {
-	case twoferrpc.OTPDigits_SIX:
+	case gotp.OTPDigits_SIX:
 		digits = otp.DigitsSix
-	case twoferrpc.OTPDigits_EIGHT:
+	case gotp.OTPDigits_EIGHT:
 		digits = otp.DigitsEight
 	}
 
@@ -129,7 +129,7 @@ func (s *Server) Enroll(ctx context.Context, en *twoferrpc.OTPEnrollment) (resp 
 
 	var o wrapper
 	switch en.Mode {
-	case twoferrpc.OTPMode_TIME:
+	case gotp.OTPMode_TIME:
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      en.Issuer,
 			AccountName: en.Account,
@@ -143,7 +143,7 @@ func (s *Server) Enroll(ctx context.Context, en *twoferrpc.OTPEnrollment) (resp 
 		}
 		o.URI = key.URL()
 
-	case twoferrpc.OTPMode_COUNTER:
+	case gotp.OTPMode_COUNTER:
 		key, err := hotp.Generate(hotp.GenerateOpts{
 			Issuer:      en.Issuer,
 			AccountName: en.Account,
@@ -170,13 +170,13 @@ func (s *Server) Enroll(ctx context.Context, en *twoferrpc.OTPEnrollment) (resp 
 		return nil, err
 	}
 
-	return &twoferrpc.OTPEnrollmentResponse{
+	return &gotp.OTPEnrollmentResponse{
 		Uri:    o.URI,
 		Secret: base64.StdEncoding.EncodeToString(b),
 	}, nil
 }
 
-func (s *Server) Validate(ctx context.Context, va *twoferrpc.OTPValidate) (*twoferrpc.OTPValidateResponse, error) {
+func (s *Server) Validate(ctx context.Context, va *gotp.OTPValidate) (*gotp.OTPValidateResponse, error) {
 
 	sec, err := base64.StdEncoding.DecodeString(va.Secret)
 	if err != nil {
@@ -276,7 +276,7 @@ func (s *Server) Validate(ctx context.Context, va *twoferrpc.OTPValidate) (*twof
 		return nil, err
 	}
 
-	return &twoferrpc.OTPValidateResponse{
+	return &gotp.OTPValidateResponse{
 		Valid:  valid,
 		Secret: base64.StdEncoding.EncodeToString(sec),
 	}, nil

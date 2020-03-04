@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 	"time"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/geid"
 )
 
 type ToEID interface {
@@ -144,7 +144,7 @@ type Resp struct {
 	Extra     map[string]interface{} `json:"extra"`
 }
 
-func FromGrpcReq(req *twoferrpc.Req, cli Client) (r Req, err error) {
+func FromGrpcReq(req *geid.Req, cli Client) (r Req, err error) {
 	if req == nil {
 		err = errors.New("could not convert nil to request")
 		return
@@ -173,7 +173,7 @@ func FromGrpcReq(req *twoferrpc.Req, cli Client) (r Req, err error) {
 	return
 }
 
-func FromGrpcInter(inter *twoferrpc.Inter, cli Client) (i Inter, err error) {
+func FromGrpcInter(inter *geid.Inter, cli Client) (i Inter, err error) {
 	if inter == nil {
 		err = errors.New("there must be an intermediate to collect")
 		return
@@ -187,9 +187,9 @@ func FromGrpcInter(inter *twoferrpc.Inter, cli Client) (i Inter, err error) {
 	i.QRData = inter.QrData
 	i.Ref = inter.Ref
 	switch inter.Mode {
-	case twoferrpc.Inter_AUTH:
+	case geid.Inter_AUTH:
 		i.Mode = AUTH
-	case twoferrpc.Inter_SIGN:
+	case geid.Inter_SIGN:
 		i.Mode = SIGN
 	default:
 		err = errors.New("there should be a mode present")
@@ -197,7 +197,7 @@ func FromGrpcInter(inter *twoferrpc.Inter, cli Client) (i Inter, err error) {
 	return
 }
 
-func ToGrpcInter(inter *Inter) (i twoferrpc.Inter, err error) {
+func ToGrpcInter(inter *Inter) (i geid.Inter, err error) {
 	if inter.Req == nil {
 		err = errors.New("req is required")
 		return
@@ -209,8 +209,8 @@ func ToGrpcInter(inter *Inter) (i twoferrpc.Inter, err error) {
 	inter.Req.ensurePayload()
 	payload := toGrpcPayload(*inter.Req.Payload)
 	user := toGrpcUser(*inter.Req.Who)
-	i.Req = &twoferrpc.Req{
-		Provider: &twoferrpc.Provider{
+	i.Req = &geid.Req{
+		Provider: &geid.Provider{
 			Name: inter.Req.Provider.Name(),
 		},
 		Who:     &user,
@@ -218,9 +218,9 @@ func ToGrpcInter(inter *Inter) (i twoferrpc.Inter, err error) {
 	}
 	switch inter.Mode {
 	case AUTH:
-		i.Mode = twoferrpc.Inter_AUTH
+		i.Mode = geid.Inter_AUTH
 	case SIGN:
-		i.Mode = twoferrpc.Inter_SIGN
+		i.Mode = geid.Inter_SIGN
 	default:
 		err = errors.New("this should never happen")
 	}
@@ -230,7 +230,7 @@ func ToGrpcInter(inter *Inter) (i twoferrpc.Inter, err error) {
 	return
 }
 
-func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
+func ToGrpcResp(res *Resp) (r geid.Resp, e error) {
 	if res == nil {
 		e = errors.New("SOMETHING'S BROKEN")
 		return
@@ -248,21 +248,21 @@ func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
 	// DISGUSTINGTOWN
 	switch res.Status {
 	case STATUS_UNKNOWN:
-		r.Status = twoferrpc.Resp_STATUS_UNKNOWN
+		r.Status = geid.Resp_STATUS_UNKNOWN
 	case STATUS_PENDING:
-		r.Status = twoferrpc.Resp_STATUS_PENDING
+		r.Status = geid.Resp_STATUS_PENDING
 	case STATUS_CANCELED:
-		r.Status = twoferrpc.Resp_STATUS_CANCELED
+		r.Status = geid.Resp_STATUS_CANCELED
 	case STATUS_RP_CANCELED:
-		r.Status = twoferrpc.Resp_STATUS_RP_CANCELED
+		r.Status = geid.Resp_STATUS_RP_CANCELED
 	case STATUS_EXPIRED:
-		r.Status = twoferrpc.Resp_STATUS_EXPIRED
+		r.Status = geid.Resp_STATUS_EXPIRED
 	case STATUS_APPROVED:
-		r.Status = twoferrpc.Resp_STATUS_APPROVED
+		r.Status = geid.Resp_STATUS_APPROVED
 	case STATUS_REJECTED:
-		r.Status = twoferrpc.Resp_STATUS_REJECTED
+		r.Status = geid.Resp_STATUS_REJECTED
 	case STATUS_FAILED:
-		r.Status = twoferrpc.Resp_STATUS_FAILED
+		r.Status = geid.Resp_STATUS_FAILED
 	default:
 		err = errors.New("this should never happen")
 		return
@@ -270,7 +270,7 @@ func ToGrpcResp(res *Resp) (r twoferrpc.Resp, e error) {
 	return
 }
 
-func toGrpcUser(who User) (u twoferrpc.User) {
+func toGrpcUser(who User) (u geid.User) {
 	u.Inferred = who.Inferred
 	u.Ssn = who.SSN
 	u.SsnCountry = who.SSNCountry
@@ -280,7 +280,7 @@ func toGrpcUser(who User) (u twoferrpc.User) {
 	return
 }
 
-func toGrpcPayload(l Payload) (p twoferrpc.Req_Payload) {
+func toGrpcPayload(l Payload) (p geid.Req_Payload) {
 	p.Text = l.Text
 	p.Data = l.Data
 	return

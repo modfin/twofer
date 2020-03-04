@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
-	"twofer/twoferrpc"
+	"twofer/twoferrpc/gw6n"
 )
 
 func New() (*Server, error) {
@@ -28,88 +28,112 @@ type Server struct {
 	webAuthn *webauthn.WebAuthn
 }
 
-func (s Server) BeginRegister(_ context.Context, req *twoferrpc.BeginRegisterRequest) (res *twoferrpc.BeginRegisterResponse, err error) {
+func (s Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest) (res *gw6n.BeginRegisterResponse, err error) {
 
-	u := User{
-		Id:          req.UserId,
-		Name:        "Test",
-		DisplayName: "Test",
-	}
-
+	var u User
 	if len(req.UserBlob) > 0 {
-		err = json.Unmarshal(req.UserBlob, &u.Credentials)
+		err = json.Unmarshal(req.UserBlob, &u)
 		if err != nil {
 			return
 		}
 	}
 
-	credentialCreation, sessiondata, err := s.webAuthn.BeginRegistration(u)
+	if req.User != nil {
+		if u.Id == "" {
+			u.Id = req.User.Id
+		}
+		if u.Name == "" {
+			u.Name = req.User.Name
+		}
+	}
+
+	if u.Id == "" {
+		return nil, errors.New("an user id must be provided for registration")
+	}
+
+	if u.Name == "" {
+		u.Name = u.Id
+	}
+	if u.DisplayName == "" {
+		u.DisplayName = u.Name
+
+	}
+
+	credentialCreation, sessionData, err := s.webAuthn.BeginRegistration(u)
 	if err != nil {
 		return
 	}
 
-	resp, err := json.Marshal(credentialCreation)
+	data, err := json.Marshal(credentialCreation)
 	if err != nil {
 		return
 	}
-	session, err := json.Marshal(sessiondata)
 
-	response := &twoferrpc.BeginRegisterResponse{
-		Session:       session,
-		Response2User: resp,
+	session, err := json.Marshal(Session{
+		Data: sessionData,
+		User: User{
+			Id:          u.Id,
+			Name:        u.Name,
+			DisplayName: u.DisplayName,
+		},
+	})
+
+	response := &gw6n.BeginRegisterResponse{
+		Session: session,
+		Json:    data,
 	}
 	return response, nil
 }
 
-func (s Server) FinishRegister(_ context.Context, req *twoferrpc.FinishRegisterRequest) (res *twoferrpc.FinishRegisterResponse, err error) {
+func (s Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterRequest) (res *gw6n.FinishRegisterResponse, err error) {
 
-	credentialCreation, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(req.UserSignature))
+	credentialCreation, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(req.Signature))
 	if err != nil {
 		return nil, errors.New("failed to parse authenticator response")
 	}
 
-	var session webauthn.SessionData
+	var session Session
 	err = json.Unmarshal(req.Session, &session)
 	if err != nil {
 		return nil, err
 	}
 
-	u := User{
-		Id:          string(session.UserID),
-		Name:        "Test",
-		DisplayName: "Test",
-		Credentials: []webauthn.Credential{},
+	if session.Data == nil {
+		return nil, errors.New("session data was not provided")
 	}
 
-	credential, err := s.webAuthn.CreateCredential(u, session, credentialCreation)
+	var u User
+	if len(req.UserBlob) > 0 {
+		err = json.Unmarshal(req.UserBlob, &u)
+		if err != nil {
+			return
+		}
+	}
+	if u.Id == "" {
+		u.Id = session.User.Id
+	}
+	if u.Name == "" {
+		u.Name = session.User.Name
+	}
+	if u.DisplayName == "" {
+		u.DisplayName = session.User.DisplayName
+	}
+
+	credential, err := s.webAuthn.CreateCredential(u, *session.Data, credentialCreation)
 	if err != nil {
 		fmt.Printf("Something's bonkers err=%+v\n", err)
 		return nil, err
 	}
 
-	var credentials []*webauthn.Credential
+	u.Credentials = append(u.Credentials, *credential)
 
-	if req.UserBlob != nil {
-		err = json.Unmarshal(req.UserBlob, &credentials)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-	}
-	credentials = append(credentials, credential)
-
-	res = &twoferrpc.FinishRegisterResponse{}
-	res.UserBlob, err = json.Marshal(credentials)
+	res = &gw6n.FinishRegisterResponse{}
+	res.UserBlob, err = json.Marshal(u)
 	return res, err
 }
-func (s Server) BeginLogin(_ context.Context, req *twoferrpc.BeginLoginRequest) (res *twoferrpc.BeginLoginResponse, err error) {
-	u := User{
-		Id:          "test@example.com",
-		Name:        "Test",
-		DisplayName: "Test",
-	}
-
-	err = json.Unmarshal(req.UserBlob, &u.Credentials)
+func (s Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res *gw6n.BeginLoginResponse, err error) {
+	var u User
+	err = json.Unmarshal(req.UserBlob, &u)
 	if err != nil {
 		return
 	}
@@ -119,82 +143,51 @@ func (s Server) BeginLogin(_ context.Context, req *twoferrpc.BeginLoginRequest) 
 		return
 	}
 
-	session, err := json.Marshal(sessionData)
+	session := Session{
+		Data: sessionData,
+	}
+
+	ss, err := json.Marshal(session)
+	if err != nil {
+		return
+	}
 
 	response, err := json.Marshal(credentialAssertion.Response)
 	if err != nil {
 		return
 	}
 
-	return &twoferrpc.BeginLoginResponse{
-		Session:       session,
-		Response2User: response,
+	return &gw6n.BeginLoginResponse{
+		Session: ss,
+		Json:    response,
 	}, nil
 }
-func (s Server) FinishLogin(_ context.Context, req *twoferrpc.FinishLoginRequest) (res *twoferrpc.FinishLoginResponse, err error) {
+func (s Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (res *gw6n.FinishLoginResponse, err error) {
 
-	body, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.UserSignature))
-	u := User{
-		Id:          "test@example.com",
-		Name:        "Test",
-		DisplayName: "Test",
-	}
+	body, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.Signature))
+	var u User
 
-	err = json.Unmarshal(req.UserBlob, &u.Credentials)
+	err = json.Unmarshal(req.UserBlob, &u)
 	if err != nil {
 		return nil, err
 	}
 
-	var session webauthn.SessionData
+	var session Session
 	err = json.Unmarshal(req.Session, &session)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.webAuthn.ValidateLogin(u, session, body)
+	if session.Data == nil {
+		return nil, errors.New("session data must be provided")
+
+	}
+
+	_, err = s.webAuthn.ValidateLogin(u, *session.Data, body)
 	if err != nil {
 		return nil, err
 	}
 
-	return &twoferrpc.FinishLoginResponse{}, nil
+	return &gw6n.FinishLoginResponse{}, nil
 
-}
-
-type User struct {
-	Id          string                `json:"id"`
-	Name        string                `json:"name"`
-	DisplayName string                `json:"displayName"`
-	Credentials []webauthn.Credential `json:"credentials, omitempty"`
-}
-
-func (u User) WebAuthnID() []byte {
-	return []byte(u.Id)
-}
-
-// User Name according to the Relying Party
-func (u User) WebAuthnName() string {
-	return u.Name
-}
-
-// Display Name of the user
-func (u User) WebAuthnDisplayName() string {
-	return u.DisplayName
-}
-
-// User's icon url
-func (u User) WebAuthnIcon() string {
-	return ""
-}
-
-// Credentials owned by the user
-func (u User) WebAuthnCredentials() []webauthn.Credential {
-	return u.Credentials
-}
-
-type RegisterResponse struct {
-	PublicKey json.RawMessage `json:"publicKey"`
-}
-
-type LoginResponse struct {
-	PublicKey json.RawMessage `json:"publicKey"`
 }
