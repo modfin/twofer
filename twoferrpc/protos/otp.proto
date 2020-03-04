@@ -4,49 +4,49 @@ package gotp;
 
 
 service OTP {
-    rpc Enroll (OTPEnrollment) returns (OTPEnrollmentResponse) {
+    rpc Enroll (Enrollment) returns (EnrollmentResponse) {
     };
-    rpc Validate (OTPValidate) returns (OTPValidateResponse) {
+    rpc Auth (Credentials) returns (AuthResponse) {
     };
 }
 
-enum OTPAlg{
+enum Alg{
     SHA_1 = 0;
     SHA_256 = 1;
     SHA_512 = 2;
 }
 
-enum OTPMode {
+enum Mode {
     TIME = 0;
     COUNTER = 1;
 }
 
-enum OTPDigits {
+enum Digits {
     SIX = 0;
     EIGHT = 1;
 }
 
-message OTPEnrollment {
+message Enrollment {
     string issuer = 1;
     string account = 2;
-    OTPAlg alg = 3;
-    OTPMode mode = 4;
-    OTPDigits digits = 6;
+    Alg alg = 3;
+    Mode mode = 4;
+    Digits digits = 6;
     uint32 period = 7;
     uint32 secretSize = 8;
 
 }
-message OTPEnrollmentResponse {
+message EnrollmentResponse {
     string uri = 1;
     string secret = 2;
 }
 
-message OTPValidate {
+message Credentials {
     string otp = 1;
     string secret = 2;
 }
 
-message OTPValidateResponse {
+message AuthResponse {
     bool valid = 1;
     string secret = 2;
 }

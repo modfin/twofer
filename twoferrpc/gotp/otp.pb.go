@@ -23,165 +23,165 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type OTPAlg int32
+type Alg int32
 
 const (
-	OTPAlg_SHA_1   OTPAlg = 0
-	OTPAlg_SHA_256 OTPAlg = 1
-	OTPAlg_SHA_512 OTPAlg = 2
+	Alg_SHA_1   Alg = 0
+	Alg_SHA_256 Alg = 1
+	Alg_SHA_512 Alg = 2
 )
 
-var OTPAlg_name = map[int32]string{
+var Alg_name = map[int32]string{
 	0: "SHA_1",
 	1: "SHA_256",
 	2: "SHA_512",
 }
-var OTPAlg_value = map[string]int32{
+var Alg_value = map[string]int32{
 	"SHA_1":   0,
 	"SHA_256": 1,
 	"SHA_512": 2,
 }
 
-func (x OTPAlg) String() string {
-	return proto.EnumName(OTPAlg_name, int32(x))
+func (x Alg) String() string {
+	return proto.EnumName(Alg_name, int32(x))
 }
-func (OTPAlg) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{0}
+func (Alg) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{0}
 }
 
-type OTPMode int32
+type Mode int32
 
 const (
-	OTPMode_TIME    OTPMode = 0
-	OTPMode_COUNTER OTPMode = 1
+	Mode_TIME    Mode = 0
+	Mode_COUNTER Mode = 1
 )
 
-var OTPMode_name = map[int32]string{
+var Mode_name = map[int32]string{
 	0: "TIME",
 	1: "COUNTER",
 }
-var OTPMode_value = map[string]int32{
+var Mode_value = map[string]int32{
 	"TIME":    0,
 	"COUNTER": 1,
 }
 
-func (x OTPMode) String() string {
-	return proto.EnumName(OTPMode_name, int32(x))
+func (x Mode) String() string {
+	return proto.EnumName(Mode_name, int32(x))
 }
-func (OTPMode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{1}
+func (Mode) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{1}
 }
 
-type OTPDigits int32
+type Digits int32
 
 const (
-	OTPDigits_SIX   OTPDigits = 0
-	OTPDigits_EIGHT OTPDigits = 1
+	Digits_SIX   Digits = 0
+	Digits_EIGHT Digits = 1
 )
 
-var OTPDigits_name = map[int32]string{
+var Digits_name = map[int32]string{
 	0: "SIX",
 	1: "EIGHT",
 }
-var OTPDigits_value = map[string]int32{
+var Digits_value = map[string]int32{
 	"SIX":   0,
 	"EIGHT": 1,
 }
 
-func (x OTPDigits) String() string {
-	return proto.EnumName(OTPDigits_name, int32(x))
+func (x Digits) String() string {
+	return proto.EnumName(Digits_name, int32(x))
 }
-func (OTPDigits) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{2}
-}
-
-type OTPEnrollment struct {
-	Issuer               string    `protobuf:"bytes,1,opt,name=issuer" json:"issuer,omitempty"`
-	Account              string    `protobuf:"bytes,2,opt,name=account" json:"account,omitempty"`
-	Alg                  OTPAlg    `protobuf:"varint,3,opt,name=alg,enum=gotp.OTPAlg" json:"alg,omitempty"`
-	Mode                 OTPMode   `protobuf:"varint,4,opt,name=mode,enum=gotp.OTPMode" json:"mode,omitempty"`
-	Digits               OTPDigits `protobuf:"varint,6,opt,name=digits,enum=gotp.OTPDigits" json:"digits,omitempty"`
-	Period               uint32    `protobuf:"varint,7,opt,name=period" json:"period,omitempty"`
-	SecretSize           uint32    `protobuf:"varint,8,opt,name=secretSize" json:"secretSize,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
-	XXX_unrecognized     []byte    `json:"-"`
-	XXX_sizecache        int32     `json:"-"`
+func (Digits) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{2}
 }
 
-func (m *OTPEnrollment) Reset()         { *m = OTPEnrollment{} }
-func (m *OTPEnrollment) String() string { return proto.CompactTextString(m) }
-func (*OTPEnrollment) ProtoMessage()    {}
-func (*OTPEnrollment) Descriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{0}
-}
-func (m *OTPEnrollment) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_OTPEnrollment.Unmarshal(m, b)
-}
-func (m *OTPEnrollment) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_OTPEnrollment.Marshal(b, m, deterministic)
-}
-func (dst *OTPEnrollment) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_OTPEnrollment.Merge(dst, src)
-}
-func (m *OTPEnrollment) XXX_Size() int {
-	return xxx_messageInfo_OTPEnrollment.Size(m)
-}
-func (m *OTPEnrollment) XXX_DiscardUnknown() {
-	xxx_messageInfo_OTPEnrollment.DiscardUnknown(m)
+type Enrollment struct {
+	Issuer               string   `protobuf:"bytes,1,opt,name=issuer" json:"issuer,omitempty"`
+	Account              string   `protobuf:"bytes,2,opt,name=account" json:"account,omitempty"`
+	Alg                  Alg      `protobuf:"varint,3,opt,name=alg,enum=gotp.Alg" json:"alg,omitempty"`
+	Mode                 Mode     `protobuf:"varint,4,opt,name=mode,enum=gotp.Mode" json:"mode,omitempty"`
+	Digits               Digits   `protobuf:"varint,6,opt,name=digits,enum=gotp.Digits" json:"digits,omitempty"`
+	Period               uint32   `protobuf:"varint,7,opt,name=period" json:"period,omitempty"`
+	SecretSize           uint32   `protobuf:"varint,8,opt,name=secretSize" json:"secretSize,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-var xxx_messageInfo_OTPEnrollment proto.InternalMessageInfo
+func (m *Enrollment) Reset()         { *m = Enrollment{} }
+func (m *Enrollment) String() string { return proto.CompactTextString(m) }
+func (*Enrollment) ProtoMessage()    {}
+func (*Enrollment) Descriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{0}
+}
+func (m *Enrollment) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Enrollment.Unmarshal(m, b)
+}
+func (m *Enrollment) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Enrollment.Marshal(b, m, deterministic)
+}
+func (dst *Enrollment) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Enrollment.Merge(dst, src)
+}
+func (m *Enrollment) XXX_Size() int {
+	return xxx_messageInfo_Enrollment.Size(m)
+}
+func (m *Enrollment) XXX_DiscardUnknown() {
+	xxx_messageInfo_Enrollment.DiscardUnknown(m)
+}
 
-func (m *OTPEnrollment) GetIssuer() string {
+var xxx_messageInfo_Enrollment proto.InternalMessageInfo
+
+func (m *Enrollment) GetIssuer() string {
 	if m != nil {
 		return m.Issuer
 	}
 	return ""
 }
 
-func (m *OTPEnrollment) GetAccount() string {
+func (m *Enrollment) GetAccount() string {
 	if m != nil {
 		return m.Account
 	}
 	return ""
 }
 
-func (m *OTPEnrollment) GetAlg() OTPAlg {
+func (m *Enrollment) GetAlg() Alg {
 	if m != nil {
 		return m.Alg
 	}
-	return OTPAlg_SHA_1
+	return Alg_SHA_1
 }
 
-func (m *OTPEnrollment) GetMode() OTPMode {
+func (m *Enrollment) GetMode() Mode {
 	if m != nil {
 		return m.Mode
 	}
-	return OTPMode_TIME
+	return Mode_TIME
 }
 
-func (m *OTPEnrollment) GetDigits() OTPDigits {
+func (m *Enrollment) GetDigits() Digits {
 	if m != nil {
 		return m.Digits
 	}
-	return OTPDigits_SIX
+	return Digits_SIX
 }
 
-func (m *OTPEnrollment) GetPeriod() uint32 {
+func (m *Enrollment) GetPeriod() uint32 {
 	if m != nil {
 		return m.Period
 	}
 	return 0
 }
 
-func (m *OTPEnrollment) GetSecretSize() uint32 {
+func (m *Enrollment) GetSecretSize() uint32 {
 	if m != nil {
 		return m.SecretSize
 	}
 	return 0
 }
 
-type OTPEnrollmentResponse struct {
+type EnrollmentResponse struct {
 	Uri                  string   `protobuf:"bytes,1,opt,name=uri" json:"uri,omitempty"`
 	Secret               string   `protobuf:"bytes,2,opt,name=secret" json:"secret,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -189,45 +189,45 @@ type OTPEnrollmentResponse struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *OTPEnrollmentResponse) Reset()         { *m = OTPEnrollmentResponse{} }
-func (m *OTPEnrollmentResponse) String() string { return proto.CompactTextString(m) }
-func (*OTPEnrollmentResponse) ProtoMessage()    {}
-func (*OTPEnrollmentResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{1}
+func (m *EnrollmentResponse) Reset()         { *m = EnrollmentResponse{} }
+func (m *EnrollmentResponse) String() string { return proto.CompactTextString(m) }
+func (*EnrollmentResponse) ProtoMessage()    {}
+func (*EnrollmentResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{1}
 }
-func (m *OTPEnrollmentResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_OTPEnrollmentResponse.Unmarshal(m, b)
+func (m *EnrollmentResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EnrollmentResponse.Unmarshal(m, b)
 }
-func (m *OTPEnrollmentResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_OTPEnrollmentResponse.Marshal(b, m, deterministic)
+func (m *EnrollmentResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EnrollmentResponse.Marshal(b, m, deterministic)
 }
-func (dst *OTPEnrollmentResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_OTPEnrollmentResponse.Merge(dst, src)
+func (dst *EnrollmentResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EnrollmentResponse.Merge(dst, src)
 }
-func (m *OTPEnrollmentResponse) XXX_Size() int {
-	return xxx_messageInfo_OTPEnrollmentResponse.Size(m)
+func (m *EnrollmentResponse) XXX_Size() int {
+	return xxx_messageInfo_EnrollmentResponse.Size(m)
 }
-func (m *OTPEnrollmentResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_OTPEnrollmentResponse.DiscardUnknown(m)
+func (m *EnrollmentResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_EnrollmentResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_OTPEnrollmentResponse proto.InternalMessageInfo
+var xxx_messageInfo_EnrollmentResponse proto.InternalMessageInfo
 
-func (m *OTPEnrollmentResponse) GetUri() string {
+func (m *EnrollmentResponse) GetUri() string {
 	if m != nil {
 		return m.Uri
 	}
 	return ""
 }
 
-func (m *OTPEnrollmentResponse) GetSecret() string {
+func (m *EnrollmentResponse) GetSecret() string {
 	if m != nil {
 		return m.Secret
 	}
 	return ""
 }
 
-type OTPValidate struct {
+type Credentials struct {
 	Otp                  string   `protobuf:"bytes,1,opt,name=otp" json:"otp,omitempty"`
 	Secret               string   `protobuf:"bytes,2,opt,name=secret" json:"secret,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -235,45 +235,45 @@ type OTPValidate struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *OTPValidate) Reset()         { *m = OTPValidate{} }
-func (m *OTPValidate) String() string { return proto.CompactTextString(m) }
-func (*OTPValidate) ProtoMessage()    {}
-func (*OTPValidate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{2}
+func (m *Credentials) Reset()         { *m = Credentials{} }
+func (m *Credentials) String() string { return proto.CompactTextString(m) }
+func (*Credentials) ProtoMessage()    {}
+func (*Credentials) Descriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{2}
 }
-func (m *OTPValidate) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_OTPValidate.Unmarshal(m, b)
+func (m *Credentials) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Credentials.Unmarshal(m, b)
 }
-func (m *OTPValidate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_OTPValidate.Marshal(b, m, deterministic)
+func (m *Credentials) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Credentials.Marshal(b, m, deterministic)
 }
-func (dst *OTPValidate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_OTPValidate.Merge(dst, src)
+func (dst *Credentials) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Credentials.Merge(dst, src)
 }
-func (m *OTPValidate) XXX_Size() int {
-	return xxx_messageInfo_OTPValidate.Size(m)
+func (m *Credentials) XXX_Size() int {
+	return xxx_messageInfo_Credentials.Size(m)
 }
-func (m *OTPValidate) XXX_DiscardUnknown() {
-	xxx_messageInfo_OTPValidate.DiscardUnknown(m)
+func (m *Credentials) XXX_DiscardUnknown() {
+	xxx_messageInfo_Credentials.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_OTPValidate proto.InternalMessageInfo
+var xxx_messageInfo_Credentials proto.InternalMessageInfo
 
-func (m *OTPValidate) GetOtp() string {
+func (m *Credentials) GetOtp() string {
 	if m != nil {
 		return m.Otp
 	}
 	return ""
 }
 
-func (m *OTPValidate) GetSecret() string {
+func (m *Credentials) GetSecret() string {
 	if m != nil {
 		return m.Secret
 	}
 	return ""
 }
 
-type OTPValidateResponse struct {
+type AuthResponse struct {
 	Valid                bool     `protobuf:"varint,1,opt,name=valid" json:"valid,omitempty"`
 	Secret               string   `protobuf:"bytes,2,opt,name=secret" json:"secret,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -281,38 +281,38 @@ type OTPValidateResponse struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *OTPValidateResponse) Reset()         { *m = OTPValidateResponse{} }
-func (m *OTPValidateResponse) String() string { return proto.CompactTextString(m) }
-func (*OTPValidateResponse) ProtoMessage()    {}
-func (*OTPValidateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_otp_f6579e50ed5a1a06, []int{3}
+func (m *AuthResponse) Reset()         { *m = AuthResponse{} }
+func (m *AuthResponse) String() string { return proto.CompactTextString(m) }
+func (*AuthResponse) ProtoMessage()    {}
+func (*AuthResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_otp_91201aeb1d9ba24b, []int{3}
 }
-func (m *OTPValidateResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_OTPValidateResponse.Unmarshal(m, b)
+func (m *AuthResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AuthResponse.Unmarshal(m, b)
 }
-func (m *OTPValidateResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_OTPValidateResponse.Marshal(b, m, deterministic)
+func (m *AuthResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AuthResponse.Marshal(b, m, deterministic)
 }
-func (dst *OTPValidateResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_OTPValidateResponse.Merge(dst, src)
+func (dst *AuthResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuthResponse.Merge(dst, src)
 }
-func (m *OTPValidateResponse) XXX_Size() int {
-	return xxx_messageInfo_OTPValidateResponse.Size(m)
+func (m *AuthResponse) XXX_Size() int {
+	return xxx_messageInfo_AuthResponse.Size(m)
 }
-func (m *OTPValidateResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_OTPValidateResponse.DiscardUnknown(m)
+func (m *AuthResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuthResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_OTPValidateResponse proto.InternalMessageInfo
+var xxx_messageInfo_AuthResponse proto.InternalMessageInfo
 
-func (m *OTPValidateResponse) GetValid() bool {
+func (m *AuthResponse) GetValid() bool {
 	if m != nil {
 		return m.Valid
 	}
 	return false
 }
 
-func (m *OTPValidateResponse) GetSecret() string {
+func (m *AuthResponse) GetSecret() string {
 	if m != nil {
 		return m.Secret
 	}
@@ -320,13 +320,13 @@ func (m *OTPValidateResponse) GetSecret() string {
 }
 
 func init() {
-	proto.RegisterType((*OTPEnrollment)(nil), "gotp.OTPEnrollment")
-	proto.RegisterType((*OTPEnrollmentResponse)(nil), "gotp.OTPEnrollmentResponse")
-	proto.RegisterType((*OTPValidate)(nil), "gotp.OTPValidate")
-	proto.RegisterType((*OTPValidateResponse)(nil), "gotp.OTPValidateResponse")
-	proto.RegisterEnum("gotp.OTPAlg", OTPAlg_name, OTPAlg_value)
-	proto.RegisterEnum("gotp.OTPMode", OTPMode_name, OTPMode_value)
-	proto.RegisterEnum("gotp.OTPDigits", OTPDigits_name, OTPDigits_value)
+	proto.RegisterType((*Enrollment)(nil), "gotp.Enrollment")
+	proto.RegisterType((*EnrollmentResponse)(nil), "gotp.EnrollmentResponse")
+	proto.RegisterType((*Credentials)(nil), "gotp.Credentials")
+	proto.RegisterType((*AuthResponse)(nil), "gotp.AuthResponse")
+	proto.RegisterEnum("gotp.Alg", Alg_name, Alg_value)
+	proto.RegisterEnum("gotp.Mode", Mode_name, Mode_value)
+	proto.RegisterEnum("gotp.Digits", Digits_name, Digits_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -340,8 +340,8 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for OTP service
 
 type OTPClient interface {
-	Enroll(ctx context.Context, in *OTPEnrollment, opts ...grpc.CallOption) (*OTPEnrollmentResponse, error)
-	Validate(ctx context.Context, in *OTPValidate, opts ...grpc.CallOption) (*OTPValidateResponse, error)
+	Enroll(ctx context.Context, in *Enrollment, opts ...grpc.CallOption) (*EnrollmentResponse, error)
+	Auth(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*AuthResponse, error)
 }
 
 type oTPClient struct {
@@ -352,8 +352,8 @@ func NewOTPClient(cc *grpc.ClientConn) OTPClient {
 	return &oTPClient{cc}
 }
 
-func (c *oTPClient) Enroll(ctx context.Context, in *OTPEnrollment, opts ...grpc.CallOption) (*OTPEnrollmentResponse, error) {
-	out := new(OTPEnrollmentResponse)
+func (c *oTPClient) Enroll(ctx context.Context, in *Enrollment, opts ...grpc.CallOption) (*EnrollmentResponse, error) {
+	out := new(EnrollmentResponse)
 	err := grpc.Invoke(ctx, "/gotp.OTP/Enroll", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -361,9 +361,9 @@ func (c *oTPClient) Enroll(ctx context.Context, in *OTPEnrollment, opts ...grpc.
 	return out, nil
 }
 
-func (c *oTPClient) Validate(ctx context.Context, in *OTPValidate, opts ...grpc.CallOption) (*OTPValidateResponse, error) {
-	out := new(OTPValidateResponse)
-	err := grpc.Invoke(ctx, "/gotp.OTP/Validate", in, out, c.cc, opts...)
+func (c *oTPClient) Auth(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*AuthResponse, error) {
+	out := new(AuthResponse)
+	err := grpc.Invoke(ctx, "/gotp.OTP/Auth", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -373,8 +373,8 @@ func (c *oTPClient) Validate(ctx context.Context, in *OTPValidate, opts ...grpc.
 // Server API for OTP service
 
 type OTPServer interface {
-	Enroll(context.Context, *OTPEnrollment) (*OTPEnrollmentResponse, error)
-	Validate(context.Context, *OTPValidate) (*OTPValidateResponse, error)
+	Enroll(context.Context, *Enrollment) (*EnrollmentResponse, error)
+	Auth(context.Context, *Credentials) (*AuthResponse, error)
 }
 
 func RegisterOTPServer(s *grpc.Server, srv OTPServer) {
@@ -382,7 +382,7 @@ func RegisterOTPServer(s *grpc.Server, srv OTPServer) {
 }
 
 func _OTP_Enroll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OTPEnrollment)
+	in := new(Enrollment)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -394,25 +394,25 @@ func _OTP_Enroll_Handler(srv interface{}, ctx context.Context, dec func(interfac
 		FullMethod: "/gotp.OTP/Enroll",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OTPServer).Enroll(ctx, req.(*OTPEnrollment))
+		return srv.(OTPServer).Enroll(ctx, req.(*Enrollment))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OTP_Validate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OTPValidate)
+func _OTP_Auth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Credentials)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OTPServer).Validate(ctx, in)
+		return srv.(OTPServer).Auth(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gotp.OTP/Validate",
+		FullMethod: "/gotp.OTP/Auth",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OTPServer).Validate(ctx, req.(*OTPValidate))
+		return srv.(OTPServer).Auth(ctx, req.(*Credentials))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -426,41 +426,41 @@ var _OTP_serviceDesc = grpc.ServiceDesc{
 			Handler:    _OTP_Enroll_Handler,
 		},
 		{
-			MethodName: "Validate",
-			Handler:    _OTP_Validate_Handler,
+			MethodName: "Auth",
+			Handler:    _OTP_Auth_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "otp.proto",
 }
 
-func init() { proto.RegisterFile("otp.proto", fileDescriptor_otp_f6579e50ed5a1a06) }
+func init() { proto.RegisterFile("otp.proto", fileDescriptor_otp_91201aeb1d9ba24b) }
 
-var fileDescriptor_otp_f6579e50ed5a1a06 = []byte{
-	// 399 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x52, 0x4d, 0x8b, 0xd3, 0x40,
-	0x18, 0xee, 0x6c, 0xb2, 0xf9, 0x78, 0xd7, 0x6a, 0x9c, 0x55, 0x19, 0x57, 0x58, 0x63, 0x2e, 0x96,
-	0x82, 0x85, 0x8d, 0x54, 0x41, 0xbc, 0x94, 0x1a, 0x6c, 0x0f, 0x35, 0x61, 0x1a, 0xc5, 0x9b, 0xc4,
-	0x66, 0x08, 0x81, 0x34, 0x13, 0x92, 0xa9, 0x07, 0x2f, 0xfe, 0x5a, 0xff, 0x87, 0xcc, 0xe4, 0xa3,
-	0x15, 0xed, 0x6d, 0x9e, 0xaf, 0x77, 0xf2, 0x3e, 0x19, 0xb0, 0xb9, 0xa8, 0x66, 0x55, 0xcd, 0x05,
-	0xc7, 0x7a, 0xc6, 0x45, 0xe5, 0xfd, 0x46, 0x30, 0x0e, 0xe3, 0x28, 0x28, 0x6b, 0x5e, 0x14, 0x7b,
-	0x56, 0x0a, 0xfc, 0x04, 0x8c, 0xbc, 0x69, 0x0e, 0xac, 0x26, 0xc8, 0x45, 0x13, 0x9b, 0x76, 0x08,
-	0x13, 0x30, 0x93, 0xdd, 0x8e, 0x1f, 0x4a, 0x41, 0x2e, 0x94, 0xd0, 0x43, 0x7c, 0x0b, 0x5a, 0x52,
-	0x64, 0x44, 0x73, 0xd1, 0xe4, 0xbe, 0x7f, 0x6f, 0x26, 0xe7, 0xce, 0xc2, 0x38, 0x5a, 0x14, 0x19,
-	0x95, 0x02, 0x7e, 0x01, 0xfa, 0x9e, 0xa7, 0x8c, 0xe8, 0xca, 0x30, 0x1e, 0x0c, 0x1b, 0x9e, 0x32,
-	0xaa, 0x24, 0xfc, 0x12, 0x8c, 0x34, 0xcf, 0x72, 0xd1, 0x10, 0x43, 0x99, 0x1e, 0x0c, 0xa6, 0x0f,
-	0x8a, 0xa6, 0x9d, 0x2c, 0xbf, 0xae, 0x62, 0x75, 0xce, 0x53, 0x62, 0xba, 0x68, 0x32, 0xa6, 0x1d,
-	0xc2, 0xb7, 0x00, 0x0d, 0xdb, 0xd5, 0x4c, 0x6c, 0xf3, 0x9f, 0x8c, 0x58, 0x4a, 0x3b, 0x61, 0xbc,
-	0x05, 0x3c, 0xfe, 0x6b, 0x4d, 0xca, 0x9a, 0x8a, 0x97, 0x0d, 0xc3, 0x0e, 0x68, 0x87, 0x3a, 0xef,
-	0x76, 0x95, 0x47, 0x79, 0x45, 0x1b, 0xec, 0xf6, 0xec, 0x90, 0xf7, 0x16, 0xae, 0xc2, 0x38, 0xfa,
-	0x92, 0x14, 0x79, 0x9a, 0x08, 0x15, 0xe4, 0xa2, 0xea, 0x83, 0x5c, 0x54, 0x67, 0x83, 0x4b, 0xb8,
-	0x3e, 0x09, 0x0e, 0x37, 0x3f, 0x82, 0xcb, 0x1f, 0x92, 0x53, 0x23, 0x2c, 0xda, 0x82, 0x73, 0x43,
-	0xa6, 0xaf, 0xc0, 0x68, 0x3b, 0xc5, 0x36, 0x5c, 0x6e, 0x57, 0x8b, 0x6f, 0x77, 0xce, 0x08, 0x5f,
-	0x81, 0x29, 0x8f, 0xfe, 0xfc, 0x8d, 0x83, 0x7a, 0x30, 0xbf, 0xf3, 0x9d, 0x8b, 0xa9, 0x0b, 0x66,
-	0xd7, 0x30, 0xb6, 0x40, 0x8f, 0xd7, 0x9b, 0xa0, 0xb5, 0x2f, 0xc3, 0xcf, 0x9f, 0xe2, 0x80, 0x3a,
-	0x68, 0xfa, 0x1c, 0xec, 0xa1, 0x5e, 0x6c, 0x82, 0xb6, 0x5d, 0x7f, 0x75, 0x46, 0x72, 0x78, 0xb0,
-	0xfe, 0xb8, 0x8a, 0x1d, 0xe4, 0xff, 0x02, 0x2d, 0x8c, 0x23, 0xfc, 0x1e, 0x8c, 0xb6, 0x36, 0x7c,
-	0x3d, 0xfc, 0x94, 0x63, 0x8f, 0x37, 0xcf, 0xfe, 0x43, 0xf6, 0x2b, 0x7a, 0x23, 0xfc, 0x0e, 0xac,
-	0xa1, 0xb1, 0x87, 0x83, 0xb5, 0xa7, 0x6e, 0x9e, 0xfe, 0x43, 0x1d, 0xb3, 0xdf, 0x0d, 0xf5, 0x50,
-	0x5f, 0xff, 0x09, 0x00, 0x00, 0xff, 0xff, 0xb2, 0x07, 0xc0, 0xf4, 0xb5, 0x02, 0x00, 0x00,
+var fileDescriptor_otp_91201aeb1d9ba24b = []byte{
+	// 396 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x52, 0x41, 0x6b, 0xd4, 0x40,
+	0x18, 0xdd, 0x69, 0xd2, 0xec, 0xe6, 0x6b, 0x95, 0xf1, 0x43, 0x64, 0xa8, 0x5a, 0x96, 0xe0, 0x61,
+	0xc9, 0x61, 0xa5, 0x91, 0xd6, 0x8b, 0x08, 0xa1, 0x06, 0xbb, 0x87, 0x5a, 0x99, 0x8d, 0xe0, 0x4d,
+	0xe2, 0x66, 0x88, 0x03, 0x69, 0x26, 0x24, 0x13, 0x0f, 0xfe, 0x53, 0xff, 0x8d, 0xcc, 0x4c, 0x62,
+	0x97, 0xc2, 0xde, 0xe6, 0xbd, 0xf7, 0xbd, 0x2f, 0x79, 0x8f, 0x0f, 0x42, 0xa5, 0xdb, 0x75, 0xdb,
+	0x29, 0xad, 0xd0, 0xaf, 0x94, 0x6e, 0xa3, 0xbf, 0x04, 0x20, 0x6b, 0x3a, 0x55, 0xd7, 0xf7, 0xa2,
+	0xd1, 0xf8, 0x02, 0x02, 0xd9, 0xf7, 0x83, 0xe8, 0x18, 0x59, 0x92, 0x55, 0xc8, 0x47, 0x84, 0x0c,
+	0xe6, 0xc5, 0x6e, 0xa7, 0x86, 0x46, 0xb3, 0x23, 0x2b, 0x4c, 0x10, 0x5f, 0x82, 0x57, 0xd4, 0x15,
+	0xf3, 0x96, 0x64, 0xf5, 0x34, 0x09, 0xd7, 0x66, 0xe9, 0x3a, 0xad, 0x2b, 0x6e, 0x58, 0x3c, 0x07,
+	0xff, 0x5e, 0x95, 0x82, 0xf9, 0x56, 0x05, 0xa7, 0xde, 0xaa, 0x52, 0x70, 0xcb, 0xe3, 0x1b, 0x08,
+	0x4a, 0x59, 0x49, 0xdd, 0xb3, 0xc0, 0x4e, 0x9c, 0xba, 0x89, 0x4f, 0x96, 0xe3, 0xa3, 0x66, 0x7e,
+	0xaa, 0x15, 0x9d, 0x54, 0x25, 0x9b, 0x2f, 0xc9, 0xea, 0x09, 0x1f, 0x11, 0x9e, 0x03, 0xf4, 0x62,
+	0xd7, 0x09, 0xbd, 0x95, 0x7f, 0x04, 0x5b, 0x58, 0x6d, 0x8f, 0x89, 0x3e, 0x02, 0x3e, 0x44, 0xe3,
+	0xa2, 0x6f, 0x55, 0xd3, 0x0b, 0xa4, 0xe0, 0x0d, 0x9d, 0x1c, 0xf3, 0x99, 0xa7, 0xd9, 0xef, 0x5c,
+	0x63, 0xb6, 0x11, 0x45, 0xef, 0xe1, 0xe4, 0xba, 0x13, 0xa5, 0x68, 0xb4, 0x2c, 0xea, 0xde, 0x18,
+	0x95, 0x6e, 0x27, 0xa3, 0xd2, 0xed, 0x41, 0xe3, 0x07, 0x38, 0x4d, 0x07, 0xfd, 0xeb, 0xff, 0x27,
+	0x9f, 0xc3, 0xf1, 0xef, 0xa2, 0x96, 0xa5, 0xf5, 0x2e, 0xb8, 0x03, 0x87, 0xdc, 0x71, 0x0c, 0x5e,
+	0x5a, 0x57, 0x18, 0xc2, 0xf1, 0xf6, 0x26, 0xfd, 0x71, 0x41, 0x67, 0x78, 0x02, 0x73, 0xf3, 0x4c,
+	0x2e, 0xaf, 0x28, 0x99, 0xc0, 0xe5, 0x45, 0x42, 0x8f, 0xe2, 0xd7, 0xe0, 0x9b, 0x3a, 0x71, 0x01,
+	0x7e, 0xbe, 0xb9, 0xcd, 0xdc, 0xec, 0xf5, 0xdd, 0xb7, 0x2f, 0x79, 0xc6, 0x29, 0x89, 0x5f, 0x41,
+	0xe0, 0xba, 0xc4, 0x39, 0x78, 0xdb, 0xcd, 0x77, 0x3a, 0x33, 0x6b, 0xb3, 0xcd, 0xe7, 0x9b, 0x9c,
+	0x92, 0xa4, 0x01, 0xef, 0x2e, 0xff, 0x8a, 0x57, 0x10, 0xb8, 0x9a, 0x90, 0xba, 0xfa, 0x1f, 0x4a,
+	0x3b, 0x63, 0x8f, 0x99, 0x29, 0x53, 0x34, 0xc3, 0xb7, 0xe0, 0x9b, 0x94, 0xf8, 0xcc, 0xcd, 0xec,
+	0x55, 0x75, 0x86, 0xe3, 0x1d, 0xec, 0x95, 0x10, 0xcd, 0x7e, 0x06, 0xf6, 0xf0, 0xde, 0xfd, 0x0b,
+	0x00, 0x00, 0xff, 0xff, 0x81, 0x01, 0x13, 0xae, 0x85, 0x02, 0x00, 0x00,
 }

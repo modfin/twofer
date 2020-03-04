@@ -219,41 +219,41 @@ func main() {
 							digits := c.Uint("digits")
 							ss := c.Int("secret-size")
 
-							var ralg gotp.OTPAlg
+							var ralg gotp.Alg
 							switch strings.ToLower(alg) {
 							case "sha1":
-								ralg = gotp.OTPAlg_SHA_1
+								ralg = gotp.Alg_SHA_1
 							case "sha512":
-								ralg = gotp.OTPAlg_SHA_512
+								ralg = gotp.Alg_SHA_512
 							case "sha256":
 								fallthrough
 							default:
-								ralg = gotp.OTPAlg_SHA_1
+								ralg = gotp.Alg_SHA_1
 							}
 
-							var rmode gotp.OTPMode
+							var rmode gotp.Mode
 							switch mode {
 							case "time":
-								rmode = gotp.OTPMode_TIME
+								rmode = gotp.Mode_TIME
 							case "counter":
-								rmode = gotp.OTPMode_COUNTER
+								rmode = gotp.Mode_COUNTER
 							default:
 								return errors.New("not a vaild mode")
 							}
 
-							var rdigits gotp.OTPDigits
+							var rdigits gotp.Digits
 							switch digits {
 							case 6:
-								rdigits = gotp.OTPDigits_SIX
+								rdigits = gotp.Digits_SIX
 							case 8:
-								rdigits = gotp.OTPDigits_EIGHT
+								rdigits = gotp.Digits_EIGHT
 							default:
 								return errors.New("digits must be 6 or 8")
 							}
 
 							client := gotp.NewOTPClient(conn)
 
-							r, err := client.Enroll(context.Background(), &gotp.OTPEnrollment{
+							r, err := client.Enroll(context.Background(), &gotp.Enrollment{
 								Issuer:     issuer,
 								Account:    user,
 								Alg:        ralg,
@@ -302,7 +302,7 @@ func main() {
 
 							client := gotp.NewOTPClient(conn)
 
-							r, err := client.Validate(context.Background(), &gotp.OTPValidate{
+							r, err := client.Auth(context.Background(), &gotp.Credentials{
 								Otp:    otp,
 								Secret: secret,
 							})

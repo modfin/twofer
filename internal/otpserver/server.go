@@ -113,13 +113,13 @@ func (s *Server) ratelimit(uri string) error {
 	return nil
 }
 
-func (s *Server) Enroll(ctx context.Context, en *gotp.OTPEnrollment) (resp *gotp.OTPEnrollmentResponse, err error) {
+func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.EnrollmentResponse, err error) {
 
 	digits := otp.DigitsSix
 	switch en.Digits {
-	case gotp.OTPDigits_SIX:
+	case gotp.Digits_SIX:
 		digits = otp.DigitsSix
-	case gotp.OTPDigits_EIGHT:
+	case gotp.Digits_EIGHT:
 		digits = otp.DigitsEight
 	}
 
@@ -129,7 +129,7 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.OTPEnrollment) (resp *gotp
 
 	var o wrapper
 	switch en.Mode {
-	case gotp.OTPMode_TIME:
+	case gotp.Mode_TIME:
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      en.Issuer,
 			AccountName: en.Account,
@@ -143,7 +143,7 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.OTPEnrollment) (resp *gotp
 		}
 		o.URI = key.URL()
 
-	case gotp.OTPMode_COUNTER:
+	case gotp.Mode_COUNTER:
 		key, err := hotp.Generate(hotp.GenerateOpts{
 			Issuer:      en.Issuer,
 			AccountName: en.Account,
@@ -170,13 +170,13 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.OTPEnrollment) (resp *gotp
 		return nil, err
 	}
 
-	return &gotp.OTPEnrollmentResponse{
+	return &gotp.EnrollmentResponse{
 		Uri:    o.URI,
 		Secret: base64.StdEncoding.EncodeToString(b),
 	}, nil
 }
 
-func (s *Server) Validate(ctx context.Context, va *gotp.OTPValidate) (*gotp.OTPValidateResponse, error) {
+func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResponse, error) {
 
 	sec, err := base64.StdEncoding.DecodeString(va.Secret)
 	if err != nil {
@@ -276,7 +276,7 @@ func (s *Server) Validate(ctx context.Context, va *gotp.OTPValidate) (*gotp.OTPV
 		return nil, err
 	}
 
-	return &gotp.OTPValidateResponse{
+	return &gotp.AuthResponse{
 		Valid:  valid,
 		Secret: base64.StdEncoding.EncodeToString(sec),
 	}, nil

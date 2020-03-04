@@ -37,7 +37,7 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{0}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{0}
 }
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
@@ -97,7 +97,7 @@ func (m *User) Reset()         { *m = User{} }
 func (m *User) String() string { return proto.CompactTextString(m) }
 func (*User) ProtoMessage()    {}
 func (*User) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{1}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{1}
 }
 func (m *User) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_User.Unmarshal(m, b)
@@ -144,7 +144,7 @@ func (m *BeginRegisterRequest) Reset()         { *m = BeginRegisterRequest{} }
 func (m *BeginRegisterRequest) String() string { return proto.CompactTextString(m) }
 func (*BeginRegisterRequest) ProtoMessage()    {}
 func (*BeginRegisterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{2}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{2}
 }
 func (m *BeginRegisterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BeginRegisterRequest.Unmarshal(m, b)
@@ -197,7 +197,7 @@ func (m *BeginRegisterResponse) Reset()         { *m = BeginRegisterResponse{} }
 func (m *BeginRegisterResponse) String() string { return proto.CompactTextString(m) }
 func (*BeginRegisterResponse) ProtoMessage()    {}
 func (*BeginRegisterResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{3}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{3}
 }
 func (m *BeginRegisterResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BeginRegisterResponse.Unmarshal(m, b)
@@ -244,7 +244,7 @@ func (m *FinishRegisterRequest) Reset()         { *m = FinishRegisterRequest{} }
 func (m *FinishRegisterRequest) String() string { return proto.CompactTextString(m) }
 func (*FinishRegisterRequest) ProtoMessage()    {}
 func (*FinishRegisterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{4}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{4}
 }
 func (m *FinishRegisterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FinishRegisterRequest.Unmarshal(m, b)
@@ -296,7 +296,7 @@ func (m *FinishRegisterResponse) Reset()         { *m = FinishRegisterResponse{}
 func (m *FinishRegisterResponse) String() string { return proto.CompactTextString(m) }
 func (*FinishRegisterResponse) ProtoMessage()    {}
 func (*FinishRegisterResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{5}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{5}
 }
 func (m *FinishRegisterResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FinishRegisterResponse.Unmarshal(m, b)
@@ -335,7 +335,7 @@ func (m *BeginLoginRequest) Reset()         { *m = BeginLoginRequest{} }
 func (m *BeginLoginRequest) String() string { return proto.CompactTextString(m) }
 func (*BeginLoginRequest) ProtoMessage()    {}
 func (*BeginLoginRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{6}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{6}
 }
 func (m *BeginLoginRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BeginLoginRequest.Unmarshal(m, b)
@@ -381,7 +381,7 @@ func (m *BeginLoginResponse) Reset()         { *m = BeginLoginResponse{} }
 func (m *BeginLoginResponse) String() string { return proto.CompactTextString(m) }
 func (*BeginLoginResponse) ProtoMessage()    {}
 func (*BeginLoginResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{7}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{7}
 }
 func (m *BeginLoginResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BeginLoginResponse.Unmarshal(m, b)
@@ -428,7 +428,7 @@ func (m *FinishLoginRequest) Reset()         { *m = FinishLoginRequest{} }
 func (m *FinishLoginRequest) String() string { return proto.CompactTextString(m) }
 func (*FinishLoginRequest) ProtoMessage()    {}
 func (*FinishLoginRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{8}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{8}
 }
 func (m *FinishLoginRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FinishLoginRequest.Unmarshal(m, b)
@@ -480,7 +480,7 @@ func (m *FinishLoginResponse) Reset()         { *m = FinishLoginResponse{} }
 func (m *FinishLoginResponse) String() string { return proto.CompactTextString(m) }
 func (*FinishLoginResponse) ProtoMessage()    {}
 func (*FinishLoginResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_3681f16733bc33a6, []int{9}
+	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{9}
 }
 func (m *FinishLoginResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FinishLoginResponse.Unmarshal(m, b)
@@ -691,9 +691,9 @@ var _WebAuthn_serviceDesc = grpc.ServiceDesc{
 	Metadata: "w6n.proto",
 }
 
-func init() { proto.RegisterFile("w6n.proto", fileDescriptor_w6n_3681f16733bc33a6) }
+func init() { proto.RegisterFile("w6n.proto", fileDescriptor_w6n_13a29f2c637e8ee2) }
 
-var fileDescriptor_w6n_3681f16733bc33a6 = []byte{
+var fileDescriptor_w6n_13a29f2c637e8ee2 = []byte{
 	// 448 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x54, 0xdd, 0xce, 0xd2, 0x40,
 	0x10, 0xb5, 0xfd, 0xea, 0x27, 0x0c, 0x3f, 0xd1, 0x11, 0xb4, 0x56, 0x42, 0x4c, 0xe3, 0x85, 0xc1,
