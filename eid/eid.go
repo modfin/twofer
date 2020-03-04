@@ -18,7 +18,6 @@ type EID struct {
 
 func (e *EID) Add(provider ToEID) {
 	c := provider.EID()
-	fmt.Println("Adding", c.Name())
 	e.providers[c.Name()] = c
 }
 

@@ -14,6 +14,7 @@ import (
 
 func New(config config.WebAuthn) (*Server, error) {
 	s := &Server{
+		hmacKey: []byte(config.HMACKey),
 		defaultConfig: &webauthn.Config{
 			RPDisplayName: config.RPDisplayName,
 			RPID:          config.RPID,
@@ -36,18 +37,31 @@ func New(config config.WebAuthn) (*Server, error) {
 
 type Server struct {
 	defaultConfig *webauthn.Config
+	hmacKey       []byte
 }
 
-func (s *Server) create(config *webauthn.Config) (*webauthn.WebAuthn, error) {
-	if config == nil {
+func (s *Server) create(c interface{ GetCfg() *gw6n.Config }) (*webauthn.WebAuthn, error) {
+	if c == nil {
 		return webauthn.New(s.defaultConfig)
 	}
-	return webauthn.New(config)
+	cfg := c.GetCfg()
+	if cfg == nil {
+		return webauthn.New(s.defaultConfig)
+	}
+
+	return webauthn.New(&webauthn.Config{
+		RPDisplayName: cfg.RPDisplayName,
+		RPID:          cfg.RPID,
+		RPOrigin:      cfg.RPOrigin,
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			UserVerification: toUserVerification(cfg.UserVerification),
+		},
+	})
 }
 
 func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest) (res *gw6n.BeginRegisterResponse, err error) {
 
-	service, err := s.create(nil)
+	service, err := s.create(req)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +92,6 @@ func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest
 	}
 	if u.DisplayName == "" {
 		u.DisplayName = u.Name
-
 	}
 
 	credentialCreation, sessionData, err := service.BeginRegistration(u)
@@ -91,10 +104,10 @@ func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest
 		return
 	}
 
-	session, err := json.Marshal(Session{
+	session, err := Session{
 		Data: sessionData,
 		User: u,
-	})
+	}.Marshal(s.hmacKey)
 
 	response := &gw6n.BeginRegisterResponse{
 		Session: session,
@@ -105,18 +118,17 @@ func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest
 
 func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterRequest) (res *gw6n.FinishRegisterResponse, err error) {
 
-	service, err := s.create(nil)
+	service, err := s.create(req)
 	if err != nil {
 		return nil, err
 	}
-
 	credentialCreation, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(req.Signature))
 	if err != nil {
 		return nil, errors.New("failed to parse authenticator response")
 	}
 
 	var session Session
-	err = json.Unmarshal(req.Session, &session)
+	err = session.Unmarshal(s.hmacKey, req.Session)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +143,7 @@ func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterReque
 		return nil, err
 	}
 
-	session.User.Credentials = append(session.User.Credentials, *credential)
+	session.User.Credentials = append(session.User.Credentials, Credential{Credential: *credential, RPID: service.Config.RPID})
 
 	res = &gw6n.FinishRegisterResponse{}
 	res.UserBlob, err = json.Marshal(session.User)
@@ -139,7 +151,7 @@ func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterReque
 }
 func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res *gw6n.BeginLoginResponse, err error) {
 
-	service, err := s.create(nil)
+	service, err := s.create(req)
 	if err != nil {
 		return nil, err
 	}
@@ -150,15 +162,24 @@ func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res
 		return
 	}
 
+	// Filtering out credentials valid for this RP
+	var creds []Credential
+	for _, c := range u.Credentials {
+		if c.RPID == service.Config.RPID {
+			creds = append(creds, c)
+		}
+	}
+	u.Credentials = creds
+
 	credentialAssertion, sessionData, err := service.BeginLogin(u)
 	if err != nil {
 		return
 	}
 
-	session, err := json.Marshal(Session{
+	session, err := Session{
 		User: u,
 		Data: sessionData,
-	})
+	}.Marshal(s.hmacKey)
 	if err != nil {
 		return
 	}
@@ -175,7 +196,7 @@ func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res
 }
 func (s *Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (res *gw6n.FinishLoginResponse, err error) {
 
-	service, err := s.create(nil)
+	service, err := s.create(req)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +204,7 @@ func (s *Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (r
 	body, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.Signature))
 
 	var session Session
-	err = json.Unmarshal(req.Session, &session)
+	err = session.Unmarshal(s.hmacKey, req.Session)
 	if err != nil {
 		return nil, err
 	}
@@ -192,12 +213,15 @@ func (s *Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (r
 		return nil, errors.New("session data must be provided")
 
 	}
-
 	_, err = service.ValidateLogin(session.User, *session.Data, body)
 	if err != nil {
-		return nil, err
+		return &gw6n.FinishLoginResponse{
+			Valid: false,
+		}, err
 	}
 
-	return &gw6n.FinishLoginResponse{}, nil
+	return &gw6n.FinishLoginResponse{
+		Valid: true,
+	}, nil
 
 }

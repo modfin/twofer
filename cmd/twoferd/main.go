@@ -23,8 +23,6 @@ func main() {
 
 	cfg := config.Get()
 
-	fmt.Printf("%+v", cfg)
-
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -58,7 +56,7 @@ func main() {
 	}
 
 	if cfg.WebAuthn.Enabled {
-		fmt.Println("Adding WebAuthn")
+		fmt.Println("- Enablin WebAuthn")
 		authn, err := webauthnserver.New(cfg.WebAuthn)
 		if err != nil {
 			fmt.Println("WebAuthn", err)
@@ -77,7 +75,7 @@ func startEid(grpcServer *grpc.Server) {
 	geid.RegisterEIDServer(grpcServer, serve)
 
 	if config.Get().BankID.Enabled {
-		fmt.Println(" - Enabling BankId")
+		fmt.Println("  - Enabling BankId")
 		client, err := bankid.New(bankid.ClientConfig{
 			BaseURL:       config.Get().BankID.URL.String(),
 			PemRootCA:     config.Get().BankID.GetRootCA(),
@@ -92,7 +90,7 @@ func startEid(grpcServer *grpc.Server) {
 	}
 
 	if config.Get().FrejaID.Enabled {
-		fmt.Println(" - Enabling Freja")
+		fmt.Println("  - Enabling Freja")
 		client, err := freja.New(freja.ClientConfig{
 			BaseURL:       config.Get().FrejaID.URL.String(),
 			PemRootCA:     config.Get().FrejaID.GetRootCA(),

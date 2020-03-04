@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"twofer/example/dao"
 	"twofer/twoferrpc/gw6n"
 )
@@ -49,7 +50,21 @@ func main() {
 	_ = http.ListenAndServe(":8080", nil)
 }
 
+func createConfig(r *http.Request) *gw6n.Config {
+	if r.Host != "localhost:8080" {
+		name := strings.Split(r.Host, ":")[0]
+		return &gw6n.Config{
+			RPID:          name,
+			RPDisplayName: name,
+			RPOrigin:      "http://" + r.Host,
+		}
+	}
+	return nil
+}
+
 func loginBegin(w http.ResponseWriter, r *http.Request) {
+	var cfg = createConfig(r)
+
 	userId := r.Header.Get("user")
 	u, ok := dao.Get(userId)
 	if !ok {
@@ -57,14 +72,22 @@ func loginBegin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp, err := _client.BeginLogin(context.Background(), &gw6n.BeginLoginRequest{
+		// The credentials for the user provided in the latest performed enrollment finish step
 		UserBlob: u.Blob,
+
+		// Optional, will use server default if not set
+		Cfg: cfg,
 	})
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 
+	// The session will be used to create the credentials and must be provided in the finish step.
+	// While setting it as a header or a cookie works, the session can become quite big
+	// and we suggest you persist it in a session store where it can later be retrived, eg. Redis, memcached or such.
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
+
 	w.Header().Set("Content-Type:", "application/json")
 	fmt.Printf("%s", string(resp.Json))
 
@@ -72,6 +95,7 @@ func loginBegin(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginFinish(w http.ResponseWriter, r *http.Request) {
+	var cfg = createConfig(r)
 
 	session := []byte(r.Header.Get("WebAuthn-Session"))
 	signature, err := ioutil.ReadAll(r.Body)
@@ -81,8 +105,14 @@ func loginFinish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = _client.FinishLogin(context.Background(), &gw6n.FinishLoginRequest{
-		Session:   session,
+		// The session that was created in the registerBegin begin step
+		Session: session,
+
+		// The signature provided from the frontend.
 		Signature: signature,
+
+		// Optional, will use server default if not set
+		Cfg: cfg,
 	})
 	if err != nil {
 		httpError(w, err)
@@ -92,20 +122,33 @@ func loginFinish(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerBegin(w http.ResponseWriter, r *http.Request) {
+
+	var cfg = createConfig(r)
+
 	userId := r.Header.Get("user")
 	u, _ := dao.Get(userId)
 
 	resp, err := _client.BeginRegister(context.Background(), &gw6n.BeginRegisterRequest{
+		// This is primarily used for first enrollment.
+		// if the user does exist, only adding the blob works fine
 		User: &gw6n.User{
 			Id: userId,
 		},
+
+		// if the user already have credentials and want to enroll new once, attach the current one
 		UserBlob: u.Blob,
+
+		// Optional, will use server default if not set
+		Cfg: cfg,
 	})
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 
+	// The session will be used to create the credentials and must be provided in the finish step.
+	// While setting it as a header or a cookie works, the session can become quite big
+	// and we suggest you persist it in a session store where it can later be retrived, eg. Redis, memcached or such.
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
 	w.Header().Set("Content-Type:", "application/json")
 	w.WriteHeader(200)
@@ -114,6 +157,8 @@ func registerBegin(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerFinish(w http.ResponseWriter, r *http.Request) {
+
+	var cfg = createConfig(r)
 
 	userId := r.Header.Get("user")
 
@@ -125,8 +170,14 @@ func registerFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp, err := _client.FinishRegister(context.Background(), &gw6n.FinishRegisterRequest{
-		Session:   session,
+		// The session that was created in the registerBegin begin step
+		Session: session,
+
+		// The signature provided from the frontend.
 		Signature: signature,
+
+		// Optional, will use server default if not set
+		Cfg: cfg,
 	})
 
 	if err != nil {
@@ -135,7 +186,9 @@ func registerFinish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dao.Set(dao.User{
-		Id:   userId,
+		Id: userId,
+
+		//Make sure to persist the UserBlob along with the user. This Blob is needed to later authenticate the user.
 		Blob: resp.UserBlob,
 	})
 

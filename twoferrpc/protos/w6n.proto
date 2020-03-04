@@ -13,7 +13,23 @@ service WebAuthn {
 }
 
 
+//
+//type WebAuthn struct {
+//Enabled          bool   `env:"WEBAUTHN_ENABLED"`
+//RPDisplayName    string `env:"WEBAUTHN_RP_DISPLAYNAME"`
+//RPID             string `env:"WEBAUTHN_RP_ID"`
+//RPOrigin         string `env:"WEBAUTHN_RP_ORIGIN"`
+//HMACKey          string `env:"WEBAUTHN_HMAC_KEY"`
+//UserVerification string `env:"WEBAUTHN_USER_VERIFICATION" envDefault:"discouraged"`
+//}
+//
 
+message Config{
+    string RPID = 1;
+    string RPDisplayName = 2;
+    string RPOrigin = 3;
+    string UserVerification = 4;
+}
 
 message User {
     string id = 1;
@@ -24,6 +40,8 @@ message User {
 message BeginRegisterRequest {
     User user = 1;
     bytes userBlob = 2;
+
+    Config cfg = 3; // Optional, twofer default will be used otherwise
 }
 
 message BeginRegisterResponse {
@@ -33,8 +51,10 @@ message BeginRegisterResponse {
 
 
 message FinishRegisterRequest {
-    bytes session = 2;
-    bytes signature = 3;
+    bytes session = 1;
+    bytes signature = 2;
+
+    Config cfg = 3; // Optional, twofer default will be used otherwise
 }
 message FinishRegisterResponse {
     bytes userBlob = 1;
@@ -43,6 +63,8 @@ message FinishRegisterResponse {
 
 message BeginLoginRequest {
     bytes userBlob = 1;
+
+    Config cfg = 2; // Optional, twofer default will be used otherwise
 }
 message BeginLoginResponse {
     bytes session = 1;
@@ -53,6 +75,8 @@ message BeginLoginResponse {
 message FinishLoginRequest {
     bytes session = 1;
     bytes signature = 2;
+
+    Config cfg = 3; // Optional, twofer default will be used otherwise
 }
 message FinishLoginResponse {
     bool valid = 1;
