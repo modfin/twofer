@@ -2,24 +2,27 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"twofer/example/samplem"
+	"twofer/example/dao"
 	"twofer/twoferrpc"
 )
 
 var (
-	serverAddr                = "127.0.0.1:43210"
-	_client                   twoferrpc.WebauthnClient
-	_userCache                = make(map[string]*twoferrpc.UserInfo)
-	_registrationSessionStore = make(map[string]*twoferrpc.SessionData)
-	_loginSessionStore        = make(map[string]*twoferrpc.SessionData)
+	serverAddr = "twoferd:43210"
+	_client    twoferrpc.WebauthnClient
 )
+
+func httpError(writer http.ResponseWriter, err error) {
+	writer.WriteHeader(500)
+	writer.Write([]byte(err.Error()))
+
+}
 
 func main() {
 
@@ -31,6 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}
+	fmt.Println("connected")
 	defer conn.Close()
 	_client = twoferrpc.NewWebauthnClient(conn)
 
@@ -39,126 +43,112 @@ func main() {
 	m.HandleFunc("/register/finish/{userId}", registerFinish).Methods("POST")
 	m.HandleFunc("/login/begin/{userId}", loginBegin).Methods("GET")
 	m.HandleFunc("/login/finish/{userId}", loginFinish).Methods("POST")
-	m.HandleFunc("/users", getUsers).Methods("GET")
-	m.HandleFunc("/sessions", getSessions).Methods("GET")
+	m.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
 
 	http.Handle("/", m)
 	_ = http.ListenAndServe(":8080", nil)
 }
 
-func loginFinish(writer http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
+func loginFinish(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 	userId := vars["userId"]
-	enableCors(&writer)
-	tu := _userCache[userId]
-	session := _loginSessionStore[userId]
-	body, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		writer.WriteHeader(400)
-		return
-	}
-	loginRequest := twoferrpc.FinishLoginRequest{
-		User:    tu,
-		Session: session,
-		Blob:    string(body),
-	}
-	_, err = _client.FinishLogin(context.Background(), &loginRequest)
-	if err != nil {
-		writer.WriteHeader(500)
-		return
-	}
-	writer.WriteHeader(200)
-	return
-}
+	u, ok := dao.Get(userId)
 
-func loginBegin(writer http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
-	userId := vars["userId"]
-	enableCors(&writer)
-	tu := _userCache[userId]
-	login, err := _client.BeginLogin(context.Background(), &twoferrpc.BeginLoginRequest{
-		User: tu,
+	if !ok {
+		httpError(w, errors.New("no user "+userId))
+		return
+	}
+
+	session := []byte(r.Header.Get("WebAuthn-Session"))
+	userBlob := u.Blob
+	signature, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	_, err = _client.FinishLogin(context.Background(), &twoferrpc.FinishLoginRequest{
+		Session:       session,
+		UserBlob:      userBlob,
+		UserSignature: signature,
 	})
 	if err != nil {
+		httpError(w, err)
 		return
 	}
-	_loginSessionStore[userId] = login.SessionData
-	_userCache[userId] = login.User
 
-	raw := json.RawMessage(login.PublicKey)
-	response := samplem.LoginResponse{PublicKey: raw}
-	fullResponse, _ := json.Marshal(response)
-
-	_, _ = writer.Write(fullResponse)
 }
 
-func getUsers(writer http.ResponseWriter, _ *http.Request) {
-	users, _ := json.Marshal(_userCache)
-	_, _ = writer.Write(users)
-}
+func loginBegin(w http.ResponseWriter, request *http.Request) {
+	vars := mux.Vars(request)
+	userId := vars["userId"]
+	u, ok := dao.Get(userId)
+	if !ok {
+		httpError(w, errors.New("no user "+userId))
+		return
+	}
+	resp, err := _client.BeginLogin(context.Background(), &twoferrpc.BeginLoginRequest{
+		UserBlob: u.Blob,
+	})
+	if err != nil {
+		httpError(w, err)
+		return
+	}
 
-func getSessions(writer http.ResponseWriter, _ *http.Request) {
-	users, _ := json.Marshal(_registrationSessionStore)
-	_, _ = writer.Write(users)
+	w.Header().Set("WebAuthn-Session", string(resp.Session))
+	w.Header().Set("Content-Type:", "application/json")
+	_, _ = w.Write(resp.Response2User)
 }
 
 func registerBegin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userId := vars["userId"]
-	enableCors(&w)
-	var tu = &twoferrpc.UserInfo{}
-	tu = _userCache[userId]
-	if tu == nil {
-		tu = &twoferrpc.UserInfo{
-			Id:                 userId,
-			Name:               "Name",
-			DisplayName:        "Display Me",
-			AllowedCredentials: nil,
-		}
-	}
-	register, err := _client.BeginRegister(context.Background(), &twoferrpc.BeginRegisterRequest{User: tu})
+
+	u, _ := dao.Get(userId)
+
+	resp, err := _client.BeginRegister(context.Background(), &twoferrpc.BeginRegisterRequest{
+		UserId:   userId,
+		UserBlob: u.Blob,
+	})
 	if err != nil {
-		w.WriteHeader(500)
+		httpError(w, err)
 		return
 	}
-	_registrationSessionStore[userId] = register.SessionData
-	_userCache[userId] = register.User
 
-	message := json.RawMessage(register.PublicKey)
-	cr := samplem.RegisterResponse{PublicKey: message}
-
-	response, err := json.Marshal(cr)
-	if err != nil {
-		return
-	}
+	w.Header().Set("WebAuthn-Session", string(resp.Session))
+	w.Header().Set("Content-Type:", "application/json")
 	w.WriteHeader(200)
-	_, _ = w.Write(response)
+	_, _ = w.Write(resp.Response2User)
 }
 
 func registerFinish(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userId := vars["userId"]
-	enableCors(&w)
-	u := _userCache[userId]
-	sessionData := _registrationSessionStore[userId]
-	delete(_registrationSessionStore, userId)
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(400)
-		return
-	}
-	request := &twoferrpc.FinishRegisterRequest{
-		SessionData: sessionData,
-		User:        u,
-		Blob:        string(body),
-	}
-	register, err := _client.FinishRegister(context.Background(), request)
-	if err != nil {
-		return
-	}
-	_userCache[userId] = register.User
-}
+	u, _ := dao.Get(userId)
 
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	session := []byte(r.Header.Get("WebAuthn-Session"))
+	signature, err := ioutil.ReadAll(r.Body)
+	userBlob := u.Blob
+
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	resp, err := _client.FinishRegister(context.Background(), &twoferrpc.FinishRegisterRequest{
+		UserBlob:      userBlob,
+		Session:       session,
+		UserSignature: signature,
+	})
+
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	dao.Set(dao.User{
+		Id:   userId,
+		Blob: resp.UserBlob,
+	})
+
+	w.WriteHeader(200)
 }

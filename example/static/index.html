@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>WebAuthn Demo</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="js/base64.js"></script>
+</head>
+
+<body>
+
+<h1>Twofer Demo</h1>
+
+<div>
+    <h2>WebAuthn</h2>
+    User: test@example.com
+    <hr/>
+    <button onclick="registerUser()">Register 2-Factor</button>  <span id="regStatus"></span>
+    <hr/>
+    <button onclick="loginUser()">Login  2-Factor</button>
+</div>
+
+
+
+<script>
+    const aUser = "test@example.com";
+    $(document).ready(function () {
+        if (!window.PublicKeyCredential) {
+            alert("Error: this browser does not support WebAuthn");
+        }
+    });
+
+    function loginUser() {
+        $.get(
+            '/login/begin/' + aUser,
+            null,
+            function (data) {
+                return data
+            },
+            'json')
+            .then((credentialRequestOptions, status, request) => {
+                console.log(credentialRequestOptions)
+                credentialRequestOptions.challenge = bufferDecode(credentialRequestOptions.challenge);
+                credentialRequestOptions.allowCredentials.forEach(function (listItem) {
+                    listItem.id = bufferDecode(listItem.id);
+                });
+                console.log("Allowing " + credentialRequestOptions.allowCredentials.length + " different credentials");
+                navigator.credentials.get({
+                    publicKey: credentialRequestOptions
+                }).then((assertion) => {
+                    let authData = assertion.response.authenticatorData;
+                    let clientDataJSON = assertion.response.clientDataJSON;
+                    let rawId = assertion.rawId;
+                    let sig = assertion.response.signature;
+                    let userHandle = assertion.response.userHandle;
+
+                    $.ajax({
+                        url:'/login/finish/' + aUser,
+                        type: 'post',
+                        headers: {
+                            "Webauthn-Session": request.getResponseHeader("Webauthn-Session"),
+                            "Content-Type": "application/json"
+                        },
+                        data: JSON.stringify({
+                            id: assertion.id,
+                            rawId: bufferEncode(rawId),
+                            type: assertion.type,
+                            response: {
+                                authenticatorData: bufferEncode(authData),
+                                clientDataJSON: bufferEncode(clientDataJSON),
+                                signature: bufferEncode(sig),
+                                userHandle: bufferEncode(userHandle),
+                            }
+                        })
+                    }).then(function (res) {
+                        console.log(res)
+                    })
+                });
+        })
+    }
+
+    function registerUser() {
+        $.get(
+            '/register/' + aUser,
+            null,
+            function (data) {
+                return data
+            },
+            'json')
+            .then((credentialCreationOptions, status, request) => {
+                credentialCreationOptions.publicKey.challenge = bufferDecode(credentialCreationOptions.publicKey.challenge);
+                credentialCreationOptions.publicKey.user.id = bufferDecode(credentialCreationOptions.publicKey.user.id);
+                navigator.credentials.create({
+                    publicKey: credentialCreationOptions.publicKey
+                }).then((credential) => {
+                    let attestationObject = credential.response.attestationObject;
+                    let clientDataJSON = credential.response.clientDataJSON;
+                    let rawId = credential.rawId;
+
+                    $.ajax({
+                        url:'/register/finish/' + aUser,
+                        type: 'post',
+                        headers: {
+                            "Webauthn-Session": request.getResponseHeader("Webauthn-Session"),
+                            "Content-Type": "application/json"
+                        },
+                        data : JSON.stringify({
+                            id: credential.id,
+                            rawId: bufferEncode(rawId),
+                            type: credential.type,
+                            response: {
+                                attestationObject: bufferEncode(attestationObject),
+                                clientDataJSON: bufferEncode(clientDataJSON),
+                            },
+                        }),
+                    }).then((resp) => {
+                        document.getElementById("regStatus").innerText = "You are now registered"
+                    })
+                });
+            })
+    }
+
+    // Base64 to ArrayBuffer
+    function bufferDecode(value) {
+        return b64ToByteArray(value)
+    }
+
+    function createUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function bufferEncode(value) {
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(value)))
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=/g, "");
+    }
+
+</script>
+</body>
+
+</html>

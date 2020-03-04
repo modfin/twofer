@@ -55,7 +55,13 @@ func main() {
 	}
 
 	if cfg.WebAuthn.Enabled {
-		rpc.RegisterWebauthnServer(grpcServer, webauthnserver.New([]byte("this is a key")))
+		fmt.Println("Adding WebAuthn")
+		authn, err := webauthnserver.New()
+		if err != nil {
+			fmt.Println("WebAuthn", err)
+		} else {
+			rpc.RegisterWebauthnServer(grpcServer, authn)
+		}
 	}
 
 	panic(grpcServer.Serve(lis))
