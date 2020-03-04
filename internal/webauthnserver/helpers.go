@@ -1,6 +1,23 @@
 package webauthnserver
 
-import "github.com/duo-labs/webauthn/webauthn"
+import (
+	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/webauthn"
+)
+
+func toUserVerification(mode string) protocol.UserVerificationRequirement {
+	switch mode {
+	case "required":
+		return protocol.VerificationRequired
+	case "preferred":
+		return protocol.VerificationPreferred
+	case "discouraged":
+		fallthrough
+	default:
+		return protocol.VerificationDiscouraged
+	}
+
+}
 
 type User struct {
 	Id          string                `json:"id"`

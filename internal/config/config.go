@@ -100,11 +100,12 @@ func (b FrejaID) GetJWSCert() []byte {
 }
 
 type WebAuthn struct {
-	Enabled       bool   `env:"WEBAUTHN_ENABLED" envDefault:"FALSE"`
-	RPDisplayName string `env:"RELYING_PARTY_DISPLAY_NAME" envDefault:"localhost"`
-	RPID          string `env:"RELYING_PARTY_ID" envDefault:"localhost"`
-	RPOrigin      string `env:"RELYING_PARTY_ORIGIN" envDefault:"localhost"`
-	SigningKey    string `env:"SigningKey" envDefault:""`
+	Enabled          bool   `env:"WEBAUTHN_ENABLED"`
+	RPDisplayName    string `env:"WEBAUTHN_RP_DISPLAYNAME"`
+	RPID             string `env:"WEBAUTHN_RP_ID"`
+	RPOrigin         string `env:"WEBAUTHN_RP_ORIGIN"`
+	HMACKey          string `env:"WEBAUTHN_HMAC_KEY"`
+	UserVerification string `env:"WEBAUTHN_USER_VERIFICATION" envDefault:"discouraged"`
 }
 
 var once sync.Once

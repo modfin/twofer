@@ -59,7 +59,7 @@ func main() {
 
 	if cfg.WebAuthn.Enabled {
 		fmt.Println("Adding WebAuthn")
-		authn, err := webauthnserver.New()
+		authn, err := webauthnserver.New(cfg.WebAuthn)
 		if err != nil {
 			fmt.Println("WebAuthn", err)
 		} else {

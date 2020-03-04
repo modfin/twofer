@@ -8,27 +8,49 @@ import (
 	"fmt"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
+	"twofer/internal/config"
 	"twofer/twoferrpc/gw6n"
 )
 
-func New() (*Server, error) {
-	//webAuthnConfig := config.Get().WebAuthn
-	webAuthn, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "localhost",             //webAuthnConfig.RPDisplayName,
-		RPID:          "localhost",             //webAuthnConfig.RPID,
-		RPOrigin:      "http://localhost:8080", //webAuthnConfig.RPOrigin,
-	})
+func New(config config.WebAuthn) (*Server, error) {
 	s := &Server{
-		webAuthn: webAuthn,
+		defaultConfig: &webauthn.Config{
+			RPDisplayName: config.RPDisplayName,
+			RPID:          config.RPID,
+			RPOrigin:      config.RPOrigin,
+			RPIcon:        "",
+			AuthenticatorSelection: protocol.AuthenticatorSelection{
+				UserVerification: toUserVerification(config.UserVerification),
+			},
+			Timeout: 0,
+			Debug:   false,
+		},
 	}
+	_, err := webauthn.New(s.defaultConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return s, err
 }
 
 type Server struct {
-	webAuthn *webauthn.WebAuthn
+	defaultConfig *webauthn.Config
 }
 
-func (s Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest) (res *gw6n.BeginRegisterResponse, err error) {
+func (s *Server) create(config *webauthn.Config) (*webauthn.WebAuthn, error) {
+	if config == nil {
+		return webauthn.New(s.defaultConfig)
+	}
+	return webauthn.New(config)
+}
+
+func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest) (res *gw6n.BeginRegisterResponse, err error) {
+
+	service, err := s.create(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	var u User
 	if len(req.UserBlob) > 0 {
@@ -59,7 +81,7 @@ func (s Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest)
 
 	}
 
-	credentialCreation, sessionData, err := s.webAuthn.BeginRegistration(u)
+	credentialCreation, sessionData, err := service.BeginRegistration(u)
 	if err != nil {
 		return
 	}
@@ -71,11 +93,7 @@ func (s Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest)
 
 	session, err := json.Marshal(Session{
 		Data: sessionData,
-		User: User{
-			Id:          u.Id,
-			Name:        u.Name,
-			DisplayName: u.DisplayName,
-		},
+		User: u,
 	})
 
 	response := &gw6n.BeginRegisterResponse{
@@ -85,7 +103,12 @@ func (s Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest)
 	return response, nil
 }
 
-func (s Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterRequest) (res *gw6n.FinishRegisterResponse, err error) {
+func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterRequest) (res *gw6n.FinishRegisterResponse, err error) {
+
+	service, err := s.create(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	credentialCreation, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(req.Signature))
 	if err != nil {
@@ -102,52 +125,40 @@ func (s Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterReques
 		return nil, errors.New("session data was not provided")
 	}
 
-	var u User
-	if len(req.UserBlob) > 0 {
-		err = json.Unmarshal(req.UserBlob, &u)
-		if err != nil {
-			return
-		}
-	}
-	if u.Id == "" {
-		u.Id = session.User.Id
-	}
-	if u.Name == "" {
-		u.Name = session.User.Name
-	}
-	if u.DisplayName == "" {
-		u.DisplayName = session.User.DisplayName
-	}
-
-	credential, err := s.webAuthn.CreateCredential(u, *session.Data, credentialCreation)
+	credential, err := service.CreateCredential(session.User, *session.Data, credentialCreation)
 	if err != nil {
 		fmt.Printf("Something's bonkers err=%+v\n", err)
 		return nil, err
 	}
 
-	u.Credentials = append(u.Credentials, *credential)
+	session.User.Credentials = append(session.User.Credentials, *credential)
 
 	res = &gw6n.FinishRegisterResponse{}
-	res.UserBlob, err = json.Marshal(u)
+	res.UserBlob, err = json.Marshal(session.User)
 	return res, err
 }
-func (s Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res *gw6n.BeginLoginResponse, err error) {
+func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res *gw6n.BeginLoginResponse, err error) {
+
+	service, err := s.create(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var u User
 	err = json.Unmarshal(req.UserBlob, &u)
 	if err != nil {
 		return
 	}
 
-	credentialAssertion, sessionData, err := s.webAuthn.BeginLogin(u, webauthn.WithUserVerification(protocol.VerificationDiscouraged))
+	credentialAssertion, sessionData, err := service.BeginLogin(u)
 	if err != nil {
 		return
 	}
 
-	session := Session{
+	session, err := json.Marshal(Session{
+		User: u,
 		Data: sessionData,
-	}
-
-	ss, err := json.Marshal(session)
+	})
 	if err != nil {
 		return
 	}
@@ -158,19 +169,18 @@ func (s Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res 
 	}
 
 	return &gw6n.BeginLoginResponse{
-		Session: ss,
+		Session: session,
 		Json:    response,
 	}, nil
 }
-func (s Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (res *gw6n.FinishLoginResponse, err error) {
+func (s *Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (res *gw6n.FinishLoginResponse, err error) {
 
-	body, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.Signature))
-	var u User
-
-	err = json.Unmarshal(req.UserBlob, &u)
+	service, err := s.create(nil)
 	if err != nil {
 		return nil, err
 	}
+
+	body, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.Signature))
 
 	var session Session
 	err = json.Unmarshal(req.Session, &session)
@@ -183,7 +193,7 @@ func (s Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (re
 
 	}
 
-	_, err = s.webAuthn.ValidateLogin(u, *session.Data, body)
+	_, err = service.ValidateLogin(session.User, *session.Data, body)
 	if err != nil {
 		return nil, err
 	}

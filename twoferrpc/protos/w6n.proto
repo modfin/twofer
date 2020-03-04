@@ -33,7 +33,6 @@ message BeginRegisterResponse {
 
 
 message FinishRegisterRequest {
-    bytes userBlob = 1;
     bytes session = 2;
     bytes signature = 3;
 }
@@ -52,12 +51,11 @@ message BeginLoginResponse {
 
 
 message FinishLoginRequest {
-    bytes userBlob = 1;
-    bytes session = 2;
-    bytes signature = 3;
+    bytes session = 1;
+    bytes signature = 2;
 }
 message FinishLoginResponse {
-    bytes userBlob = 1;
+    bool valid = 1;
 }
 
 

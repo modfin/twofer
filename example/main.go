@@ -49,36 +49,6 @@ func main() {
 	_ = http.ListenAndServe(":8080", nil)
 }
 
-func loginFinish(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userId := vars["userId"]
-	u, ok := dao.Get(userId)
-
-	if !ok {
-		httpError(w, errors.New("no user "+userId))
-		return
-	}
-
-	session := []byte(r.Header.Get("WebAuthn-Session"))
-	userBlob := u.Blob
-	signature, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		httpError(w, err)
-		return
-	}
-
-	_, err = _client.FinishLogin(context.Background(), &gw6n.FinishLoginRequest{
-		Session:   session,
-		UserBlob:  userBlob,
-		Signature: signature,
-	})
-	if err != nil {
-		httpError(w, err)
-		return
-	}
-
-}
-
 func loginBegin(w http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	userId := vars["userId"]
@@ -98,6 +68,26 @@ func loginBegin(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("WebAuthn-Session", string(resp.Session))
 	w.Header().Set("Content-Type:", "application/json")
 	_, _ = w.Write(resp.Json)
+}
+
+func loginFinish(w http.ResponseWriter, r *http.Request) {
+
+	session := []byte(r.Header.Get("WebAuthn-Session"))
+	signature, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	_, err = _client.FinishLogin(context.Background(), &gw6n.FinishLoginRequest{
+		Session:   session,
+		Signature: signature,
+	})
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
 }
 
 func registerBegin(w http.ResponseWriter, r *http.Request) {
@@ -126,18 +116,15 @@ func registerBegin(w http.ResponseWriter, r *http.Request) {
 func registerFinish(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userId := vars["userId"]
-	u, _ := dao.Get(userId)
 
 	session := []byte(r.Header.Get("WebAuthn-Session"))
 	signature, err := ioutil.ReadAll(r.Body)
-	userBlob := u.Blob
 
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 	resp, err := _client.FinishRegister(context.Background(), &gw6n.FinishRegisterRequest{
-		UserBlob:  userBlob,
 		Session:   session,
 		Signature: signature,
 	})

@@ -25,6 +25,12 @@ services:
         1:aes:Hg44JefQsFJMI1F0zhWMpw== 2:aes:ZS7MqnYbM3zL0ERjE0kFMWC5zuEwzFg5
 
       WEBAUTHN_ENABLED: "true"
+      WEBAUTHN_RP_ID: "localhost"
+      WEBAUTHN_RP_ORIGIN: "http://localhost:8080"
+      WEBAUTHN_RP_DISPLAYNAME: "localhost"
+      WEBAUTHN_USER_VERIFICATION: "discouraged"
+      WEBAUTHN_HMAC_KEY: "SfWAuZk23Rrm2Wgvq2nf"
+
 
     ports:
       - "43210:43210"
