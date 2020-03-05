@@ -1,5 +1,5 @@
 # Twofer
-A stateless service implementing some two factor authentication methods, so life is gets easier. 
+A stateless service implementing some two factor authentication methods, so life is gets somewhat easier. 
  
  ## General 
  Twofer is intended to be deployed within your stack and not be accessible directly from the outside. 
@@ -38,9 +38,18 @@ When starting twofer add the following environment variables
 ```bash
 EID_BANKID_ENABLE=true
 EID_BANKID_URL=https://appapi2.test.bankid.com
-EID_BANKID_ROOT_CA_PEM_FILE=/path/to/bank-id-rootca.pem  ## Used to authenticate BankID servers servers towards twofer
-EID_BANKID_CLIENT_CERT_FILE=/path/to/bank-id-cert.pem    ## Used to authenticate your account towards BankID
-EID_BANKID_CLIENT_KEY_FILE=/path/to/bank-id-key.pem      ## Used to authenticate your account towards BankID
+
+## Used to authenticate BankID servers servers towards twofer
+## EID_BANKID_ROOT_CA_PEM can be used to load pm directly from file
+EID_BANKID_ROOT_CA_PEM_FILE=/path/to/bank-id-rootca.pem  
+
+## Used to authenticate your account towards BankID
+## EID_BANKID_CLIENT_CERT can be used to load pm directly from file
+EID_BANKID_CLIENT_CERT_FILE=/path/to/bank-id-cert.pem    
+
+## Used to authenticate your account towards BankID
+## EID_BANKID_CLIENT_KEY can be used to load pm directly from file
+EID_BANKID_CLIENT_KEY_FILE=/path/to/bank-id-key.pem      
 ```
 
 **Use**
@@ -67,39 +76,102 @@ When starting twofer add the following environment variables
 ```bash
 EID_FREJA_ENABLE=true
 EID_FREJA_URL=https://services.test.frejaeid.com
-EID_FREJA_ROOT_CA_PEM_FILE=/path/to/freja-rootca.pem   ## Used to authenticate Freja servers towards twofer
-EID_FREJA_CLIENT_CERT_FILE=/path/to/freja-cert.pem     ## Used to authenticate your account towards Freja
-EID_FREJA_CLIENT_KEY_FILE=/path/to/freja-key.pem       ## Used to authenticate your account towards Freja
-EID_FREJA_JWS_CERT_FILE=/path/to/freja-jws-cert.pem    ## Used to verify messages sent by Freja
+
+## Used to authenticate Freja servers towards twofer
+## EID_FREJA_ROOT_CA_PEM can be used to load pm directly from file
+EID_FREJA_ROOT_CA_PEM_FILE=/path/to/freja-rootca.pem   
+
+ ## Used to authenticate your account towards Freja
+## EID_FREJA_CLIENT_CERT can be used to load pm directly from file
+EID_FREJA_CLIENT_CERT_FILE=/path/to/freja-cert.pem    
+
+## Used to authenticate your account towards Freja
+## EID_FREJA_CLIENT_KEY can be used to load pm directly from file
+EID_FREJA_CLIENT_KEY_FILE=/path/to/freja-key.pem       
+
+## Used to verify messages sent by Freja
+## EID_FREJA_JWS_CERT can be used to load pm directly from file
+EID_FREJA_JWS_CERT_FILE=/path/to/freja-jws-cert.pem    
 ```
 
  
 ## OTP
 TOTP and HOTP is often part of a multi factor scheme and while this is often not hard to implement, it might be harder 
 to protect and there are a few consideration when implementing it. There for twofer includes a OTP service that helps 
-with enrollment and verification
+with enrollment and authentication
+
+**State**
+The OTP relies on a state in order to verify a user, this means the user must persist the userblob when provided. This 
+since the state must be passed to twofer when called
 
 **Config**
 * Generate a AES key, eg `$ echo 1:aes:$(openssl rand -base64 16)`
 
 ```bash
 OTP_ENABLE="true"
-OTP_ENCRYPTION_KEY="1:aes:Hg44JefQsFJMI1F0zhWMpw=="  # Used to seal and open the uri in order not to stor it in plain text
+
+# Used to seal and open the uri in order not to stor it in plain text
+# The latest key version is always used, this means that on each Auth the returning blob
+# will be encrypted using this key, this enables you to upgrade keys that protects the users credentials
+OTP_ENCRYPTION_KEY="1:aes:Hg44JefQsFJMI1F0zhWMpw== 2:aes:xzK4KyrOUo45VfFiF9vijw=="  
+
+# How many attempts verification attempts can be made for the same user a minute
+OTP_RATE_LIMIT=10 # Default: 10 `
+
+# If counter mode is used, How many OTPs ahead is checked
+OTP_SKEW_COUNTER=5 # Default: 5 `
+
+# If time mode is used, How many OTPs forward and backwards in time is checked
+OTP_SKEW_TIME=1 # Default: 1`
 ```
 
-
 **Use**
-* gRPC `Enroll`, persist returning secret in a database coupled with the user
-* gRPC `Validate`, update/persist returning secret in database coupled with the user
+* gRPC `Enroll`, persist returning userBlob in a database coupled with the user
+* gRPC `Auth`, update/persist returning userBlob in database coupled with the user
 
  
 ## WebAuthn
- 
+WebAuthn is a protocol to verify a user through, among other thins, the browser by eg. using a FIDO2 key.
+See https://webauthn.io/ or https://www.w3.org/TR/webauthn/ for more information. While 
+
+**State**
+The WebAuthn relies on a state in order to verify a user, this means the user must persist the userblob when provided. This 
+since the state must be passed to twofer when called
+
+**Config**
+* Generate a HMAC key, eg `$ echo $(openssl rand -base64 32)`
+
+```bash
+WEBAUTHN_ENABLED=true
+WEBAUTHN_RP_ID=localhost
+WEBAUTHN_RP_DISPLAYNAME=localhost
+WEBAUTHN_RP_ORIGIN=http://localhost:8080
+WEBAUTHN_HMAC_KEY=+SoWOS6kLTe8OOVTBXnQ+lMAsUH0hncsnCJUQ2javqw=
+
+# Can be discouraged/proffered/required 
+WEBAUTHN_USER_VERIFICATION=discouraged # Default: discouraged `
+
+# How many api calls can be made for the same user per minute
+WEBAUTHN_RATE_LIMIT=10 # Default: 10
+
+# Once a session is issues, for how long is it valid
+WEBAUTHN_TIMEOUT=60s # Default: 60s
+```
+
+**Use**
+* gRPC `EnrollInit`, pass in the current userBlob, if it exist. It creates a session and json, the json shall be passed to the frontend for the authenticator to interact with. 
+* gRPC `EnrollFinal`, the session that from EnrollInit creates shall be passed coupled with the signature (the frontend response). 
+  This returns a userBlob on success, this blob should be persisted and used in the auth requests. If a user blob existed prior to the enrollment it 
+  shall be replaced by the returning one. This allows for a user to have multiple authenticators.
+* gRPC `AuthInit`, pass in the current userBlob. It creates a session and json, the json shall be passed to the frontend for the authenticator to interact with.
+* gRPC `AuthFinal`, the session that from AuthInit creates shall be passed coupled with the signature (the frontend response). 
+  If successful it returns valid = true
+}
+
+
 ## QR
-Since both BankID, Freja and OTP have QR-code components, a gRPC api is included which turns test in to a png QR code image
+Since both BankID, Freja and OTP have a QR-code components, a gRPC api is included which turns test in to a png QR code image
 
 **Use**
 * gRPC `Generate`
 
-
- 
