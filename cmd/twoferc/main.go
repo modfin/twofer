@@ -146,7 +146,7 @@ func main() {
 
 					qr := gqr.NewQRClient(conn)
 
-					image, err := qr.Generate(context.Background(), &gqr.QRData{
+					image, err := qr.Generate(context.Background(), &gqr.Data{
 						RecoveryLevel: 2,
 						Size:          256,
 						Data:          data,
@@ -276,7 +276,7 @@ func main() {
 							qrterminal.GenerateWithConfig(r.Uri, config)
 
 							fmt.Println(r.Uri)
-							fmt.Println(r.Secret)
+							fmt.Println(r.UserBlob)
 
 							return nil
 						},
@@ -303,8 +303,8 @@ func main() {
 							client := gotp.NewOTPClient(conn)
 
 							r, err := client.Auth(context.Background(), &gotp.Credentials{
-								Otp:    otp,
-								Secret: secret,
+								Otp:      otp,
+								UserBlob: secret,
 							})
 
 							if err != nil {
@@ -312,7 +312,7 @@ func main() {
 							}
 
 							fmt.Println("Valid:", r.Valid)
-							fmt.Println(r.Secret)
+							fmt.Println(r.UserBlob)
 
 							return nil
 						},

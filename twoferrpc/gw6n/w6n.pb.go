@@ -37,7 +37,7 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{0}
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{0}
 }
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
@@ -97,7 +97,7 @@ func (m *User) Reset()         { *m = User{} }
 func (m *User) String() string { return proto.CompactTextString(m) }
 func (*User) ProtoMessage()    {}
 func (*User) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{1}
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{1}
 }
 func (m *User) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_User.Unmarshal(m, b)
@@ -131,7 +131,7 @@ func (m *User) GetName() string {
 	return ""
 }
 
-type BeginRegisterRequest struct {
+type EnrollInitReq struct {
 	User                 *User    `protobuf:"bytes,1,opt,name=user" json:"user,omitempty"`
 	UserBlob             []byte   `protobuf:"bytes,2,opt,name=userBlob,proto3" json:"userBlob,omitempty"`
 	Cfg                  *Config  `protobuf:"bytes,3,opt,name=cfg" json:"cfg,omitempty"`
@@ -140,190 +140,52 @@ type BeginRegisterRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *BeginRegisterRequest) Reset()         { *m = BeginRegisterRequest{} }
-func (m *BeginRegisterRequest) String() string { return proto.CompactTextString(m) }
-func (*BeginRegisterRequest) ProtoMessage()    {}
-func (*BeginRegisterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{2}
+func (m *EnrollInitReq) Reset()         { *m = EnrollInitReq{} }
+func (m *EnrollInitReq) String() string { return proto.CompactTextString(m) }
+func (*EnrollInitReq) ProtoMessage()    {}
+func (*EnrollInitReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{2}
 }
-func (m *BeginRegisterRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BeginRegisterRequest.Unmarshal(m, b)
+func (m *EnrollInitReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EnrollInitReq.Unmarshal(m, b)
 }
-func (m *BeginRegisterRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BeginRegisterRequest.Marshal(b, m, deterministic)
+func (m *EnrollInitReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EnrollInitReq.Marshal(b, m, deterministic)
 }
-func (dst *BeginRegisterRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BeginRegisterRequest.Merge(dst, src)
+func (dst *EnrollInitReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EnrollInitReq.Merge(dst, src)
 }
-func (m *BeginRegisterRequest) XXX_Size() int {
-	return xxx_messageInfo_BeginRegisterRequest.Size(m)
+func (m *EnrollInitReq) XXX_Size() int {
+	return xxx_messageInfo_EnrollInitReq.Size(m)
 }
-func (m *BeginRegisterRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_BeginRegisterRequest.DiscardUnknown(m)
+func (m *EnrollInitReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_EnrollInitReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_BeginRegisterRequest proto.InternalMessageInfo
+var xxx_messageInfo_EnrollInitReq proto.InternalMessageInfo
 
-func (m *BeginRegisterRequest) GetUser() *User {
+func (m *EnrollInitReq) GetUser() *User {
 	if m != nil {
 		return m.User
 	}
 	return nil
 }
 
-func (m *BeginRegisterRequest) GetUserBlob() []byte {
+func (m *EnrollInitReq) GetUserBlob() []byte {
 	if m != nil {
 		return m.UserBlob
 	}
 	return nil
 }
 
-func (m *BeginRegisterRequest) GetCfg() *Config {
+func (m *EnrollInitReq) GetCfg() *Config {
 	if m != nil {
 		return m.Cfg
 	}
 	return nil
 }
 
-type BeginRegisterResponse struct {
-	Session              []byte   `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
-	Json                 []byte   `protobuf:"bytes,2,opt,name=json,proto3" json:"json,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *BeginRegisterResponse) Reset()         { *m = BeginRegisterResponse{} }
-func (m *BeginRegisterResponse) String() string { return proto.CompactTextString(m) }
-func (*BeginRegisterResponse) ProtoMessage()    {}
-func (*BeginRegisterResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{3}
-}
-func (m *BeginRegisterResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BeginRegisterResponse.Unmarshal(m, b)
-}
-func (m *BeginRegisterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BeginRegisterResponse.Marshal(b, m, deterministic)
-}
-func (dst *BeginRegisterResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BeginRegisterResponse.Merge(dst, src)
-}
-func (m *BeginRegisterResponse) XXX_Size() int {
-	return xxx_messageInfo_BeginRegisterResponse.Size(m)
-}
-func (m *BeginRegisterResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_BeginRegisterResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_BeginRegisterResponse proto.InternalMessageInfo
-
-func (m *BeginRegisterResponse) GetSession() []byte {
-	if m != nil {
-		return m.Session
-	}
-	return nil
-}
-
-func (m *BeginRegisterResponse) GetJson() []byte {
-	if m != nil {
-		return m.Json
-	}
-	return nil
-}
-
-type FinishRegisterRequest struct {
-	Session              []byte   `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
-	Signature            []byte   `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
-	Cfg                  *Config  `protobuf:"bytes,3,opt,name=cfg" json:"cfg,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *FinishRegisterRequest) Reset()         { *m = FinishRegisterRequest{} }
-func (m *FinishRegisterRequest) String() string { return proto.CompactTextString(m) }
-func (*FinishRegisterRequest) ProtoMessage()    {}
-func (*FinishRegisterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{4}
-}
-func (m *FinishRegisterRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_FinishRegisterRequest.Unmarshal(m, b)
-}
-func (m *FinishRegisterRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_FinishRegisterRequest.Marshal(b, m, deterministic)
-}
-func (dst *FinishRegisterRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FinishRegisterRequest.Merge(dst, src)
-}
-func (m *FinishRegisterRequest) XXX_Size() int {
-	return xxx_messageInfo_FinishRegisterRequest.Size(m)
-}
-func (m *FinishRegisterRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_FinishRegisterRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_FinishRegisterRequest proto.InternalMessageInfo
-
-func (m *FinishRegisterRequest) GetSession() []byte {
-	if m != nil {
-		return m.Session
-	}
-	return nil
-}
-
-func (m *FinishRegisterRequest) GetSignature() []byte {
-	if m != nil {
-		return m.Signature
-	}
-	return nil
-}
-
-func (m *FinishRegisterRequest) GetCfg() *Config {
-	if m != nil {
-		return m.Cfg
-	}
-	return nil
-}
-
-type FinishRegisterResponse struct {
-	UserBlob             []byte   `protobuf:"bytes,1,opt,name=userBlob,proto3" json:"userBlob,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *FinishRegisterResponse) Reset()         { *m = FinishRegisterResponse{} }
-func (m *FinishRegisterResponse) String() string { return proto.CompactTextString(m) }
-func (*FinishRegisterResponse) ProtoMessage()    {}
-func (*FinishRegisterResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{5}
-}
-func (m *FinishRegisterResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_FinishRegisterResponse.Unmarshal(m, b)
-}
-func (m *FinishRegisterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_FinishRegisterResponse.Marshal(b, m, deterministic)
-}
-func (dst *FinishRegisterResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FinishRegisterResponse.Merge(dst, src)
-}
-func (m *FinishRegisterResponse) XXX_Size() int {
-	return xxx_messageInfo_FinishRegisterResponse.Size(m)
-}
-func (m *FinishRegisterResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_FinishRegisterResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_FinishRegisterResponse proto.InternalMessageInfo
-
-func (m *FinishRegisterResponse) GetUserBlob() []byte {
-	if m != nil {
-		return m.UserBlob
-	}
-	return nil
-}
-
-type BeginLoginRequest struct {
+type AuthInitReq struct {
 	UserBlob             []byte   `protobuf:"bytes,1,opt,name=userBlob,proto3" json:"userBlob,omitempty"`
 	Cfg                  *Config  `protobuf:"bytes,2,opt,name=cfg" json:"cfg,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -331,45 +193,45 @@ type BeginLoginRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *BeginLoginRequest) Reset()         { *m = BeginLoginRequest{} }
-func (m *BeginLoginRequest) String() string { return proto.CompactTextString(m) }
-func (*BeginLoginRequest) ProtoMessage()    {}
-func (*BeginLoginRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{6}
+func (m *AuthInitReq) Reset()         { *m = AuthInitReq{} }
+func (m *AuthInitReq) String() string { return proto.CompactTextString(m) }
+func (*AuthInitReq) ProtoMessage()    {}
+func (*AuthInitReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{3}
 }
-func (m *BeginLoginRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BeginLoginRequest.Unmarshal(m, b)
+func (m *AuthInitReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AuthInitReq.Unmarshal(m, b)
 }
-func (m *BeginLoginRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BeginLoginRequest.Marshal(b, m, deterministic)
+func (m *AuthInitReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AuthInitReq.Marshal(b, m, deterministic)
 }
-func (dst *BeginLoginRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BeginLoginRequest.Merge(dst, src)
+func (dst *AuthInitReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuthInitReq.Merge(dst, src)
 }
-func (m *BeginLoginRequest) XXX_Size() int {
-	return xxx_messageInfo_BeginLoginRequest.Size(m)
+func (m *AuthInitReq) XXX_Size() int {
+	return xxx_messageInfo_AuthInitReq.Size(m)
 }
-func (m *BeginLoginRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_BeginLoginRequest.DiscardUnknown(m)
+func (m *AuthInitReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuthInitReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_BeginLoginRequest proto.InternalMessageInfo
+var xxx_messageInfo_AuthInitReq proto.InternalMessageInfo
 
-func (m *BeginLoginRequest) GetUserBlob() []byte {
+func (m *AuthInitReq) GetUserBlob() []byte {
 	if m != nil {
 		return m.UserBlob
 	}
 	return nil
 }
 
-func (m *BeginLoginRequest) GetCfg() *Config {
+func (m *AuthInitReq) GetCfg() *Config {
 	if m != nil {
 		return m.Cfg
 	}
 	return nil
 }
 
-type BeginLoginResponse struct {
+type InitRes struct {
 	Session              []byte   `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 	Json                 []byte   `protobuf:"bytes,2,opt,name=json,proto3" json:"json,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -377,45 +239,45 @@ type BeginLoginResponse struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *BeginLoginResponse) Reset()         { *m = BeginLoginResponse{} }
-func (m *BeginLoginResponse) String() string { return proto.CompactTextString(m) }
-func (*BeginLoginResponse) ProtoMessage()    {}
-func (*BeginLoginResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{7}
+func (m *InitRes) Reset()         { *m = InitRes{} }
+func (m *InitRes) String() string { return proto.CompactTextString(m) }
+func (*InitRes) ProtoMessage()    {}
+func (*InitRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{4}
 }
-func (m *BeginLoginResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BeginLoginResponse.Unmarshal(m, b)
+func (m *InitRes) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InitRes.Unmarshal(m, b)
 }
-func (m *BeginLoginResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BeginLoginResponse.Marshal(b, m, deterministic)
+func (m *InitRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InitRes.Marshal(b, m, deterministic)
 }
-func (dst *BeginLoginResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BeginLoginResponse.Merge(dst, src)
+func (dst *InitRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitRes.Merge(dst, src)
 }
-func (m *BeginLoginResponse) XXX_Size() int {
-	return xxx_messageInfo_BeginLoginResponse.Size(m)
+func (m *InitRes) XXX_Size() int {
+	return xxx_messageInfo_InitRes.Size(m)
 }
-func (m *BeginLoginResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_BeginLoginResponse.DiscardUnknown(m)
+func (m *InitRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitRes.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_BeginLoginResponse proto.InternalMessageInfo
+var xxx_messageInfo_InitRes proto.InternalMessageInfo
 
-func (m *BeginLoginResponse) GetSession() []byte {
+func (m *InitRes) GetSession() []byte {
 	if m != nil {
 		return m.Session
 	}
 	return nil
 }
 
-func (m *BeginLoginResponse) GetJson() []byte {
+func (m *InitRes) GetJson() []byte {
 	if m != nil {
 		return m.Json
 	}
 	return nil
 }
 
-type FinishLoginRequest struct {
+type FinalReq struct {
 	Session              []byte   `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 	Signature            []byte   `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 	Cfg                  *Config  `protobuf:"bytes,3,opt,name=cfg" json:"cfg,omitempty"`
@@ -424,100 +286,105 @@ type FinishLoginRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *FinishLoginRequest) Reset()         { *m = FinishLoginRequest{} }
-func (m *FinishLoginRequest) String() string { return proto.CompactTextString(m) }
-func (*FinishLoginRequest) ProtoMessage()    {}
-func (*FinishLoginRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{8}
+func (m *FinalReq) Reset()         { *m = FinalReq{} }
+func (m *FinalReq) String() string { return proto.CompactTextString(m) }
+func (*FinalReq) ProtoMessage()    {}
+func (*FinalReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{5}
 }
-func (m *FinishLoginRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_FinishLoginRequest.Unmarshal(m, b)
+func (m *FinalReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FinalReq.Unmarshal(m, b)
 }
-func (m *FinishLoginRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_FinishLoginRequest.Marshal(b, m, deterministic)
+func (m *FinalReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FinalReq.Marshal(b, m, deterministic)
 }
-func (dst *FinishLoginRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FinishLoginRequest.Merge(dst, src)
+func (dst *FinalReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FinalReq.Merge(dst, src)
 }
-func (m *FinishLoginRequest) XXX_Size() int {
-	return xxx_messageInfo_FinishLoginRequest.Size(m)
+func (m *FinalReq) XXX_Size() int {
+	return xxx_messageInfo_FinalReq.Size(m)
 }
-func (m *FinishLoginRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_FinishLoginRequest.DiscardUnknown(m)
+func (m *FinalReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_FinalReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_FinishLoginRequest proto.InternalMessageInfo
+var xxx_messageInfo_FinalReq proto.InternalMessageInfo
 
-func (m *FinishLoginRequest) GetSession() []byte {
+func (m *FinalReq) GetSession() []byte {
 	if m != nil {
 		return m.Session
 	}
 	return nil
 }
 
-func (m *FinishLoginRequest) GetSignature() []byte {
+func (m *FinalReq) GetSignature() []byte {
 	if m != nil {
 		return m.Signature
 	}
 	return nil
 }
 
-func (m *FinishLoginRequest) GetCfg() *Config {
+func (m *FinalReq) GetCfg() *Config {
 	if m != nil {
 		return m.Cfg
 	}
 	return nil
 }
 
-type FinishLoginResponse struct {
+type FinalRes struct {
 	Valid                bool     `protobuf:"varint,1,opt,name=valid" json:"valid,omitempty"`
+	UserBlob             []byte   `protobuf:"bytes,2,opt,name=userBlob,proto3" json:"userBlob,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *FinishLoginResponse) Reset()         { *m = FinishLoginResponse{} }
-func (m *FinishLoginResponse) String() string { return proto.CompactTextString(m) }
-func (*FinishLoginResponse) ProtoMessage()    {}
-func (*FinishLoginResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_w6n_13a29f2c637e8ee2, []int{9}
+func (m *FinalRes) Reset()         { *m = FinalRes{} }
+func (m *FinalRes) String() string { return proto.CompactTextString(m) }
+func (*FinalRes) ProtoMessage()    {}
+func (*FinalRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_w6n_69790b9daa7d7fc2, []int{6}
 }
-func (m *FinishLoginResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_FinishLoginResponse.Unmarshal(m, b)
+func (m *FinalRes) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FinalRes.Unmarshal(m, b)
 }
-func (m *FinishLoginResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_FinishLoginResponse.Marshal(b, m, deterministic)
+func (m *FinalRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FinalRes.Marshal(b, m, deterministic)
 }
-func (dst *FinishLoginResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FinishLoginResponse.Merge(dst, src)
+func (dst *FinalRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FinalRes.Merge(dst, src)
 }
-func (m *FinishLoginResponse) XXX_Size() int {
-	return xxx_messageInfo_FinishLoginResponse.Size(m)
+func (m *FinalRes) XXX_Size() int {
+	return xxx_messageInfo_FinalRes.Size(m)
 }
-func (m *FinishLoginResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_FinishLoginResponse.DiscardUnknown(m)
+func (m *FinalRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_FinalRes.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_FinishLoginResponse proto.InternalMessageInfo
+var xxx_messageInfo_FinalRes proto.InternalMessageInfo
 
-func (m *FinishLoginResponse) GetValid() bool {
+func (m *FinalRes) GetValid() bool {
 	if m != nil {
 		return m.Valid
 	}
 	return false
 }
 
+func (m *FinalRes) GetUserBlob() []byte {
+	if m != nil {
+		return m.UserBlob
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Config)(nil), "gw6n.Config")
 	proto.RegisterType((*User)(nil), "gw6n.User")
-	proto.RegisterType((*BeginRegisterRequest)(nil), "gw6n.BeginRegisterRequest")
-	proto.RegisterType((*BeginRegisterResponse)(nil), "gw6n.BeginRegisterResponse")
-	proto.RegisterType((*FinishRegisterRequest)(nil), "gw6n.FinishRegisterRequest")
-	proto.RegisterType((*FinishRegisterResponse)(nil), "gw6n.FinishRegisterResponse")
-	proto.RegisterType((*BeginLoginRequest)(nil), "gw6n.BeginLoginRequest")
-	proto.RegisterType((*BeginLoginResponse)(nil), "gw6n.BeginLoginResponse")
-	proto.RegisterType((*FinishLoginRequest)(nil), "gw6n.FinishLoginRequest")
-	proto.RegisterType((*FinishLoginResponse)(nil), "gw6n.FinishLoginResponse")
+	proto.RegisterType((*EnrollInitReq)(nil), "gw6n.EnrollInitReq")
+	proto.RegisterType((*AuthInitReq)(nil), "gw6n.AuthInitReq")
+	proto.RegisterType((*InitRes)(nil), "gw6n.InitRes")
+	proto.RegisterType((*FinalReq)(nil), "gw6n.FinalReq")
+	proto.RegisterType((*FinalRes)(nil), "gw6n.FinalRes")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -531,10 +398,10 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for WebAuthn service
 
 type WebAuthnClient interface {
-	BeginRegister(ctx context.Context, in *BeginRegisterRequest, opts ...grpc.CallOption) (*BeginRegisterResponse, error)
-	FinishRegister(ctx context.Context, in *FinishRegisterRequest, opts ...grpc.CallOption) (*FinishRegisterResponse, error)
-	BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error)
-	FinishLogin(ctx context.Context, in *FinishLoginRequest, opts ...grpc.CallOption) (*FinishLoginResponse, error)
+	EnrollInit(ctx context.Context, in *EnrollInitReq, opts ...grpc.CallOption) (*InitRes, error)
+	EnrollFinal(ctx context.Context, in *FinalReq, opts ...grpc.CallOption) (*FinalRes, error)
+	AuthInit(ctx context.Context, in *AuthInitReq, opts ...grpc.CallOption) (*InitRes, error)
+	AuthFinal(ctx context.Context, in *FinalReq, opts ...grpc.CallOption) (*FinalRes, error)
 }
 
 type webAuthnClient struct {
@@ -545,36 +412,36 @@ func NewWebAuthnClient(cc *grpc.ClientConn) WebAuthnClient {
 	return &webAuthnClient{cc}
 }
 
-func (c *webAuthnClient) BeginRegister(ctx context.Context, in *BeginRegisterRequest, opts ...grpc.CallOption) (*BeginRegisterResponse, error) {
-	out := new(BeginRegisterResponse)
-	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/BeginRegister", in, out, c.cc, opts...)
+func (c *webAuthnClient) EnrollInit(ctx context.Context, in *EnrollInitReq, opts ...grpc.CallOption) (*InitRes, error) {
+	out := new(InitRes)
+	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/EnrollInit", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *webAuthnClient) FinishRegister(ctx context.Context, in *FinishRegisterRequest, opts ...grpc.CallOption) (*FinishRegisterResponse, error) {
-	out := new(FinishRegisterResponse)
-	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/FinishRegister", in, out, c.cc, opts...)
+func (c *webAuthnClient) EnrollFinal(ctx context.Context, in *FinalReq, opts ...grpc.CallOption) (*FinalRes, error) {
+	out := new(FinalRes)
+	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/EnrollFinal", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *webAuthnClient) BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error) {
-	out := new(BeginLoginResponse)
-	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/BeginLogin", in, out, c.cc, opts...)
+func (c *webAuthnClient) AuthInit(ctx context.Context, in *AuthInitReq, opts ...grpc.CallOption) (*InitRes, error) {
+	out := new(InitRes)
+	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/AuthInit", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *webAuthnClient) FinishLogin(ctx context.Context, in *FinishLoginRequest, opts ...grpc.CallOption) (*FinishLoginResponse, error) {
-	out := new(FinishLoginResponse)
-	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/FinishLogin", in, out, c.cc, opts...)
+func (c *webAuthnClient) AuthFinal(ctx context.Context, in *FinalReq, opts ...grpc.CallOption) (*FinalRes, error) {
+	out := new(FinalRes)
+	err := grpc.Invoke(ctx, "/gw6n.WebAuthn/AuthFinal", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -584,84 +451,84 @@ func (c *webAuthnClient) FinishLogin(ctx context.Context, in *FinishLoginRequest
 // Server API for WebAuthn service
 
 type WebAuthnServer interface {
-	BeginRegister(context.Context, *BeginRegisterRequest) (*BeginRegisterResponse, error)
-	FinishRegister(context.Context, *FinishRegisterRequest) (*FinishRegisterResponse, error)
-	BeginLogin(context.Context, *BeginLoginRequest) (*BeginLoginResponse, error)
-	FinishLogin(context.Context, *FinishLoginRequest) (*FinishLoginResponse, error)
+	EnrollInit(context.Context, *EnrollInitReq) (*InitRes, error)
+	EnrollFinal(context.Context, *FinalReq) (*FinalRes, error)
+	AuthInit(context.Context, *AuthInitReq) (*InitRes, error)
+	AuthFinal(context.Context, *FinalReq) (*FinalRes, error)
 }
 
 func RegisterWebAuthnServer(s *grpc.Server, srv WebAuthnServer) {
 	s.RegisterService(&_WebAuthn_serviceDesc, srv)
 }
 
-func _WebAuthn_BeginRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BeginRegisterRequest)
+func _WebAuthn_EnrollInit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnrollInitReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebAuthnServer).BeginRegister(ctx, in)
+		return srv.(WebAuthnServer).EnrollInit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gw6n.WebAuthn/BeginRegister",
+		FullMethod: "/gw6n.WebAuthn/EnrollInit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebAuthnServer).BeginRegister(ctx, req.(*BeginRegisterRequest))
+		return srv.(WebAuthnServer).EnrollInit(ctx, req.(*EnrollInitReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WebAuthn_FinishRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinishRegisterRequest)
+func _WebAuthn_EnrollFinal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinalReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebAuthnServer).FinishRegister(ctx, in)
+		return srv.(WebAuthnServer).EnrollFinal(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gw6n.WebAuthn/FinishRegister",
+		FullMethod: "/gw6n.WebAuthn/EnrollFinal",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebAuthnServer).FinishRegister(ctx, req.(*FinishRegisterRequest))
+		return srv.(WebAuthnServer).EnrollFinal(ctx, req.(*FinalReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WebAuthn_BeginLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BeginLoginRequest)
+func _WebAuthn_AuthInit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthInitReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebAuthnServer).BeginLogin(ctx, in)
+		return srv.(WebAuthnServer).AuthInit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gw6n.WebAuthn/BeginLogin",
+		FullMethod: "/gw6n.WebAuthn/AuthInit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebAuthnServer).BeginLogin(ctx, req.(*BeginLoginRequest))
+		return srv.(WebAuthnServer).AuthInit(ctx, req.(*AuthInitReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WebAuthn_FinishLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinishLoginRequest)
+func _WebAuthn_AuthFinal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinalReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebAuthnServer).FinishLogin(ctx, in)
+		return srv.(WebAuthnServer).AuthFinal(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gw6n.WebAuthn/FinishLogin",
+		FullMethod: "/gw6n.WebAuthn/AuthFinal",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebAuthnServer).FinishLogin(ctx, req.(*FinishLoginRequest))
+		return srv.(WebAuthnServer).AuthFinal(ctx, req.(*FinalReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -671,56 +538,53 @@ var _WebAuthn_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*WebAuthnServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "BeginRegister",
-			Handler:    _WebAuthn_BeginRegister_Handler,
+			MethodName: "EnrollInit",
+			Handler:    _WebAuthn_EnrollInit_Handler,
 		},
 		{
-			MethodName: "FinishRegister",
-			Handler:    _WebAuthn_FinishRegister_Handler,
+			MethodName: "EnrollFinal",
+			Handler:    _WebAuthn_EnrollFinal_Handler,
 		},
 		{
-			MethodName: "BeginLogin",
-			Handler:    _WebAuthn_BeginLogin_Handler,
+			MethodName: "AuthInit",
+			Handler:    _WebAuthn_AuthInit_Handler,
 		},
 		{
-			MethodName: "FinishLogin",
-			Handler:    _WebAuthn_FinishLogin_Handler,
+			MethodName: "AuthFinal",
+			Handler:    _WebAuthn_AuthFinal_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "w6n.proto",
 }
 
-func init() { proto.RegisterFile("w6n.proto", fileDescriptor_w6n_13a29f2c637e8ee2) }
+func init() { proto.RegisterFile("w6n.proto", fileDescriptor_w6n_69790b9daa7d7fc2) }
 
-var fileDescriptor_w6n_13a29f2c637e8ee2 = []byte{
-	// 448 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x54, 0xdd, 0xce, 0xd2, 0x40,
-	0x10, 0xb5, 0xfd, 0xea, 0x27, 0x0c, 0x3f, 0xd1, 0x11, 0xb4, 0x56, 0x42, 0x4c, 0xe3, 0x85, 0xc1,
-	0x84, 0x0b, 0x34, 0xdc, 0x83, 0x68, 0xa2, 0x51, 0x21, 0x9b, 0xa8, 0xd7, 0x05, 0x96, 0xb2, 0xa6,
-	0xee, 0xe2, 0x6e, 0x2b, 0xf1, 0x15, 0x7c, 0x18, 0x9f, 0xd1, 0xec, 0xb6, 0x94, 0x16, 0x8a, 0x26,
-	0x26, 0xdf, 0x55, 0x77, 0x66, 0x76, 0xce, 0x39, 0x73, 0x76, 0x52, 0xa8, 0xef, 0xc7, 0x7c, 0xb8,
-	0x93, 0x22, 0x16, 0xe8, 0x84, 0xfb, 0x31, 0xf7, 0x7f, 0x59, 0x70, 0xfd, 0x4a, 0xf0, 0x0d, 0x0b,
-	0x11, 0xc1, 0x21, 0x8b, 0xb7, 0x33, 0xd7, 0x7a, 0x62, 0x3d, 0xab, 0x13, 0x73, 0xc6, 0xa7, 0xd0,
-	0x22, 0x8b, 0x19, 0x53, 0xbb, 0x28, 0xf8, 0xf9, 0x31, 0xf8, 0x46, 0x5d, 0xdb, 0x14, 0xcb, 0x49,
-	0xf4, 0xa0, 0x46, 0x16, 0x73, 0xc9, 0x42, 0xc6, 0xdd, 0x2b, 0x73, 0x21, 0x8f, 0x71, 0x00, 0x77,
-	0x3f, 0x29, 0x2a, 0x3f, 0x53, 0xc9, 0x36, 0x6c, 0x15, 0xc4, 0x4c, 0x70, 0xd7, 0x31, 0x77, 0xce,
-	0xf2, 0xfe, 0x00, 0x1c, 0x9d, 0xc3, 0x36, 0xd8, 0x6c, 0x9d, 0xe9, 0xb0, 0xd9, 0x5a, 0x2b, 0xe3,
-	0x47, 0x72, 0x73, 0xf6, 0x25, 0x74, 0xa6, 0x34, 0x64, 0x9c, 0xd0, 0x90, 0xa9, 0x98, 0x4a, 0x42,
-	0xbf, 0x27, 0x54, 0xc5, 0xd8, 0x07, 0x27, 0x51, 0x54, 0x9a, 0xee, 0xc6, 0x08, 0x86, 0x7a, 0xca,
-	0xa1, 0x46, 0x25, 0x26, 0xaf, 0xb5, 0xea, 0xef, 0x34, 0x12, 0x4b, 0x83, 0xd7, 0x24, 0x79, 0x8c,
-	0x7d, 0xb8, 0x5a, 0x6d, 0x42, 0x33, 0x42, 0x63, 0xd4, 0x4c, 0x5b, 0x53, 0x73, 0x88, 0x2e, 0xf8,
-	0xaf, 0xa1, 0x7b, 0xc2, 0xa9, 0x76, 0x82, 0x2b, 0x8a, 0x2e, 0xdc, 0x51, 0x54, 0x29, 0x3d, 0x9b,
-	0x65, 0x30, 0x0f, 0xa1, 0x96, 0xfe, 0x55, 0x09, 0x9e, 0x51, 0x99, 0xb3, 0x2f, 0xa0, 0xfb, 0x86,
-	0x71, 0xa6, 0xb6, 0xa7, 0xda, 0x2f, 0xc3, 0xf4, 0xa0, 0xae, 0x58, 0xc8, 0x83, 0x38, 0x91, 0x34,
-	0xc3, 0x3a, 0x26, 0xfe, 0xa9, 0xfb, 0x25, 0x3c, 0x38, 0x25, 0xcc, 0x84, 0x17, 0xdd, 0xb0, 0xca,
-	0x6e, 0xf8, 0x73, 0xb8, 0x67, 0xa6, 0x7d, 0x2f, 0xcc, 0xc8, 0xa9, 0xc4, 0xbf, 0x34, 0x1c, 0x64,
-	0xd8, 0x97, 0x64, 0x4c, 0x01, 0x8b, 0x80, 0xff, 0xe5, 0x5d, 0x04, 0x98, 0x8e, 0x52, 0x52, 0x75,
-	0x53, 0xc6, 0x3d, 0x87, 0xfb, 0x25, 0xb6, 0x4c, 0x72, 0x07, 0x6e, 0xff, 0x08, 0xa2, 0x6c, 0x45,
-	0x6b, 0x24, 0x0d, 0x46, 0xbf, 0x6d, 0xa8, 0x7d, 0xa1, 0xcb, 0x49, 0x12, 0x6f, 0x39, 0xbe, 0x83,
-	0x56, 0x69, 0x55, 0xd0, 0x4b, 0xd1, 0xab, 0x76, 0xd6, 0x7b, 0x5c, 0x59, 0x4b, 0xc9, 0xfc, 0x5b,
-	0xf8, 0x01, 0xda, 0xe5, 0xe7, 0xc3, 0xac, 0xa1, 0x72, 0x8b, 0xbc, 0x5e, 0x75, 0x31, 0x87, 0x9b,
-	0x00, 0x1c, 0x9f, 0x01, 0x1f, 0x16, 0xb8, 0x8b, 0x9e, 0x7a, 0xee, 0x79, 0x21, 0x87, 0x98, 0x41,
-	0xa3, 0xe0, 0x0b, 0xba, 0x45, 0xc6, 0x12, 0xc8, 0xa3, 0x8a, 0xca, 0x01, 0x65, 0x79, 0x6d, 0x7e,
-	0x44, 0x2f, 0xfe, 0x04, 0x00, 0x00, 0xff, 0xff, 0xed, 0x2f, 0x13, 0x7d, 0x95, 0x04, 0x00, 0x00,
+var fileDescriptor_w6n_69790b9daa7d7fc2 = []byte{
+	// 394 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0x4d, 0x4f, 0xdb, 0x40,
+	0x10, 0xad, 0x1d, 0x37, 0xb1, 0xc7, 0x49, 0xd4, 0x4e, 0x7b, 0xb0, 0xa2, 0x2a, 0xaa, 0xac, 0x1e,
+	0xaa, 0x48, 0x18, 0xc9, 0x48, 0xe1, 0xc2, 0x05, 0x08, 0x48, 0xb9, 0x40, 0xb4, 0x12, 0x70, 0xb6,
+	0x93, 0x8d, 0x59, 0x30, 0xeb, 0xe0, 0x75, 0x88, 0xf8, 0x0b, 0xfc, 0x38, 0x7e, 0x13, 0xda, 0x5d,
+	0x3b, 0x1f, 0x0a, 0x01, 0x4e, 0xde, 0x79, 0x33, 0xf3, 0xe6, 0xcd, 0x3c, 0x19, 0x9c, 0x45, 0x9f,
+	0x07, 0xb3, 0x3c, 0x2b, 0x32, 0xb4, 0x92, 0x45, 0x9f, 0xfb, 0x2f, 0x06, 0xd4, 0x4f, 0x33, 0x3e,
+	0x65, 0x09, 0x22, 0x58, 0x64, 0x34, 0x1c, 0x78, 0xc6, 0x5f, 0xe3, 0xbf, 0x43, 0xd4, 0x1b, 0xff,
+	0x41, 0x8b, 0x8c, 0x06, 0x4c, 0xcc, 0xd2, 0xe8, 0xf9, 0x22, 0x7a, 0xa0, 0x9e, 0xa9, 0x92, 0x9b,
+	0x20, 0x76, 0xc0, 0x26, 0xa3, 0xcb, 0x9c, 0x25, 0x8c, 0x7b, 0x35, 0x55, 0xb0, 0x8c, 0xb1, 0x07,
+	0x3f, 0xae, 0x04, 0xcd, 0xaf, 0x69, 0xce, 0xa6, 0x6c, 0x1c, 0x15, 0x2c, 0xe3, 0x9e, 0xa5, 0x6a,
+	0xb6, 0x70, 0xbf, 0x07, 0x96, 0xc4, 0xb0, 0x0d, 0x26, 0x9b, 0x94, 0x3a, 0x4c, 0x36, 0x91, 0xca,
+	0xf8, 0x6a, 0xb8, 0x7a, 0xfb, 0xf7, 0xd0, 0x3a, 0xe3, 0x79, 0x96, 0xa6, 0x43, 0xce, 0x0a, 0x42,
+	0x1f, 0xb1, 0x0b, 0xd6, 0x5c, 0xd0, 0x5c, 0xb5, 0xb9, 0x21, 0x04, 0x72, 0xbd, 0x40, 0xd2, 0x11,
+	0x85, 0x4b, 0x91, 0xf2, 0x7b, 0x92, 0x66, 0xb1, 0x22, 0x6a, 0x92, 0x65, 0x8c, 0x5d, 0xa8, 0x8d,
+	0xa7, 0x89, 0xd2, 0xee, 0x86, 0x4d, 0xdd, 0xaa, 0xaf, 0x42, 0x64, 0xc2, 0x1f, 0x82, 0x7b, 0x3c,
+	0x2f, 0x6e, 0xab, 0x51, 0xeb, 0x54, 0xc6, 0xfb, 0x54, 0xe6, 0x2e, 0xaa, 0x43, 0x68, 0x68, 0x1a,
+	0x81, 0x1e, 0x34, 0x04, 0x15, 0x42, 0x5e, 0x44, 0xb3, 0x54, 0xa1, 0x5c, 0xf8, 0x4e, 0x64, 0xbc,
+	0xd4, 0xa9, 0xde, 0x7e, 0x0c, 0xf6, 0x39, 0xe3, 0x51, 0x2a, 0x05, 0xec, 0xee, 0xfc, 0x03, 0x8e,
+	0x60, 0x09, 0x8f, 0x8a, 0x79, 0x4e, 0xcb, 0xf6, 0x15, 0xf0, 0xe9, 0x9e, 0x47, 0xcb, 0x19, 0x02,
+	0x7f, 0xc3, 0xf7, 0xa7, 0x28, 0x2d, 0x7d, 0xb0, 0x89, 0x0e, 0x3e, 0xba, 0x62, 0xf8, 0x6a, 0x80,
+	0x7d, 0x43, 0x63, 0x79, 0x29, 0x8e, 0x21, 0xc0, 0xca, 0x1f, 0xfc, 0xa5, 0x67, 0x6d, 0x38, 0xd6,
+	0x69, 0x69, 0xb0, 0x3c, 0x87, 0xff, 0x0d, 0xf7, 0xc1, 0xd5, 0x15, 0x4a, 0x04, 0xb6, 0x75, 0xbe,
+	0xda, 0xba, 0xb3, 0x19, 0xcb, 0x86, 0x00, 0xec, 0xca, 0x17, 0xfc, 0xa9, 0xb3, 0x6b, 0x3e, 0x6d,
+	0x0f, 0xd8, 0x03, 0x47, 0xe6, 0xbf, 0x48, 0x1f, 0xd7, 0xd5, 0x9f, 0x72, 0xf0, 0x16, 0x00, 0x00,
+	0xff, 0xff, 0x55, 0xc7, 0x90, 0x2a, 0x36, 0x03, 0x00, 0x00,
 }

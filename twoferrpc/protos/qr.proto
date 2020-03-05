@@ -4,11 +4,11 @@ package gqr;
 
 
 service QR {
-    rpc Generate (QRData) returns (QRImage) {
+    rpc Generate (Data) returns (Image) {
     };
 }
 
-message QRData {
+message Data {
 
     enum Recovery {
         // Level L: 7% error recovery.
@@ -29,7 +29,7 @@ message QRData {
     string data = 3;
 }
 
-message QRImage {
+message Image {
     string contentType = 1;
     bytes data = 2;
 }

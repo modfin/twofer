@@ -13,7 +13,7 @@ func New() *Server {
 type Server struct {
 }
 
-func (s Server) Generate(ctx context.Context, data *gqr.QRData) (*gqr.QRImage, error) {
+func (s Server) Generate(ctx context.Context, data *gqr.Data) (*gqr.Image, error) {
 	size := int(data.Size)
 
 	if size < 10 {
@@ -23,7 +23,7 @@ func (s Server) Generate(ctx context.Context, data *gqr.QRData) (*gqr.QRImage, e
 	level := qrcode.RecoveryLevel(data.RecoveryLevel)
 	image, err := qrcode.Encode(data.Data, level, size)
 
-	return &gqr.QRImage{
+	return &gqr.Image{
 		Data:        image,
 		ContentType: "image/png",
 	}, err

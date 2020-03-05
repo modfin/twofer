@@ -6,7 +6,6 @@ package geid;
 service EID {
     rpc GetProviders (Empty) returns (Providers) {
     };
-
     rpc AuthInit (Req) returns (Inter) {
     };
     rpc SignInit (Req) returns (Inter) {

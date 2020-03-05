@@ -23,94 +23,94 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type QRData_Recovery int32
+type Data_Recovery int32
 
 const (
 	// Level L: 7% error recovery.
-	QRData_LOW QRData_Recovery = 0
+	Data_LOW Data_Recovery = 0
 	// Level M: 15% error recovery. Good default choice.
-	QRData_MEDIUM QRData_Recovery = 1
+	Data_MEDIUM Data_Recovery = 1
 	// Level Q: 25% error recovery.
-	QRData_HIGH QRData_Recovery = 2
+	Data_HIGH Data_Recovery = 2
 	// Level H: 30% error recovery.
-	QRData_HIGHEST QRData_Recovery = 3
+	Data_HIGHEST Data_Recovery = 3
 )
 
-var QRData_Recovery_name = map[int32]string{
+var Data_Recovery_name = map[int32]string{
 	0: "LOW",
 	1: "MEDIUM",
 	2: "HIGH",
 	3: "HIGHEST",
 }
-var QRData_Recovery_value = map[string]int32{
+var Data_Recovery_value = map[string]int32{
 	"LOW":     0,
 	"MEDIUM":  1,
 	"HIGH":    2,
 	"HIGHEST": 3,
 }
 
-func (x QRData_Recovery) String() string {
-	return proto.EnumName(QRData_Recovery_name, int32(x))
+func (x Data_Recovery) String() string {
+	return proto.EnumName(Data_Recovery_name, int32(x))
 }
-func (QRData_Recovery) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_qr_c10434eca7ac7970, []int{0, 0}
-}
-
-type QRData struct {
-	RecoveryLevel        QRData_Recovery `protobuf:"varint,1,opt,name=RecoveryLevel,enum=gqr.QRData_Recovery" json:"RecoveryLevel,omitempty"`
-	Size                 int32           `protobuf:"varint,2,opt,name=size" json:"size,omitempty"`
-	Data                 string          `protobuf:"bytes,3,opt,name=data" json:"data,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+func (Data_Recovery) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_qr_62d9492e5de4f718, []int{0, 0}
 }
 
-func (m *QRData) Reset()         { *m = QRData{} }
-func (m *QRData) String() string { return proto.CompactTextString(m) }
-func (*QRData) ProtoMessage()    {}
-func (*QRData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_qr_c10434eca7ac7970, []int{0}
-}
-func (m *QRData) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_QRData.Unmarshal(m, b)
-}
-func (m *QRData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_QRData.Marshal(b, m, deterministic)
-}
-func (dst *QRData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QRData.Merge(dst, src)
-}
-func (m *QRData) XXX_Size() int {
-	return xxx_messageInfo_QRData.Size(m)
-}
-func (m *QRData) XXX_DiscardUnknown() {
-	xxx_messageInfo_QRData.DiscardUnknown(m)
+type Data struct {
+	RecoveryLevel        Data_Recovery `protobuf:"varint,1,opt,name=RecoveryLevel,enum=gqr.Data_Recovery" json:"RecoveryLevel,omitempty"`
+	Size                 int32         `protobuf:"varint,2,opt,name=size" json:"size,omitempty"`
+	Data                 string        `protobuf:"bytes,3,opt,name=data" json:"data,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
 
-var xxx_messageInfo_QRData proto.InternalMessageInfo
+func (m *Data) Reset()         { *m = Data{} }
+func (m *Data) String() string { return proto.CompactTextString(m) }
+func (*Data) ProtoMessage()    {}
+func (*Data) Descriptor() ([]byte, []int) {
+	return fileDescriptor_qr_62d9492e5de4f718, []int{0}
+}
+func (m *Data) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Data.Unmarshal(m, b)
+}
+func (m *Data) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Data.Marshal(b, m, deterministic)
+}
+func (dst *Data) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Data.Merge(dst, src)
+}
+func (m *Data) XXX_Size() int {
+	return xxx_messageInfo_Data.Size(m)
+}
+func (m *Data) XXX_DiscardUnknown() {
+	xxx_messageInfo_Data.DiscardUnknown(m)
+}
 
-func (m *QRData) GetRecoveryLevel() QRData_Recovery {
+var xxx_messageInfo_Data proto.InternalMessageInfo
+
+func (m *Data) GetRecoveryLevel() Data_Recovery {
 	if m != nil {
 		return m.RecoveryLevel
 	}
-	return QRData_LOW
+	return Data_LOW
 }
 
-func (m *QRData) GetSize() int32 {
+func (m *Data) GetSize() int32 {
 	if m != nil {
 		return m.Size
 	}
 	return 0
 }
 
-func (m *QRData) GetData() string {
+func (m *Data) GetData() string {
 	if m != nil {
 		return m.Data
 	}
 	return ""
 }
 
-type QRImage struct {
+type Image struct {
 	ContentType          string   `protobuf:"bytes,1,opt,name=contentType" json:"contentType,omitempty"`
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -118,38 +118,38 @@ type QRImage struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *QRImage) Reset()         { *m = QRImage{} }
-func (m *QRImage) String() string { return proto.CompactTextString(m) }
-func (*QRImage) ProtoMessage()    {}
-func (*QRImage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_qr_c10434eca7ac7970, []int{1}
+func (m *Image) Reset()         { *m = Image{} }
+func (m *Image) String() string { return proto.CompactTextString(m) }
+func (*Image) ProtoMessage()    {}
+func (*Image) Descriptor() ([]byte, []int) {
+	return fileDescriptor_qr_62d9492e5de4f718, []int{1}
 }
-func (m *QRImage) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_QRImage.Unmarshal(m, b)
+func (m *Image) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Image.Unmarshal(m, b)
 }
-func (m *QRImage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_QRImage.Marshal(b, m, deterministic)
+func (m *Image) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Image.Marshal(b, m, deterministic)
 }
-func (dst *QRImage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QRImage.Merge(dst, src)
+func (dst *Image) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Image.Merge(dst, src)
 }
-func (m *QRImage) XXX_Size() int {
-	return xxx_messageInfo_QRImage.Size(m)
+func (m *Image) XXX_Size() int {
+	return xxx_messageInfo_Image.Size(m)
 }
-func (m *QRImage) XXX_DiscardUnknown() {
-	xxx_messageInfo_QRImage.DiscardUnknown(m)
+func (m *Image) XXX_DiscardUnknown() {
+	xxx_messageInfo_Image.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_QRImage proto.InternalMessageInfo
+var xxx_messageInfo_Image proto.InternalMessageInfo
 
-func (m *QRImage) GetContentType() string {
+func (m *Image) GetContentType() string {
 	if m != nil {
 		return m.ContentType
 	}
 	return ""
 }
 
-func (m *QRImage) GetData() []byte {
+func (m *Image) GetData() []byte {
 	if m != nil {
 		return m.Data
 	}
@@ -157,9 +157,9 @@ func (m *QRImage) GetData() []byte {
 }
 
 func init() {
-	proto.RegisterType((*QRData)(nil), "gqr.QRData")
-	proto.RegisterType((*QRImage)(nil), "gqr.QRImage")
-	proto.RegisterEnum("gqr.QRData_Recovery", QRData_Recovery_name, QRData_Recovery_value)
+	proto.RegisterType((*Data)(nil), "gqr.Data")
+	proto.RegisterType((*Image)(nil), "gqr.Image")
+	proto.RegisterEnum("gqr.Data_Recovery", Data_Recovery_name, Data_Recovery_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -173,7 +173,7 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for QR service
 
 type QRClient interface {
-	Generate(ctx context.Context, in *QRData, opts ...grpc.CallOption) (*QRImage, error)
+	Generate(ctx context.Context, in *Data, opts ...grpc.CallOption) (*Image, error)
 }
 
 type qRClient struct {
@@ -184,8 +184,8 @@ func NewQRClient(cc *grpc.ClientConn) QRClient {
 	return &qRClient{cc}
 }
 
-func (c *qRClient) Generate(ctx context.Context, in *QRData, opts ...grpc.CallOption) (*QRImage, error) {
-	out := new(QRImage)
+func (c *qRClient) Generate(ctx context.Context, in *Data, opts ...grpc.CallOption) (*Image, error) {
+	out := new(Image)
 	err := grpc.Invoke(ctx, "/gqr.QR/Generate", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (c *qRClient) Generate(ctx context.Context, in *QRData, opts ...grpc.CallOp
 // Server API for QR service
 
 type QRServer interface {
-	Generate(context.Context, *QRData) (*QRImage, error)
+	Generate(context.Context, *Data) (*Image, error)
 }
 
 func RegisterQRServer(s *grpc.Server, srv QRServer) {
@@ -204,7 +204,7 @@ func RegisterQRServer(s *grpc.Server, srv QRServer) {
 }
 
 func _QR_Generate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QRData)
+	in := new(Data)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func _QR_Generate_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		FullMethod: "/gqr.QR/Generate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QRServer).Generate(ctx, req.(*QRData))
+		return srv.(QRServer).Generate(ctx, req.(*Data))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -234,24 +234,23 @@ var _QR_serviceDesc = grpc.ServiceDesc{
 	Metadata: "qr.proto",
 }
 
-func init() { proto.RegisterFile("qr.proto", fileDescriptor_qr_c10434eca7ac7970) }
+func init() { proto.RegisterFile("qr.proto", fileDescriptor_qr_62d9492e5de4f718) }
 
-var fileDescriptor_qr_c10434eca7ac7970 = []byte{
-	// 243 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x90, 0x41, 0x4b, 0xc3, 0x40,
-	0x10, 0x85, 0xbb, 0x49, 0x4d, 0xd2, 0x49, 0x95, 0x30, 0x78, 0x08, 0x9e, 0x42, 0x2e, 0xe6, 0xe2,
-	0x1e, 0x2a, 0x78, 0xf0, 0xe2, 0xa5, 0xa5, 0x0d, 0xb4, 0x48, 0xc6, 0x8a, 0xe7, 0xb5, 0x0e, 0x41,
-	0xd0, 0x6c, 0xb3, 0x2e, 0x85, 0xfa, 0x7b, 0xfc, 0xa1, 0x92, 0xad, 0x95, 0xf4, 0xf6, 0xe6, 0xf1,
-	0x86, 0xef, 0xcd, 0x40, 0xd4, 0x1a, 0xb9, 0x35, 0xda, 0x6a, 0xf4, 0xeb, 0xd6, 0xe4, 0x3f, 0x02,
-	0x82, 0x8a, 0xa6, 0xca, 0x2a, 0xbc, 0x87, 0x73, 0xe2, 0x8d, 0xde, 0xb1, 0xd9, 0x2f, 0x79, 0xc7,
-	0x1f, 0xa9, 0xc8, 0x44, 0x71, 0x31, 0xb9, 0x94, 0x75, 0x6b, 0xe4, 0x21, 0x23, 0x8f, 0x01, 0x3a,
-	0x8d, 0x22, 0xc2, 0xf0, 0xeb, 0xfd, 0x9b, 0x53, 0x2f, 0x13, 0xc5, 0x19, 0x39, 0xdd, 0x79, 0x6f,
-	0xca, 0xaa, 0xd4, 0xcf, 0x44, 0x31, 0x22, 0xa7, 0xf3, 0x3b, 0x88, 0x8e, 0x8b, 0x18, 0x82, 0xbf,
-	0x7c, 0x7c, 0x49, 0x06, 0x08, 0x10, 0xac, 0x66, 0xd3, 0xf2, 0x79, 0x95, 0x08, 0x8c, 0x60, 0xb8,
-	0x28, 0xe7, 0x8b, 0xc4, 0xc3, 0x18, 0xc2, 0x4e, 0xcd, 0x9e, 0xd6, 0x89, 0x9f, 0x3f, 0x40, 0x58,
-	0x51, 0xf9, 0xa9, 0x6a, 0xc6, 0x0c, 0xe2, 0x8d, 0x6e, 0x2c, 0x37, 0x76, 0xbd, 0xdf, 0xb2, 0x2b,
-	0x39, 0xa2, 0xbe, 0xf5, 0x0f, 0xee, 0xca, 0x8c, 0x0f, 0xe0, 0xc9, 0x0d, 0x78, 0x15, 0xe1, 0x35,
-	0x44, 0x73, 0x6e, 0xd8, 0x28, 0xcb, 0x18, 0xf7, 0xee, 0xba, 0x1a, 0xff, 0x0d, 0x0e, 0x91, 0x0f,
-	0x5e, 0x03, 0xf7, 0xa2, 0xdb, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xaa, 0xba, 0x21, 0xe0, 0x2e,
-	0x01, 0x00, 0x00,
+var fileDescriptor_qr_62d9492e5de4f718 = []byte{
+	// 237 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x90, 0x41, 0x4b, 0x03, 0x31,
+	0x10, 0x85, 0x9b, 0xdd, 0x6d, 0xbb, 0x3b, 0x55, 0x09, 0x73, 0x5a, 0x3c, 0x85, 0x78, 0x59, 0x2f,
+	0x39, 0x54, 0x10, 0x2f, 0xde, 0x5a, 0xda, 0x85, 0x16, 0x31, 0x56, 0x3c, 0xc7, 0x3a, 0x2c, 0x82,
+	0x6e, 0xba, 0x31, 0x14, 0xea, 0xaf, 0xf1, 0xa7, 0x4a, 0x22, 0x5d, 0xec, 0xed, 0xe3, 0xe5, 0x65,
+	0xde, 0x9b, 0x81, 0xbc, 0x73, 0x6a, 0xe7, 0xac, 0xb7, 0x98, 0x36, 0x9d, 0x93, 0x3f, 0x0c, 0xb2,
+	0x99, 0xf1, 0x06, 0xef, 0xe0, 0x5c, 0xd3, 0xd6, 0xee, 0xc9, 0x1d, 0x56, 0xb4, 0xa7, 0x8f, 0x92,
+	0x09, 0x56, 0x5d, 0x4c, 0x51, 0x35, 0x9d, 0x53, 0xc1, 0xa1, 0x8e, 0xcf, 0xfa, 0xd4, 0x88, 0x08,
+	0xd9, 0xd7, 0xfb, 0x37, 0x95, 0x89, 0x60, 0xd5, 0x50, 0x47, 0x0e, 0xda, 0x9b, 0xf1, 0xa6, 0x4c,
+	0x05, 0xab, 0x0a, 0x1d, 0x59, 0xde, 0x42, 0x7e, 0xfc, 0x88, 0x63, 0x48, 0x57, 0x0f, 0x2f, 0x7c,
+	0x80, 0x00, 0xa3, 0xf5, 0x7c, 0x56, 0x3f, 0xaf, 0x39, 0xc3, 0x1c, 0xb2, 0x65, 0xbd, 0x58, 0xf2,
+	0x04, 0x27, 0x30, 0x0e, 0x34, 0x7f, 0xda, 0xf0, 0x54, 0xde, 0xc3, 0xb0, 0xfe, 0x34, 0x0d, 0xa1,
+	0x80, 0xc9, 0xd6, 0xb6, 0x9e, 0x5a, 0xbf, 0x39, 0xec, 0x28, 0x16, 0x2c, 0xf4, 0x7f, 0xa9, 0x8f,
+	0x0d, 0x55, 0xce, 0xfe, 0x62, 0xa7, 0xd7, 0x90, 0x3c, 0x6a, 0xbc, 0x82, 0x7c, 0x41, 0x2d, 0x39,
+	0xe3, 0x09, 0x8b, 0x7e, 0xa7, 0x4b, 0x88, 0x18, 0xc7, 0xcb, 0xc1, 0xeb, 0x28, 0x1e, 0xe6, 0xe6,
+	0x37, 0x00, 0x00, 0xff, 0xff, 0x20, 0xfc, 0xe4, 0x73, 0x24, 0x01, 0x00, 0x00,
 }

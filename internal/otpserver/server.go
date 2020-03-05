@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/hotp"
 	"github.com/pquerna/otp/totp"
@@ -12,9 +11,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"twofer/internal/crypt"
+	"twofer/internal/ratelimit"
 	"twofer/twoferrpc/gotp"
 )
 
@@ -26,8 +25,7 @@ type OTPConfig struct {
 
 func New(conf OTPConfig, keys []string) (*Server, error) {
 	s := &Server{
-		conf:     conf,
-		rlLedger: make(map[string]*rlItem),
+		conf: conf,
 	}
 	var err error
 	if len(keys) > 0 {
@@ -45,15 +43,7 @@ func New(conf OTPConfig, keys []string) (*Server, error) {
 		s.conf.RateLimit = 10
 	}
 
-	go func() {
-		for {
-			<-time.After(time.Minute)
-			c := s.clean()
-			if c > 0 {
-				fmt.Println("Cleaner: cleared", c, "from rate limit")
-			}
-		}
-	}()
+	s.ratelimiter = ratelimit.New(s.conf.RateLimit)
 
 	return s, nil
 }
@@ -64,53 +54,14 @@ type rlItem struct {
 }
 
 type Server struct {
-	store    crypt.Store
-	conf     OTPConfig
-	mu       sync.Mutex
-	rlLedger map[string]*rlItem
+	store       crypt.Store
+	conf        OTPConfig
+	ratelimiter *ratelimit.Ratelimiter
 }
 
 type wrapper struct {
 	URI     string `json:"uri"`
 	Counter uint64 `json:"counter,omitempty"`
-}
-
-func (s *Server) clean() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	count := 0
-	for k, v := range s.rlLedger {
-		if v == nil {
-			delete(s.rlLedger, k)
-			continue
-		}
-		if time.Since(v.start) > time.Minute {
-			delete(s.rlLedger, k)
-			count++
-			continue
-		}
-	}
-	return count
-}
-
-func (s *Server) ratelimit(uri string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	i := s.rlLedger[uri]
-	if i == nil || time.Since(i.start) > time.Minute {
-		i = &rlItem{
-			start: time.Now(),
-			count: 0,
-		}
-		s.rlLedger[uri] = i
-	}
-	defer func() { i.count += 1 }()
-
-	if s.conf.RateLimit < i.count {
-		return fmt.Errorf("rate limit for uri is reached, max %d/min", s.conf.RateLimit)
-	}
-	return nil
 }
 
 func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.EnrollmentResponse, err error) {
@@ -171,14 +122,14 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.En
 	}
 
 	return &gotp.EnrollmentResponse{
-		Uri:    o.URI,
-		Secret: base64.StdEncoding.EncodeToString(b),
+		Uri:      o.URI,
+		UserBlob: base64.StdEncoding.EncodeToString(b),
 	}, nil
 }
 
 func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResponse, error) {
 
-	sec, err := base64.StdEncoding.DecodeString(va.Secret)
+	sec, err := base64.StdEncoding.DecodeString(va.UserBlob)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +150,7 @@ func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResp
 		return nil, err
 	}
 
-	err = s.ratelimit(uri.Host + uri.Path)
+	err = s.ratelimiter.Hit(uri.Host + uri.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -277,8 +228,8 @@ func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResp
 	}
 
 	return &gotp.AuthResponse{
-		Valid:  valid,
-		Secret: base64.StdEncoding.EncodeToString(sec),
+		Valid:    valid,
+		UserBlob: base64.StdEncoding.EncodeToString(sec),
 	}, nil
 
 }

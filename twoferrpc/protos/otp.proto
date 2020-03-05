@@ -38,15 +38,15 @@ message Enrollment {
 }
 message EnrollmentResponse {
     string uri = 1;
-    string secret = 2;
+    string userBlob = 2;
 }
 
 message Credentials {
     string otp = 1;
-    string secret = 2;
+    string userBlob = 2;
 }
 
 message AuthResponse {
     bool valid = 1;
-    string secret = 2;
+    string userBlob = 2;
 }

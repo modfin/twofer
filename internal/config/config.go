@@ -106,6 +106,8 @@ type WebAuthn struct {
 	RPOrigin         string `env:"WEBAUTHN_RP_ORIGIN"`
 	HMACKey          string `env:"WEBAUTHN_HMAC_KEY"`
 	UserVerification string `env:"WEBAUTHN_USER_VERIFICATION" envDefault:"discouraged"`
+
+	RateLimit uint `env:"WEBAUTHN_RATE_LIMIT" envDefault:"10"`
 }
 
 var once sync.Once

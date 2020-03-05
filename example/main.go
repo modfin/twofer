@@ -71,7 +71,7 @@ func loginBegin(w http.ResponseWriter, r *http.Request) {
 		httpError(w, errors.New("no user "+userId))
 		return
 	}
-	resp, err := _client.BeginLogin(context.Background(), &gw6n.BeginLoginRequest{
+	resp, err := _client.AuthInit(context.Background(), &gw6n.AuthInitReq{
 		// The credentials for the user provided in the latest performed enrollment finish step
 		UserBlob: u.Blob,
 
@@ -104,7 +104,7 @@ func loginFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = _client.FinishLogin(context.Background(), &gw6n.FinishLoginRequest{
+	_, err = _client.AuthFinal(context.Background(), &gw6n.FinalReq{
 		// The session that was created in the registerBegin begin step
 		Session: session,
 
@@ -128,7 +128,7 @@ func registerBegin(w http.ResponseWriter, r *http.Request) {
 	userId := r.Header.Get("user")
 	u, _ := dao.Get(userId)
 
-	resp, err := _client.BeginRegister(context.Background(), &gw6n.BeginRegisterRequest{
+	resp, err := _client.EnrollInit(context.Background(), &gw6n.EnrollInitReq{
 		// This is primarily used for first enrollment.
 		// if the user does exist, only adding the blob works fine
 		User: &gw6n.User{
@@ -169,7 +169,7 @@ func registerFinish(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	resp, err := _client.FinishRegister(context.Background(), &gw6n.FinishRegisterRequest{
+	resp, err := _client.EnrollFinal(context.Background(), &gw6n.FinalReq{
 		// The session that was created in the registerBegin begin step
 		Session: session,
 

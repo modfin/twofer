@@ -2,27 +2,15 @@ syntax = "proto3";
 package gw6n;
 
 service WebAuthn {
-    rpc BeginRegister (BeginRegisterRequest) returns (BeginRegisterResponse) {
+    rpc EnrollInit (EnrollInitReq) returns (InitRes) {
     };
-    rpc FinishRegister (FinishRegisterRequest) returns (FinishRegisterResponse) {
+    rpc EnrollFinal (FinalReq) returns (FinalRes) {
     };
-    rpc BeginLogin (BeginLoginRequest) returns (BeginLoginResponse) {
+    rpc AuthInit (AuthInitReq) returns (InitRes) {
     };
-    rpc FinishLogin (FinishLoginRequest) returns (FinishLoginResponse) {
+    rpc AuthFinal (FinalReq) returns (FinalRes) {
     };
 }
-
-
-//
-//type WebAuthn struct {
-//Enabled          bool   `env:"WEBAUTHN_ENABLED"`
-//RPDisplayName    string `env:"WEBAUTHN_RP_DISPLAYNAME"`
-//RPID             string `env:"WEBAUTHN_RP_ID"`
-//RPOrigin         string `env:"WEBAUTHN_RP_ORIGIN"`
-//HMACKey          string `env:"WEBAUTHN_HMAC_KEY"`
-//UserVerification string `env:"WEBAUTHN_USER_VERIFICATION" envDefault:"discouraged"`
-//}
-//
 
 message Config{
     string RPID = 1;
@@ -37,49 +25,36 @@ message User {
 }
 
 
-message BeginRegisterRequest {
+message EnrollInitReq {
     User user = 1;
     bytes userBlob = 2;
 
     Config cfg = 3; // Optional, twofer default will be used otherwise
 }
 
-message BeginRegisterResponse {
-    bytes session = 1;
-    bytes json = 2;
-}
 
-
-message FinishRegisterRequest {
-    bytes session = 1;
-    bytes signature = 2;
-
-    Config cfg = 3; // Optional, twofer default will be used otherwise
-}
-message FinishRegisterResponse {
-    bytes userBlob = 1;
-}
-
-
-message BeginLoginRequest {
+message AuthInitReq {
     bytes userBlob = 1;
 
     Config cfg = 2; // Optional, twofer default will be used otherwise
 }
-message BeginLoginResponse {
+
+message InitRes {
     bytes session = 1;
     bytes json = 2;
 }
 
 
-message FinishLoginRequest {
+message FinalReq {
     bytes session = 1;
     bytes signature = 2;
 
     Config cfg = 3; // Optional, twofer default will be used otherwise
 }
-message FinishLoginResponse {
+
+message FinalRes {
     bool valid = 1;
+    bytes userBlob = 2;
 }
 
 

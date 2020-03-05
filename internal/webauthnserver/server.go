@@ -9,12 +9,14 @@ import (
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"twofer/internal/config"
+	"twofer/internal/ratelimit"
 	"twofer/twoferrpc/gw6n"
 )
 
 func New(config config.WebAuthn) (*Server, error) {
 	s := &Server{
-		hmacKey: []byte(config.HMACKey),
+		ratelimiter: ratelimit.New(config.RateLimit),
+		hmacKey:     []byte(config.HMACKey),
 		defaultConfig: &webauthn.Config{
 			RPDisplayName: config.RPDisplayName,
 			RPID:          config.RPID,
@@ -36,6 +38,7 @@ func New(config config.WebAuthn) (*Server, error) {
 }
 
 type Server struct {
+	ratelimiter   *ratelimit.Ratelimiter
 	defaultConfig *webauthn.Config
 	hmacKey       []byte
 }
@@ -59,7 +62,7 @@ func (s *Server) create(c interface{ GetCfg() *gw6n.Config }) (*webauthn.WebAuth
 	})
 }
 
-func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest) (res *gw6n.BeginRegisterResponse, err error) {
+func (s *Server) EnrollInit(_ context.Context, req *gw6n.EnrollInitReq) (res *gw6n.InitRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -94,6 +97,11 @@ func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest
 		u.DisplayName = u.Name
 	}
 
+	err = s.ratelimiter.Hit(u.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	credentialCreation, sessionData, err := service.BeginRegistration(u)
 	if err != nil {
 		return
@@ -109,14 +117,14 @@ func (s *Server) BeginRegister(_ context.Context, req *gw6n.BeginRegisterRequest
 		User: u,
 	}.Marshal(s.hmacKey)
 
-	response := &gw6n.BeginRegisterResponse{
+	response := &gw6n.InitRes{
 		Session: session,
 		Json:    data,
 	}
 	return response, nil
 }
 
-func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterRequest) (res *gw6n.FinishRegisterResponse, err error) {
+func (s *Server) EnrollFinal(_ context.Context, req *gw6n.FinalReq) (res *gw6n.FinalRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -137,6 +145,11 @@ func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterReque
 		return nil, errors.New("session data was not provided")
 	}
 
+	err = s.ratelimiter.Hit(session.User.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	credential, err := service.CreateCredential(session.User, *session.Data, credentialCreation)
 	if err != nil {
 		fmt.Printf("Something's bonkers err=%+v\n", err)
@@ -145,11 +158,11 @@ func (s *Server) FinishRegister(_ context.Context, req *gw6n.FinishRegisterReque
 
 	session.User.Credentials = append(session.User.Credentials, Credential{Credential: *credential, RPID: service.Config.RPID})
 
-	res = &gw6n.FinishRegisterResponse{}
+	res = &gw6n.FinalRes{}
 	res.UserBlob, err = json.Marshal(session.User)
 	return res, err
 }
-func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res *gw6n.BeginLoginResponse, err error) {
+func (s *Server) AuthInit(_ context.Context, req *gw6n.AuthInitReq) (res *gw6n.InitRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -159,17 +172,23 @@ func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res
 	var u User
 	err = json.Unmarshal(req.UserBlob, &u)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
+	err = s.ratelimiter.Hit(u.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	// Filtering out credentials valid for this RP
-	var creds []Credential
+	var credentials []Credential
 	for _, c := range u.Credentials {
 		if c.RPID == service.Config.RPID {
-			creds = append(creds, c)
+			credentials = append(credentials, c)
 		}
 	}
-	u.Credentials = creds
+	u.Credentials = credentials
 
 	credentialAssertion, sessionData, err := service.BeginLogin(u)
 	if err != nil {
@@ -189,12 +208,12 @@ func (s *Server) BeginLogin(_ context.Context, req *gw6n.BeginLoginRequest) (res
 		return
 	}
 
-	return &gw6n.BeginLoginResponse{
+	return &gw6n.InitRes{
 		Session: session,
 		Json:    response,
 	}, nil
 }
-func (s *Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (res *gw6n.FinishLoginResponse, err error) {
+func (s *Server) AuthFinal(_ context.Context, req *gw6n.FinalReq) (res *gw6n.FinalRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -209,18 +228,23 @@ func (s *Server) FinishLogin(_ context.Context, req *gw6n.FinishLoginRequest) (r
 		return nil, err
 	}
 
+	err = s.ratelimiter.Hit(session.User.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	if session.Data == nil {
 		return nil, errors.New("session data must be provided")
 
 	}
 	_, err = service.ValidateLogin(session.User, *session.Data, body)
 	if err != nil {
-		return &gw6n.FinishLoginResponse{
+		return &gw6n.FinalRes{
 			Valid: false,
 		}, err
 	}
 
-	return &gw6n.FinishLoginResponse{
+	return &gw6n.FinalRes{
 		Valid: true,
 	}, nil
 
