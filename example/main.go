@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"twofer/example/dao"
-	"twofer/twoferrpc/gw6n"
+	"twofer/grpc/gw6n"
 )
 
 var (

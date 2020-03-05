@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"golang.org/x/net/context"
 	"twofer/eid"
-	"twofer/twoferrpc/geid"
+	"twofer/grpc/geid"
 )
 
 func New() *Server {

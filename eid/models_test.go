@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
-	"twofer/twoferrpc/geid"
+	"twofer/grpc/geid"
 )
 
 func diffObj(expected interface{}, got interface{}) string {

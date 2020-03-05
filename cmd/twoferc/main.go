@@ -9,9 +9,9 @@ import (
 	"log"
 	"os"
 	"strings"
-	"twofer/twoferrpc/geid"
-	"twofer/twoferrpc/gotp"
-	"twofer/twoferrpc/gqr"
+	"twofer/grpc/geid"
+	"twofer/grpc/gotp"
+	"twofer/grpc/gqr"
 
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"

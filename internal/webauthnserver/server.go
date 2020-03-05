@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
+	"twofer/grpc/gw6n"
 	"twofer/internal/config"
 	"twofer/internal/ratelimit"
-	"twofer/twoferrpc/gw6n"
 )
 
 func New(config config.WebAuthn) (*Server, error) {

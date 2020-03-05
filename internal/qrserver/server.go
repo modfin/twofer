@@ -3,7 +3,7 @@ package qrserver
 import (
 	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/net/context"
-	"twofer/twoferrpc/gqr"
+	"twofer/grpc/gqr"
 )
 
 func New() *Server {
