@@ -110,5 +110,14 @@ func (s *Session) Unmarshal(key []byte, token []byte) error {
 		return errors.New("signature does not match content")
 	}
 
-	return json.Unmarshal(j, &s)
+	err = json.Unmarshal(j, &s)
+	if err != nil {
+		return err
+	}
+
+	if time.Since(s.Deadline) > 0 {
+		return errors.New("deadline for session has expired")
+	}
+
+	return nil
 }

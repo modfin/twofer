@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
+	"time"
 	"twofer/grpc/gw6n"
 	"twofer/internal/config"
 	"twofer/internal/ratelimit"
@@ -17,6 +18,7 @@ func New(config config.WebAuthn) (*Server, error) {
 	s := &Server{
 		ratelimiter: ratelimit.New(config.RateLimit),
 		hmacKey:     []byte(config.HMACKey),
+		timeout:     config.Timeout,
 		defaultConfig: &webauthn.Config{
 			RPDisplayName: config.RPDisplayName,
 			RPID:          config.RPID,
@@ -25,7 +27,7 @@ func New(config config.WebAuthn) (*Server, error) {
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: toUserVerification(config.UserVerification),
 			},
-			Timeout: 0,
+			Timeout: int(config.Timeout.Milliseconds()),
 			Debug:   false,
 		},
 	}
@@ -41,6 +43,7 @@ type Server struct {
 	ratelimiter   *ratelimit.Ratelimiter
 	defaultConfig *webauthn.Config
 	hmacKey       []byte
+	timeout       time.Duration
 }
 
 func (s *Server) create(c interface{ GetCfg() *gw6n.Config }) (*webauthn.WebAuthn, error) {
@@ -113,8 +116,9 @@ func (s *Server) EnrollInit(_ context.Context, req *gw6n.EnrollInitReq) (res *gw
 	}
 
 	session, err := Session{
-		Data: sessionData,
-		User: u,
+		Deadline: time.Now().Add(s.timeout),
+		Data:     sessionData,
+		User:     u,
 	}.Marshal(s.hmacKey)
 
 	response := &gw6n.InitRes{
@@ -196,8 +200,9 @@ func (s *Server) AuthInit(_ context.Context, req *gw6n.AuthInitReq) (res *gw6n.I
 	}
 
 	session, err := Session{
-		User: u,
-		Data: sessionData,
+		Deadline: time.Now().Add(s.timeout),
+		User:     u,
+		Data:     sessionData,
 	}.Marshal(s.hmacKey)
 	if err != nil {
 		return

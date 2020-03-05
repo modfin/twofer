@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Config struct {
@@ -107,7 +108,8 @@ type WebAuthn struct {
 	HMACKey          string `env:"WEBAUTHN_HMAC_KEY"`
 	UserVerification string `env:"WEBAUTHN_USER_VERIFICATION" envDefault:"discouraged"`
 
-	RateLimit uint `env:"WEBAUTHN_RATE_LIMIT" envDefault:"10"`
+	RateLimit uint          `env:"WEBAUTHN_RATE_LIMIT" envDefault:"10"`
+	Timeout   time.Duration `env:"WEBAUTHN_TIMEOUT" envDefault:"60s"`
 }
 
 var once sync.Once
