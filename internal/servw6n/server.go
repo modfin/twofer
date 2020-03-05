@@ -1,4 +1,4 @@
-package webauthnserver
+package servw6n
 
 import (
 	"bytes"

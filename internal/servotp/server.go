@@ -1,4 +1,4 @@
-package otpserver
+package servotp
 
 import (
 	"encoding/base64"

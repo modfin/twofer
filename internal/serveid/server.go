@@ -1,4 +1,4 @@
-package eidserver
+package serveid
 
 import (
 	"fmt"

@@ -7,7 +7,7 @@ import (
 	"time"
 	"twofer/eid"
 	"twofer/eid/bankid/bankidm"
-	"twofer/mtls"
+	"twofer/internal/mtls"
 )
 
 type ClientConfig struct {

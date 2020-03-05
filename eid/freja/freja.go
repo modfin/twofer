@@ -10,7 +10,7 @@ import (
 	"time"
 	"twofer/eid"
 	"twofer/eid/freja/frejam"
-	"twofer/mtls"
+	"twofer/internal/mtls"
 )
 
 type Client struct {
