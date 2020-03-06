@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>WebAuthn Demo</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+</head>
+
+<body>
+
+<h1>Twofer Demo</h1>
+
+<div>
+    <h2>Electronic ID</h2>
+    <hr/>
+    <button onclick="presentInferred('FrejaID')">Freja QR</button>
+    <label id="freaja-qrcodelabel" for="frejaid-qrcode">Freja</label>
+    <img title="" id="frejaid-qrcode" src="" alt=""/>
+    <hr/>
+    <button onclick="presentInferred('BankID')">Bank ID QR</button>
+    <label id="bankid-qrcodelabel" for="bankid-qrcode">BankID</label>
+    <img title="" id="bankid-qrcode" src="" alt=""/>
+    <hr/>
+
+    <hr/>
+    <div>
+        <label for="FrejaId-input"><b>Personnummer</b></label>
+        <input type="text" value="" name="FrejaId-input" id="FrejaID-input">
+        <button id="FrejaID" onclick="startAuth('FrejaID')">FREJA</button>
+        <span id="frejaid-placeholder"></span>
+        <hr/>
+        <label for="BankID-input"><b>Personnummer</b></label>
+        <input type="text" value="" name="BankID-input" id="BankID-input">
+        <button id="BankID" onclick="startAuth( 'BankID')">BANKID</button>
+        <span id="bankid-placeholder"></span>
+        <hr/>
+    </div>
+    <label for="signing-data"><b>Sign</b></label>
+    <input type="text" value="" name="signing-data" id="signing-data">
+    <hr/>
+    <button id="cancel" onclick="cancelAllThings()">CANCEL ONGOING</button>
+
+</div>
+
+<script>
+    let providers = [];
+    let active = false;
+    let ongoing = [];
+
+    $(document).ready(async function () {
+        let data = await getProviders();
+        providers = data.map((v) => {
+            return v.name
+        });
+        console.log(providers)
+    });
+
+    async function cancelAllThings() {
+        providers.forEach(p => {
+            document.getElementById(p.toLowerCase() + '-qrcode').setAttribute('src', '');
+            document.getElementById(p.toLowerCase() + '-qrcode').setAttribute('title', '');
+            document.getElementById(p.toLowerCase() + "-placeholder").innerText = '';
+        });
+        ongoing.forEach(ref => {
+            fetch('http://localhost:8080/cancel?ref=' + ref, {
+                method: 'GET',
+            }).then(
+                () => console.log("Cancelled reference=" + ref),
+                () => console.log("Failed to cancel reference=" + ref)
+            );
+        });
+        ongoing = [];
+        active = false;
+    }
+
+    async function presentInferred(provider) {
+        if (!active) {
+            active = true;
+            let response = await fetch('http://localhost:8080/inferred?provider=' + provider, {
+                method: 'GET',
+            });
+            let json = await response.json();
+            ongoing.push(json.ref);
+            await fetch('http://localhost:8080/qrimage/' + json.ref, {
+                method: 'GET',
+            }).then(res => {
+                return res.blob()
+            }).then(blob => {
+                let img = URL.createObjectURL(blob);
+                document.getElementById(provider.toLowerCase() + '-qrcode').setAttribute('src', img);
+                document.getElementById(provider.toLowerCase() + '-qrcode').setAttribute('title', provider);
+            });
+            let finished = false;
+            while (!finished && active) {
+                fetch('http://localhost:8080/peek/' + json.ref, {
+                    method: 'GET'
+                }).then(res => {
+                    return res.json()
+                }).then(json => {
+                    if (json.status === 'STATUS_APPROVED') {
+                        console.log("Successfully identified using provider=" + provider);
+                        finished = true;
+                        active = false;
+                        ongoing.splice(ongoing.indexOf(json.ref), 1);
+                    }
+
+                    console.log(JSON.stringify(json));
+                    console.log("Result from polling\n")
+                });
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+    }
+
+    async function startAuth(provider) {
+        let ssn = document.getElementById(provider + "-input").value;
+        let data = document.getElementById('signing-data').value;
+        if (ssn === '') {
+            alert("ENTER IT!");
+            return
+        }
+        if (!active) {
+            active = true;
+            let response;
+            if (data === '') {
+                let body = JSON.stringify({
+                    ssn: ssn,
+                    // Add country for all, as it is needed for Freja. Simply assume SE, cause why not...
+                    ssn_country: 'SE'
+                });
+                response = await fetch('http://localhost:8080/start-auth?provider=' + provider, {
+                    method: 'POST',
+                    body: body
+                });
+            } else {
+                let body = JSON.stringify({
+                    who: {
+                        ssn: ssn,
+                        // Add country for all, as it is needed for Freja. Simply assume SE, cause why not...
+                        ssn_country: 'SE'
+                    },
+                    payload: {
+                        text: data
+                    },
+                });
+                response = await fetch('http://localhost:8080/start-sign?provider=' + provider, {
+                    method: 'POST',
+                    body: body
+                });
+            }
+            let json = await response.json();
+            ongoing.push(json.ref)
+            let finished = false;
+            while (!finished && active) {
+                document.getElementById(provider.toLowerCase() + "-placeholder").innerText = 'Waiting for sign in for provider=' + provider;
+                fetch('http://localhost:8080/peek/' + json.ref, {
+                    method: 'GET'
+                }).then(res => {
+                    return res.json()
+                }).then(json => {
+                    if (json.status === 'STATUS_APPROVED') {
+                        document.getElementById(provider.toLowerCase() + "-placeholder").innerText = 'Signed in for provider=' + provider;
+                        finished = true;
+                        active = false;
+                        ongoing.splice(ongoing.indexOf(json.ref), 1);
+                    }
+                    console.log(JSON.stringify(json));
+                    console.log("Result from polling\n")
+                });
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+    }
+
+    async function getProviders() {
+        let response = await fetch('http://localhost:8080/providers', {
+            method: 'GET',
+        });
+
+        let json = await response.json();
+        return json.providers
+    }
+
+</script>
+</body>
+
+</html>

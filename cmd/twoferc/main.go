@@ -68,7 +68,7 @@ func main() {
 						WhiteChar: qrterminal.WHITE,
 						QuietZone: 2,
 					}
-					qrterminal.GenerateWithConfig(inter.QrData, config)
+					qrterminal.GenerateWithConfig(inter.URI, config)
 				}
 				fmt.Printf("%+v\n", inter)
 
