@@ -111,7 +111,7 @@ type Inter struct {
 	Mode     Mode   `json:"mode"`
 	Ref      string `json:"ref"`
 	Inferred string `json:"inferred"`
-	QRData   string `json:"qr_data"`
+	URI      string `json:"URI"`
 }
 
 type Status string
@@ -184,7 +184,7 @@ func FromGrpcInter(inter *geid.Inter, cli Client) (i Inter, err error) {
 	}
 	i.Req = &req
 	i.Inferred = inter.Inferred
-	i.QRData = inter.QrData
+	i.URI = inter.URI
 	i.Ref = inter.Ref
 	switch inter.Mode {
 	case geid.Inter_AUTH:
@@ -226,7 +226,7 @@ func ToGrpcInter(inter *Inter) (i geid.Inter, err error) {
 	}
 	i.Ref = inter.Ref
 	i.Inferred = inter.Inferred
-	i.QrData = inter.QRData
+	i.URI = inter.URI
 	return
 }
 

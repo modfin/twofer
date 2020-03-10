@@ -42,7 +42,7 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Mode:     eid.AUTH,
 		Ref:      resp.OrderRef.OrderRef,
 		Inferred: resp.AutoStartToken,
-		QRData:   fmt.Sprintf("bankid:///?autostarttoken=%s", resp.AutoStartToken),
+		URI:      fmt.Sprintf("bankid:///?autostarttoken=%s", resp.AutoStartToken),
 	}
 
 	return in, nil
@@ -76,7 +76,7 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Mode:     eid.SIGN,
 		Ref:      resp.OrderRef.OrderRef,
 		Inferred: resp.AutoStartToken,
-		QRData:   fmt.Sprintf("bankid:///?autostarttoken=%s", resp.AutoStartToken),
+		URI:      fmt.Sprintf("bankid:///?autostarttoken=%s", resp.AutoStartToken),
 	}
 	return
 }

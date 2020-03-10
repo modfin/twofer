@@ -60,7 +60,7 @@ message Inter {
     Mode mode = 3;
     string ref = 4;
     string inferred = 5;
-    string qr_data = 6;
+    string URI = 6;
 
     bytes internal = 7;
 }

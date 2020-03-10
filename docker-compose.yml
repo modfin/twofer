@@ -38,10 +38,19 @@ services:
       - .:/go/src/github.com/modfin/twofer:cached
       - gopkg:/go/pkg:cached
 
-  example:
+  webauthn-example:
     build:
       context: ./example
-      dockerfile: Dockerfile.dev
+      dockerfile: webauthn/Dockerfile.dev
+    ports:
+      - "8081:8080"
+    volumes:
+      - .:/go/src/github.com/modfin/twofer:cached
+      - gopkg:/go/pkg:cached
+  eid-example:
+    build:
+      context: ./example
+      dockerfile: eid/Dockerfile.dev
     ports:
       - "8080:8080"
     volumes:

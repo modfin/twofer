@@ -56,7 +56,7 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Mode:     eid.AUTH,
 		Ref:      authRef,
 		Inferred: authRef,
-		QRData:   fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(authRef)),
+		URI:      fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(authRef)),
 	}
 	return in, nil
 
@@ -103,7 +103,7 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		Mode:     eid.SIGN,
 		Ref:      signRef,
 		Inferred: signRef,
-		QRData:   fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(signRef)),
+		URI:      fmt.Sprintf("frejaeid://bindUserToTransaction?transactionReference=%s", url.QueryEscape(signRef)),
 	}
 	return in, nil
 

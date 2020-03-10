@@ -10,7 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"twofer/example/dao"
+	"twofer/example/webauthn/dao"
 	"twofer/grpc/gw6n"
 )
 
@@ -22,7 +22,6 @@ var (
 func httpError(writer http.ResponseWriter, err error) {
 	writer.WriteHeader(500)
 	writer.Write([]byte(err.Error()))
-
 }
 
 func main() {
