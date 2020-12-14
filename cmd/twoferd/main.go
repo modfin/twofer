@@ -75,22 +75,30 @@ func startEid(grpcServer *grpc.Server) {
 	geid.RegisterEIDServer(grpcServer, serve)
 
 	if config.Get().BankID.Enabled {
-		fmt.Println("  - Enabling BankId")
+		fmt.Println("  - Creating BankId")
 		client, err := bankid.New(bankid.ClientConfig{
 			BaseURL:       config.Get().BankID.URL.String(),
 			PemRootCA:     config.Get().BankID.GetRootCA(),
 			PemClientCert: config.Get().BankID.GetClientCert(),
 			PemClientKey:  config.Get().BankID.GetClientKey(),
 		})
-		if err == nil {
-			serve.Add(client)
-		} else {
+		if err != nil {
 			fmt.Println("ERROR", err)
+		}
+		if err == nil {
+			err = client.Ping()
+			if err == nil {
+				fmt.Println("  - Adding BankId")
+				serve.Add(client)
+			}
+			if err != nil {
+				fmt.Println("  - Err: Could not ping bankid", err)
+			}
 		}
 	}
 
 	if config.Get().FrejaID.Enabled {
-		fmt.Println("  - Enabling Freja")
+		fmt.Println("  - Creating Freja")
 		client, err := freja.New(freja.ClientConfig{
 			BaseURL:       config.Get().FrejaID.URL.String(),
 			PemRootCA:     config.Get().FrejaID.GetRootCA(),
@@ -98,10 +106,18 @@ func startEid(grpcServer *grpc.Server) {
 			PemClientKey:  config.Get().FrejaID.GetClientKey(),
 			PemJWSCert:    config.Get().FrejaID.GetJWSCert(),
 		})
-		if err == nil {
-			serve.Add(client)
-		} else {
+		if err != nil {
 			fmt.Println("ERROR", err)
+		}
+		if err == nil {
+			err = client.Ping()
+			if err == nil {
+				fmt.Println("  - Adding Freja")
+				serve.Add(client)
+			}
+			if err != nil {
+				fmt.Println("  - Err: Could not ping frejaid", err)
+			}
 		}
 	}
 }

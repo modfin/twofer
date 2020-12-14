@@ -215,3 +215,7 @@ func mapStatus(status frejam.Status) eid.Status {
 	}
 
 }
+
+func (e eeid) Ping() error {
+	return e.parent.Ping()
+}

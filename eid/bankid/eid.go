@@ -154,3 +154,7 @@ func (e eeid) Collect(ctx context.Context, in *eid.Inter, cancelOnErr bool) (res
 func (e eeid) Cancel(intermediate *eid.Inter) error {
 	return e.parent.api.Cancel(intermediate.Ref)
 }
+
+func (e eeid) Ping() error {
+	return e.parent.Ping()
+}

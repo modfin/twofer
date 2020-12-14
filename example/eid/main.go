@@ -161,8 +161,7 @@ func peek(w http.ResponseWriter, r *http.Request) {
 		internalError(w, err)
 		return
 	}
-	res := AuthResult{Status: peek.Status.String()}
-	pr, err := json.Marshal(res)
+	pr, err := json.Marshal(peek)
 	if err != nil {
 		internalError(w, err)
 		return

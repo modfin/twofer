@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package gpwd;
+
+
+service PWD {
+    rpc Enroll (EnrollReq) returns (Blob) {
+    };
+    rpc Auth (AuthReq) returns (Res) {
+    };
+
+    rpc Upgrade (Blob) returns (Blob) {
+    };
+}
+
+message EnrollReq {
+    string password = 1;
+}
+
+message AuthReq {
+    string password = 1;
+    string userBlob = 2;
+}
+
+message Res {
+    bool valid = 1;
+    string message = 2;
+}
+
+message Blob {
+    string userBlob = 1;
+}
+

@@ -66,12 +66,9 @@ func (c *Client) EID() eid.Client {
 	return &eeid{parent: c}
 }
 
-func (c *Client) Ping() (ok bool) {
+func (c *Client) Ping() error {
 	_, err := c.client.Get(c.baseURL)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return err == nil
+	return err
 }
 
 func (c *Client) API() *API {

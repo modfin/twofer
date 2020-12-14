@@ -21,6 +21,8 @@ type Client interface {
 	Peek(ctx context.Context, req *Inter) (*Resp, error)
 	Collect(ctx context.Context, req *Inter, cancelOnErr bool) (*Resp, error)
 	Cancel(intermediate *Inter) error
+
+	Ping() error
 }
 
 func Request() *Req {

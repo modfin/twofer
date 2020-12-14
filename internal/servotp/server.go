@@ -59,6 +59,10 @@ type Server struct {
 	ratelimiter *ratelimit.Ratelimiter
 }
 
+func (s *Server) Upgrade(context.Context, *gotp.Blob) (*gotp.Blob, error) {
+	panic("implement me")
+}
+
 type wrapper struct {
 	URI     string `json:"uri"`
 	Counter uint64 `json:"counter,omitempty"`

@@ -8,7 +8,11 @@ service OTP {
     };
     rpc Auth (Credentials) returns (AuthResponse) {
     };
+
+    rpc Upgrade (Blob) returns (Blob) {
+    };
 }
+
 
 enum Alg{
     SHA_1 = 0;
@@ -49,4 +53,8 @@ message Credentials {
 message AuthResponse {
     bool valid = 1;
     string userBlob = 2;
+}
+
+message Blob {
+    string userBlob = 1;
 }

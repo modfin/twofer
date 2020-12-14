@@ -93,18 +93,15 @@ func (c *Client) VerifyJWS(v frejam.Verifiable) error {
 	return jws.Verify(v.JWSToken(), c.jwsPubKey)
 }
 
-func (c *Client) Ping() (ok bool) {
+func (c *Client) Ping() error {
 
 	res, err := c.client.Get(c.baseURL)
 	if err != nil {
-		fmt.Println(err)
-		return false
+		return err
 	}
-	d, err := ioutil.ReadAll(res.Body)
+	_, err = ioutil.ReadAll(res.Body)
 
-	fmt.Println(err)
-	fmt.Println(string(d))
-	return err == nil
+	return err
 }
 
 func (c *Client) API() *API {

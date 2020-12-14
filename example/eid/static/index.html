@@ -5,45 +5,34 @@
     <meta charset="utf-8">
     <title>WebAuthn Demo</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="js/webauthn-client.js"></script>
 </head>
 
 <body>
 
 <h1>Twofer Demo</h1>
-
 <div>
-    <h2>Electronic ID</h2>
-    <hr/>
-    <button onclick="presentInferred('FrejaID')">Freja QR</button>
-    <label id="freaja-qrcodelabel" for="frejaid-qrcode">Freja</label>
-    <img title="" id="frejaid-qrcode" src="" alt=""/>
-    <hr/>
-    <button onclick="presentInferred('BankID')">Bank ID QR</button>
-    <label id="bankid-qrcodelabel" for="bankid-qrcode">BankID</label>
-    <img title="" id="bankid-qrcode" src="" alt=""/>
-    <hr/>
+<div style="width: 49%; display: inline-block; padding: 10px;vertical-align: top">
+    <h2>Electronic ID <button id="cancel" onclick="cancelAllThings()">CANCEL ALL ONGOING</button></h2>
 
     <hr/>
-    <div>
-        <label for="FrejaId-input"><b>Personnummer</b></label>
-        <input type="text" value="" name="FrejaId-input" id="FrejaID-input">
-        <button id="FrejaID" onclick="startAuth('FrejaID')">FREJA</button>
-        <span id="frejaid-placeholder"></span>
-        <hr/>
-        <label for="BankID-input"><b>Personnummer</b></label>
-        <input type="text" value="" name="BankID-input" id="BankID-input">
-        <button id="BankID" onclick="startAuth( 'BankID')">BANKID</button>
-        <span id="bankid-placeholder"></span>
-        <hr/>
-    </div>
-    <label for="signing-data"><b>Sign</b></label>
-    <input type="text" value="" name="signing-data" id="signing-data">
-    <hr/>
-    <button id="cancel" onclick="cancelAllThings()">CANCEL ONGOING</button>
+    <div id="eid-outlet"></div>
 
+
+</div
+><div style="width: 49%; display: inline-block; padding: 10px;vertical-align: top;">
+    <h2>WebAuthn</h2>
+    User: test@example.com
+    <hr/>
+    <button onclick="authnRegister()">Register 2-Factor</button>  <span id="regStatus"></span>
+    <hr/>
+    <button onclick="authnLogin()">Login  2-Factor</button>
+</div>
 </div>
 
 <script>
+
+// Eid
     let providers = [];
     let active = false;
     let ongoing = [];
@@ -53,6 +42,23 @@
         providers = data.map((v) => {
             return v.name
         });
+        const htm = providers.map((p) => {
+           let tmpl = `
+            <h3>${p}</h3>
+            <pre id="${p}-info" style="font-family: monospace"></pre>
+            <button onclick="presentInferred('${p}')">${p} QR</button>
+            <img title="" id="${p}-qrcode" src="" alt=""/>
+            <hr/>
+            <label for="${p}-input"><b>SSN</b></label>
+            <input type="text" value="" name="${p}-input" id="${p}-input">
+            <button id="${p}" onclick="startAuth('${p}')">Auth</button>
+            <span id="${p}-placeholder"></span>
+            <hr/>`
+
+            return tmpl
+        }).join("\n")
+        document.getElementById("eid-outlet").innerHTML = htm
+        console.log(htm)
         console.log(providers)
     });
 
@@ -88,8 +94,8 @@
                 return res.blob()
             }).then(blob => {
                 let img = URL.createObjectURL(blob);
-                document.getElementById(provider.toLowerCase() + '-qrcode').setAttribute('src', img);
-                document.getElementById(provider.toLowerCase() + '-qrcode').setAttribute('title', provider);
+                document.getElementById(provider + '-qrcode').setAttribute('src', img);
+                document.getElementById(provider + '-qrcode').setAttribute('title', provider);
             });
             let finished = false;
             while (!finished && active) {
@@ -98,11 +104,15 @@
                 }).then(res => {
                     return res.json()
                 }).then(json => {
-                    if (json.status === 'STATUS_APPROVED') {
+                    if (json.status === 5) { // Approved
                         console.log("Successfully identified using provider=" + provider);
                         finished = true;
                         active = false;
+                        document.getElementById(provider + '-qrcode').setAttribute('src', '');
+                        document.getElementById(provider + '-qrcode').setAttribute('title', '');
                         ongoing.splice(ongoing.indexOf(json.ref), 1);
+
+                        document.getElementById(provider + '-info').innerText = JSON.stringify(json.info, null,2)
                     }
 
                     console.log(JSON.stringify(json));
@@ -115,7 +125,7 @@
 
     async function startAuth(provider) {
         let ssn = document.getElementById(provider + "-input").value;
-        let data = document.getElementById('signing-data').value;
+        let data = '';
         if (ssn === '') {
             alert("ENTER IT!");
             return
@@ -153,17 +163,18 @@
             ongoing.push(json.ref)
             let finished = false;
             while (!finished && active) {
-                document.getElementById(provider.toLowerCase() + "-placeholder").innerText = 'Waiting for sign in for provider=' + provider;
+                document.getElementById(provider + "-placeholder").innerText = 'Waiting for sign in for provider=' + provider;
                 fetch('http://localhost:8080/peek/' + json.ref, {
                     method: 'GET'
                 }).then(res => {
                     return res.json()
                 }).then(json => {
-                    if (json.status === 'STATUS_APPROVED') {
-                        document.getElementById(provider.toLowerCase() + "-placeholder").innerText = 'Signed in for provider=' + provider;
+                    if (json.status === 5) {
+                        document.getElementById(provider + "-placeholder").innerText = 'Signed in for provider=' + provider;
                         finished = true;
                         active = false;
                         ongoing.splice(ongoing.indexOf(json.ref), 1);
+                        document.getElementById(provider + '-info').innerText = JSON.stringify(json.info, null,2)
                     }
                     console.log(JSON.stringify(json));
                     console.log("Result from polling\n")
@@ -181,6 +192,32 @@
         let json = await response.json();
         return json.providers
     }
+
+
+// WebAuthn
+    const aUser = "test@example.com";
+    let headers = {
+        'user': aUser,
+    };
+
+    $(document).ready(function () {
+        if (!window.PublicKeyCredential) {
+            alert("Error: this browser does not support WebAuthn");
+        }
+    });
+
+    const webAuthnClient = new WebauthnClient('/login', '/register');
+
+    function authnLogin() {
+        webAuthnClient.login(headers)
+    }
+    async function authnRegister() {
+        let success = await webAuthnClient.register(headers);
+        if (success) {
+            document.getElementById("regStatus").innerText = "You are now registered"
+        }
+    }
+
 
 </script>
 </body>
