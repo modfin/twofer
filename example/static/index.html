@@ -83,12 +83,12 @@
     async function presentInferred(provider) {
         if (!active) {
             active = true;
-            let response = await fetch('http://localhost:8080/inferred?provider=' + provider, {
+            let response = await fetch('http://localhost:8080/eid/inferred?provider=' + provider, {
                 method: 'GET',
             });
             let json = await response.json();
             ongoing.push(json.ref);
-            await fetch('http://localhost:8080/qrimage/' + json.ref, {
+            await fetch('http://localhost:8080/eid/qrimage/' + json.ref, {
                 method: 'GET',
             }).then(res => {
                 return res.blob()
@@ -99,7 +99,7 @@
             });
             let finished = false;
             while (!finished && active) {
-                fetch('http://localhost:8080/peek/' + json.ref, {
+                fetch('http://localhost:8080/eid/peek/' + json.ref, {
                     method: 'GET'
                 }).then(res => {
                     return res.json()
@@ -139,7 +139,7 @@
                     // Add country for all, as it is needed for Freja. Simply assume SE, cause why not...
                     ssn_country: 'SE'
                 });
-                response = await fetch('http://localhost:8080/start-auth?provider=' + provider, {
+                response = await fetch('http://localhost:8080/eid/start-auth?provider=' + provider, {
                     method: 'POST',
                     body: body
                 });
@@ -154,7 +154,7 @@
                         text: data
                     },
                 });
-                response = await fetch('http://localhost:8080/start-sign?provider=' + provider, {
+                response = await fetch('http://localhost:8080/eid/start-sign?provider=' + provider, {
                     method: 'POST',
                     body: body
                 });
@@ -164,7 +164,7 @@
             let finished = false;
             while (!finished && active) {
                 document.getElementById(provider + "-placeholder").innerText = 'Waiting for sign in for provider=' + provider;
-                fetch('http://localhost:8080/peek/' + json.ref, {
+                fetch('http://localhost:8080/eid/peek/' + json.ref, {
                     method: 'GET'
                 }).then(res => {
                     return res.json()
@@ -185,7 +185,7 @@
     }
 
     async function getProviders() {
-        let response = await fetch('http://localhost:8080/providers', {
+        let response = await fetch('http://localhost:8080/eid/providers', {
             method: 'GET',
         });
 
@@ -206,7 +206,7 @@
         }
     });
 
-    const webAuthnClient = new WebauthnClient('/login', '/register');
+    const webAuthnClient = new WebauthnClient('/authn/login', '/authn/register');
 
     function authnLogin() {
         webAuthnClient.login(headers)

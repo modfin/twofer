@@ -37,6 +37,9 @@ message User {
     string email = 4;
     string phone = 5;
     string ip = 6;
+    string name = 7;
+    string surname = 8;
+    string date_of_birth = 9;
 }
 
 message Req {
@@ -65,29 +68,18 @@ message Inter {
     bytes internal = 7;
 }
 
-message Info {
-    bool inferred = 1;
-    string ssn = 2;
-    string ssn_country = 3;
-    string email = 4;
-    string phone = 5;
-    string ip = 6;
-    string name = 7;
-    string surname = 8;
-    string date_of_birth = 9;
-}
-
 message Resp {
 
     enum Status {
         STATUS_UNKNOWN = 0;
         STATUS_PENDING = 1;
-        STATUS_CANCELED = 2;
-        STATUS_RP_CANCELED = 3;
-        STATUS_EXPIRED = 4;
-        STATUS_APPROVED = 5;
-        STATUS_REJECTED = 6;
-        STATUS_FAILED = 7;
+        STATUS_ONGOING = 2;
+        STATUS_APPROVED = 3;
+        STATUS_CANCELED = 4;
+        STATUS_RP_CANCELED = 5;
+        STATUS_EXPIRED = 6;
+        STATUS_REJECTED = 7;
+        STATUS_FAILED = 8;
     }
 
     Inter inter = 2;
