@@ -66,45 +66,8 @@ func (c *Client) EID() eid.Client {
 	return &eeid{parent: c}
 }
 
-func (c *Client) Ping() error {
-	_, err := c.client.Get(c.baseURL)
-	return err
-}
-
 func (c *Client) API() *API {
 	return c.api
-}
-
-func (c *Client) AuthInit(ctx context.Context, authReq bankidm.AuthRequest) (*bankidm.AuthResponse, error) {
-	return c.API().Auth(authReq)
-}
-
-// Auth
-// canceling the context will clean up and cancel send a cancel request to freja
-func (c *Client) Auth(ctx context.Context, authReq bankidm.AuthRequest) (*bankidm.CollectResponse, error) {
-	res, err := c.AuthInit(ctx, authReq)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-
-	return c.Collect(ctx, res.OrderRef.OrderRef, true)
-}
-
-func (c *Client) SignInit(ctx context.Context, authReq bankidm.SignRequest) (*bankidm.SignResponse, error) {
-	return c.API().Sign(authReq)
-}
-
-func (c *Client) Sign(ctx context.Context, authReq bankidm.SignRequest) (*bankidm.CollectResponse, error) {
-	res, err := c.SignInit(ctx, authReq)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-
-	return c.Collect(ctx, res.OrderRef.OrderRef, true)
 }
 
 func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool) (resp *bankidm.CollectResponse, err error) {
@@ -112,7 +75,7 @@ func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool)
 		if err != nil && cancelOnErr {
 			go func() {
 				fmt.Println("Canceling order,", err)
-				err := c.api.Cancel(orderRef)
+				err := c.api.Cancel(ctx, orderRef)
 				if err != nil {
 					fmt.Println("could not cancel order", err)
 				}
@@ -128,7 +91,7 @@ func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool)
 		case <-time.After(time.Second):
 		}
 
-		resp, err = c.api.Collect(orderRef)
+		resp, err = c.api.Collect(ctx, orderRef)
 		if err != nil {
 			return nil, err
 		}

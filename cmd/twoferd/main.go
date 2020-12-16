@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"twofer/eid/bankid"
 	"twofer/eid/freja"
 	"twofer/grpc/geid"
@@ -23,12 +27,9 @@ func main() {
 
 	cfg := config.Get()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
+	var grpcServer *grpc.Server
 	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer = grpc.NewServer(opts...)
 
 	fmt.Println("Starting server")
 
@@ -65,8 +66,42 @@ func main() {
 		}
 	}
 
-	panic(grpcServer.Serve(lis))
+	startServer(grpcServer)
 
+}
+
+func startServer(grpcServer *grpc.Server) {
+
+	if config.Get().EnableGrpc {
+		go func() {
+			lis, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Get().GRPCPort))
+			if err != nil {
+				log.Fatalf("failed to listen: %v", err)
+			}
+
+			err = grpcServer.Serve(lis)
+			log.Fatalf("grpc server failed: %v", err)
+		}()
+
+	}
+	if config.Get().EnableHttp {
+		go func() {
+
+		}()
+	}
+
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGTERM)
+
+	<-signalChannel
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		grpcServer.GracefulStop()
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
 
 func startEid(grpcServer *grpc.Server) {
@@ -86,7 +121,7 @@ func startEid(grpcServer *grpc.Server) {
 			fmt.Println("ERROR", err)
 		}
 		if err == nil {
-			err = client.Ping()
+			err = client.API().Ping()
 			if err == nil {
 				fmt.Println("  - Adding BankId")
 				serve.Add(client)

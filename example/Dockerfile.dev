@@ -7,7 +7,7 @@ WORKDIR /go/src/github.com/modfin/twofer
 
 
 
-RUN echo "cd /go/src/github.com/modfin/twofer/example/eid && go run ./*.go" > /run.sh
+RUN echo "cd /go/src/github.com/modfin/twofer/example && go run ./*.go" > /run.sh
 
 RUN printf "desc: \n\
 triggers: \n\
@@ -23,7 +23,7 @@ triggers: \n\
   signal: KILL \n\
   kill_signal: 'SIGTERM' \n\
 watch_paths: \n\
-- /go/src/github.com/modfin/twofer/example/eid \n\
+- /go/src/github.com/modfin/twofer/example \n\
 watch_depth: 10 \n\
 " >> /fsw.yml
 

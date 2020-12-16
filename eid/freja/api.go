@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"twofer/eid/freja/frejam"
 )
 
@@ -23,8 +24,13 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq frejam.AuthRequest) (
 		return "", err
 	}
 
-	// implement context and add a deadline
-	resp, err := a.parent.client.Post(a.parent.baseURL+initAuthURL, "text", bytes.NewBuffer([]byte(strreq)))
+	req, err := http.NewRequest("POST", a.parent.baseURL+initAuthURL, bytes.NewBuffer([]byte(strreq)))
+	if err != nil {
+		return "", err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -56,12 +62,18 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq frejam.AuthRequest) (
 // successfully initiated by the relying party within the last 10 minutes will be returned, including results for
 // previously completed authentication results that have been reported through an earlier call to one of the methods
 // for getting authentication results.
-func (a *API) AuthGetResults() ([]frejam.AuthResponse, error) {
+func (a *API) AuthGetResults(ctx context.Context) ([]frejam.AuthResponse, error) {
 	//content := []byte(`{"includePrevious":"ALL"}`)
 	//payload := fmt.Sprintf( "getOneAuthResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 	payload := `getAuthResultsRequest=eyJpbmNsdWRlUHJldmlvdXMiOiJBTEwifQ==`
-	resp, err := a.parent.client.Post(a.parent.baseURL+getAuthResultsURL, "text", bytes.NewBuffer([]byte(payload)))
 
+	req, err := http.NewRequest("POST", a.parent.baseURL+getAuthResultsURL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +111,17 @@ func (a *API) AuthGetResults() ([]frejam.AuthResponse, error) {
 // by a relying party, must be confirmed by an end user within two minutes. Consequently, fetching the result of an
 // authentication for a given authentication reference is only possible within 10 minutes of the call to Initiate
 // authentication method that returned the said reference.
-func (a *API) AuthGetOneResult(authRef string) (*frejam.AuthResponse, error) {
+func (a *API) AuthGetOneResult(ctx context.Context, authRef string) (*frejam.AuthResponse, error) {
 	content := []byte(fmt.Sprintf(`{"authRef":"%s"}`, authRef))
 	payload := fmt.Sprintf("getOneAuthResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL+getOneAuthResultURL, "text", bytes.NewBuffer([]byte(payload)))
-
+	req, err := http.NewRequest("POST", a.parent.baseURL+getOneAuthResultURL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -134,12 +151,17 @@ func (a *API) AuthGetOneResult(authRef string) (*frejam.AuthResponse, error) {
 	return &res, nil
 }
 
-func (a *API) AuthCancelRequest(authRef string) error {
+func (a *API) AuthCancelRequest(ctx context.Context, authRef string) error {
 	content := []byte(fmt.Sprintf(`{"authRef":"%s"}`, authRef))
 	payload := fmt.Sprintf("cancelAuthRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL+cancelAuthURL, "text", bytes.NewBuffer([]byte(payload)))
-
+	req, err := http.NewRequest("POST", a.parent.baseURL+cancelAuthURL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -170,7 +192,14 @@ func (a *API) SignInitRequest(ctx context.Context, signReq frejam.SignRequest) (
 	}
 
 	// implement context and add a deadline
-	resp, err := a.parent.client.Post(a.parent.baseURL+initSignURL, "text", bytes.NewBuffer([]byte(strreq)))
+
+	req, err := http.NewRequest("POST", a.parent.baseURL+initSignURL, bytes.NewBuffer([]byte(strreq)))
+	if err != nil {
+		return "", err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -198,12 +227,17 @@ func (a *API) SignInitRequest(ctx context.Context, signReq frejam.SignRequest) (
 	return ref.SignRef, nil
 }
 
-func (a *API) SignGetOneResult(signRef string) (*frejam.SignResponse, error) {
+func (a *API) SignGetOneResult(ctx context.Context, signRef string) (*frejam.SignResponse, error) {
 	content := []byte(fmt.Sprintf(`{"signRef":"%s"}`, signRef))
 	payload := fmt.Sprintf("getOneSignResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL+getOneSignResultURL, "text", bytes.NewBuffer([]byte(payload)))
-
+	req, err := http.NewRequest("POST", a.parent.baseURL+getOneSignResultURL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -233,12 +267,18 @@ func (a *API) SignGetOneResult(signRef string) (*frejam.SignResponse, error) {
 	return &res, nil
 }
 
-func (a *API) SignGetResults() ([]frejam.SignResponse, error) {
+func (a *API) SignGetResults(ctx context.Context) ([]frejam.SignResponse, error) {
 	//content := []byte(`{"includePrevious":"ALL"}`)
 	//payload := fmt.Sprintf( "getOneAuthResultRequest=%s", base64.StdEncoding.EncodeToString(content))
 	payload := `getSignResultsRequest=eyJpbmNsdWRlUHJldmlvdXMiOiJBTEwifQ==`
-	resp, err := a.parent.client.Post(a.parent.baseURL+getSignResultsURL, "text", bytes.NewBuffer([]byte(payload)))
 
+	req, err := http.NewRequest("POST", a.parent.baseURL+getSignResultsURL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -271,12 +311,17 @@ func (a *API) SignGetResults() ([]frejam.SignResponse, error) {
 	return res.SignatureResults, nil
 }
 
-func (a *API) SignCancelRequest(signRef string) error {
+func (a *API) SignCancelRequest(ctx context.Context, signRef string) error {
 	content := []byte(fmt.Sprintf(`{"signRef":"%s"}`, signRef))
 	payload := fmt.Sprintf("cancelSignRequest=%s", base64.StdEncoding.EncodeToString(content))
 
-	resp, err := a.parent.client.Post(a.parent.baseURL+cancelSignURL, "text", bytes.NewBuffer([]byte(payload)))
-
+	req, err := http.NewRequest("POST", a.parent.baseURL+cancelSignURL, bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "text")
+	resp, err := a.parent.client.Do(req)
 	if err != nil {
 		return err
 	}

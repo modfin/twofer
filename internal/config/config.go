@@ -10,7 +10,10 @@ import (
 )
 
 type Config struct {
-	Port int `env:"PORT" envDefault:"43210"`
+	EnableHttp bool `env:"DISABLE_HTTP" envDefault:"TRUE"`
+	EnableGrpc bool `env:"DISABLE_GRPC" envDefault:"TRUE"`
+	HTTPPort   int  `env:"HTTP_PORT" envDefault:"8080"`
+	GRPCPort   int  `env:"GRPC_PORT" envDefault:"43210"`
 
 	FrejaID FrejaID
 	BankID  BankID
@@ -25,7 +28,7 @@ func (c Config) EIDEnabled() bool {
 }
 
 type OTP struct {
-	Enabled       bool     `env:"OTP_ENABLE" envDefault:"TRUE"`
+	Enabled       bool     `env:"OTP_ENABLE" envDefault:"FALSE"`
 	EncryptionKey []string `env:"OTP_ENCRYPTION_KEY" envSeparator:" "`
 	RateLimit     uint     `env:"OTP_RATE_LIMIT" envDefault:"10"`
 	SkewCounter   uint     `env:"OTP_SKEW_COUNTER" envDefault:"5"`
@@ -101,7 +104,7 @@ func (b FrejaID) GetJWSCert() []byte {
 }
 
 type WebAuthn struct {
-	Enabled          bool   `env:"WEBAUTHN_ENABLED"`
+	Enabled          bool   `env:"WEBAUTHN_ENABLED" envDefault:"FALSE"`
 	RPDisplayName    string `env:"WEBAUTHN_RP_DISPLAYNAME"`
 	RPID             string `env:"WEBAUTHN_RP_ID"`
 	RPOrigin         string `env:"WEBAUTHN_RP_ORIGIN"`

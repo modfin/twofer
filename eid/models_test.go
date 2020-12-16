@@ -128,3 +128,6 @@ func (c *TestClient) Collect(ctx context.Context, req *Inter, cancelOnErr bool) 
 func (c *TestClient) Cancel(intermediate *Inter) error {
 	return nil
 }
+func (c *TestClient) Ping() error {
+	return nil
+}

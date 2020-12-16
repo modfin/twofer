@@ -3,6 +3,7 @@ package eid
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 func New() *EID {
@@ -36,4 +37,8 @@ func (e *EID) Get(name string) (Client, error) {
 		return nil, fmt.Errorf("could not find eid provider %s", name)
 	}
 	return c, nil
+}
+func (e *EID) GetFromRef(ref string) (Client, error) {
+	parts := strings.SplitN(ref, ":", 2)
+	return e.Get(parts[0])
 }

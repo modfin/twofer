@@ -109,12 +109,12 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 
 }
 
-func (e eeid) Cancel(intermediate *eid.Inter) error {
+func (e eeid) Cancel(ctx context.Context, intermediate *eid.Inter) error {
 	switch intermediate.Mode {
 	case eid.SIGN:
-		return e.parent.api.SignCancelRequest(intermediate.Ref)
+		return e.parent.api.SignCancelRequest(ctx, intermediate.Ref)
 	case eid.AUTH:
-		return e.parent.api.AuthCancelRequest(intermediate.Ref)
+		return e.parent.api.AuthCancelRequest(ctx, intermediate.Ref)
 	}
 	return fmt.Errorf("mode %s is not supported to cancel", intermediate.Mode)
 }
@@ -127,7 +127,7 @@ func (e eeid) Peek(ctx context.Context, inter *eid.Inter) (resp *eid.Resp, err e
 	var attr frejam.RequestedAttributes
 	switch inter.Mode {
 	case eid.AUTH:
-		res, err := e.parent.api.AuthGetOneResult(inter.Ref)
+		res, err := e.parent.api.AuthGetOneResult(ctx, inter.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (e eeid) Peek(ctx context.Context, inter *eid.Inter) (resp *eid.Resp, err e
 		attr = res.RequestedAttributes
 
 	case eid.SIGN:
-		res, err := e.parent.api.SignGetOneResult(inter.Ref)
+		res, err := e.parent.api.SignGetOneResult(ctx, inter.Ref)
 		if err != nil {
 			return nil, err
 		}

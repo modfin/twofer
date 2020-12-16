@@ -11,7 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"twofer/example/eid/dao"
+	"twofer/example/dao"
 	"twofer/grpc/geid"
 	"twofer/grpc/gqr"
 	"twofer/grpc/gw6n"
@@ -116,6 +116,9 @@ func initInferred(w http.ResponseWriter, r *http.Request) {
 		Reference: i.Ref,
 		Image:     qrr.Data,
 	})
+
+	fmt.Println("REF", i.Ref)
+
 	ir, err := json.Marshal(i)
 	_, _ = w.Write(ir)
 }

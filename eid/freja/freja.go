@@ -116,34 +116,12 @@ func (c *Client) AuthInit(ctx context.Context, authReq frejam.AuthRequest) (auth
 	return c.api.AuthInitRequest(ctx, authReq)
 }
 
-// Auth
-// canceling the context will clean up and cancel send a cancel request to freja
-func (c *Client) Auth(ctx context.Context, authReq frejam.AuthRequest) (resp *frejam.AuthResponse, err error) {
-	authRef, err := c.AuthInit(ctx, authReq)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-
-	resp, err = c.AuthCollect(ctx, authRef, true)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Status == frejam.STATUS_APPROVED && c.jwsPubKey != nil {
-		err = c.VerifyJWS(resp)
-	}
-	return resp, err
-}
-
 func (c *Client) AuthCollect(ctx context.Context, authRef string, cancelOnErr bool) (resp *frejam.AuthResponse, err error) {
 	defer func() {
 		if err != nil && cancelOnErr {
 			go func() {
 				fmt.Println("Canceling order,", err)
-				err := c.api.AuthCancelRequest(authRef)
+				err := c.api.AuthCancelRequest(ctx, authRef)
 				if err != nil {
 					fmt.Println("could not cancel auth", err)
 				}
@@ -160,7 +138,7 @@ func (c *Client) AuthCollect(ctx context.Context, authRef string, cancelOnErr bo
 		case <-time.After(c.pollInterval):
 		}
 
-		resp, err = c.api.AuthGetOneResult(authRef)
+		resp, err = c.api.AuthGetOneResult(ctx, authRef)
 		if err != nil {
 			return nil, err
 		}
@@ -179,35 +157,11 @@ func (c *Client) SignInit(ctx context.Context, signReq frejam.SignRequest) (sign
 	return c.api.SignInitRequest(ctx, signReq)
 }
 
-// Sign
-// canceling the context will clean up and cancel send a cancel request to freja
-func (c *Client) Sign(ctx context.Context, signReq frejam.SignRequest) (resp *frejam.SignResponse, err error) {
-
-	signRef, err := c.SignInit(ctx, signReq)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-
-	resp, err = c.SignCollect(ctx, signRef, true)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Status == frejam.STATUS_APPROVED && c.jwsPubKey != nil {
-		err = c.VerifyJWS(resp)
-	}
-
-	return resp, nil
-}
-
 func (c *Client) SignCollect(ctx context.Context, signRef string, cancelOnErr bool) (resp *frejam.SignResponse, err error) {
 	defer func() {
 		if err != nil && cancelOnErr {
 			go func() {
-				err := c.api.SignCancelRequest(signRef)
+				err := c.api.SignCancelRequest(ctx, signRef)
 				if err != nil {
 					fmt.Println("could not cancel auth", err)
 				}
@@ -223,7 +177,7 @@ func (c *Client) SignCollect(ctx context.Context, signRef string, cancelOnErr bo
 		case <-time.After(c.pollInterval):
 		}
 
-		resp, err = c.api.SignGetOneResult(signRef)
+		resp, err = c.api.SignGetOneResult(ctx, signRef)
 		if err != nil {
 			return nil, err
 		}

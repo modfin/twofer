@@ -112,7 +112,7 @@ func (s Server) Peek(ctx context.Context, inter *geid.Inter) (res *geid.Resp, er
 	return &grpcRes, nil
 }
 
-func (s Server) Cancel(_ context.Context, inter *geid.Inter) (emp *geid.Empty, err error) {
+func (s Server) Cancel(ctx context.Context, inter *geid.Inter) (emp *geid.Empty, err error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
 		return
@@ -121,7 +121,7 @@ func (s Server) Cancel(_ context.Context, inter *geid.Inter) (emp *geid.Empty, e
 	if err != nil {
 		return
 	}
-	err = cli.Cancel(&eidCancel)
+	err = cli.Cancel(ctx, &eidCancel)
 	if err != nil {
 		return
 	}

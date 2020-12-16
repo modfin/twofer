@@ -104,7 +104,7 @@
                 }).then(res => {
                     return res.json()
                 }).then(json => {
-                    if (json.status === 5) { // Approved
+                    if (json.status === 3) { // Approved
                         console.log("Successfully identified using provider=" + provider);
                         finished = true;
                         active = false;
@@ -169,7 +169,7 @@
                 }).then(res => {
                     return res.json()
                 }).then(json => {
-                    if (json.status === 5) {
+                    if (json.status === 3) {
                         document.getElementById(provider + "-placeholder").innerText = 'Signed in for provider=' + provider;
                         finished = true;
                         active = false;

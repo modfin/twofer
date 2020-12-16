@@ -2,9 +2,11 @@ package bankid
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"twofer/eid/bankid/bankidm"
 )
 
@@ -12,11 +14,25 @@ type API struct {
 	parent *Client
 }
 
-func (a *API) Auth(request bankidm.AuthRequest) (r *bankidm.AuthResponse, err error) {
+func (c *API) Ping() error {
+	_, err := c.parent.client.Get(c.parent.baseURL)
+	return err
+}
+
+func (a *API) Auth(ctx context.Context, request bankidm.AuthRequest) (r *bankidm.AuthResponse, err error) {
 
 	data, err := request.Marshal()
+	if err != nil {
+		return nil, err
+	}
 
-	res, err := a.parent.client.Post(a.parent.baseURL+authURL, "application/json", bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", a.parent.baseURL+authURL, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "application/json")
+	res, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -41,11 +57,20 @@ func (a *API) Auth(request bankidm.AuthRequest) (r *bankidm.AuthResponse, err er
 
 }
 
-func (a *API) Sign(request bankidm.SignRequest) (r *bankidm.SignResponse, err error) {
+func (a *API) Sign(ctx context.Context, request bankidm.SignRequest) (r *bankidm.SignResponse, err error) {
 
 	data, err := request.Marshal()
+	if err != nil {
+		return nil, err
+	}
 
-	res, err := a.parent.client.Post(a.parent.baseURL+signURL, "application/json", bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", a.parent.baseURL+signURL, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "application/json")
+	res, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +94,17 @@ func (a *API) Sign(request bankidm.SignRequest) (r *bankidm.SignResponse, err er
 	return &resp, err
 }
 
-func (a *API) Collect(orderRef string) (r *bankidm.CollectResponse, err error) {
+func (a *API) Collect(ctx context.Context, orderRef string) (r *bankidm.CollectResponse, err error) {
 
 	data := []byte(fmt.Sprintf(`{"orderRef":"%s"}`, orderRef))
-	res, err := a.parent.client.Post(a.parent.baseURL+collectURL, "application/json", bytes.NewBuffer(data))
+
+	req, err := http.NewRequest("POST", a.parent.baseURL+collectURL, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "application/json")
+	res, err := a.parent.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +114,7 @@ func (a *API) Collect(orderRef string) (r *bankidm.CollectResponse, err error) {
 		return nil, err
 	}
 
+	fmt.Println(string(resdata))
 	if res.StatusCode != 200 {
 		var err1 bankidm.BankIdError
 		err = json.Unmarshal(resdata, &err1)
@@ -96,10 +129,16 @@ func (a *API) Collect(orderRef string) (r *bankidm.CollectResponse, err error) {
 	return &resp, err
 }
 
-func (a *API) Cancel(orderRef string) (err error) {
+func (a *API) Cancel(ctx context.Context, orderRef string) (err error) {
 	data := []byte(fmt.Sprintf(`{"orderRef":"%s"}`, orderRef))
 
-	res, err := a.parent.client.Post(a.parent.baseURL+cancelURL, "application/json", bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", a.parent.baseURL+cancelURL, bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "application/json")
+	res, err := a.parent.client.Do(req)
 	if err != nil {
 		return err
 	}

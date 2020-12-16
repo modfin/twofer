@@ -20,7 +20,7 @@ type Client interface {
 
 	Peek(ctx context.Context, req *Inter) (*Resp, error)
 	Collect(ctx context.Context, req *Inter, cancelOnErr bool) (*Resp, error)
-	Cancel(intermediate *Inter) error
+	Cancel(ctx context.Context, intermediate *Inter) error
 
 	Ping() error
 }
@@ -87,12 +87,15 @@ func (r *Req) SignData(data []byte) *Req {
 }
 
 type User struct {
-	Inferred   bool   `json:"inferred"`
-	SSN        string `json:"ssn"`
-	SSNCountry string `json:"ssn_country"`
-	Email      string `json:"email"`
-	Phone      string `json:"phone"`
-	IP         net.IP `json:"ip"`
+	Inferred    bool      `json:"inferred"`
+	SSN         string    `json:"ssn"`
+	SSNCountry  string    `json:"ssn_country"`
+	Email       string    `json:"email"`
+	Phone       string    `json:"phone"`
+	Name        string    `json:"name"`
+	Surname     string    `json:"surname"`
+	IP          net.IP    `json:"ip"`
+	DateOfBirth time.Time `json:"date_of_birth"`
 }
 
 type Payload struct {
@@ -119,9 +122,9 @@ type Inter struct {
 type Status string
 
 const (
-	STATUS_UNKNOWN Status = "UNKNOWN"
-
+	STATUS_UNKNOWN     Status = "UNKNOWN"
 	STATUS_PENDING     Status = "PENDING"
+	STATUS_ONGOING     Status = "ONGOING"
 	STATUS_CANCELED    Status = "CANCELED"
 	STATUS_RP_CANCELED Status = "RP_CANCELED"
 	STATUS_EXPIRED     Status = "EXPIRED"
@@ -130,18 +133,11 @@ const (
 	STATUS_FAILED      Status = "FAILED"
 )
 
-type Info struct {
-	User
-	Name        string    `json:"name"`
-	Surname     string    `json:"surname"`
-	DateOfBirth time.Time `json:"date_of_birth"`
-}
-
 type Resp struct {
 	Inter *Inter `json:"inter"`
 
 	Status    Status                 `json:"status"`
-	Info      Info                   `json:"info"`
+	Info      User                   `json:"info"`
 	Signature []byte                 `json:"signature"`
 	Extra     map[string]interface{} `json:"extra"`
 }
@@ -241,7 +237,7 @@ func ToGrpcResp(res *Resp) (r geid.Resp, e error) {
 	if err != nil {
 		return
 	}
-	user := toGrpcUser(res.Info.User)
+	user := toGrpcUser(res.Info)
 
 	r.Inter = &inter
 	r.Signature = res.Signature
@@ -253,6 +249,8 @@ func ToGrpcResp(res *Resp) (r geid.Resp, e error) {
 		r.Status = geid.Resp_STATUS_UNKNOWN
 	case STATUS_PENDING:
 		r.Status = geid.Resp_STATUS_PENDING
+	case STATUS_ONGOING:
+		r.Status = geid.Resp_STATUS_ONGOING
 	case STATUS_CANCELED:
 		r.Status = geid.Resp_STATUS_CANCELED
 	case STATUS_RP_CANCELED:
@@ -279,6 +277,8 @@ func toGrpcUser(who User) (u geid.User) {
 	u.Email = who.Email
 	u.Phone = who.Phone
 	u.Ip = who.IP.String()
+	u.Name = who.Name
+	u.Surname = who.Surname
 	return
 }
 

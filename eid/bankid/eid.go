@@ -33,7 +33,7 @@ func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 	if req.Who.SSN != "" {
 		r.SSN = req.Who.SSN
 	}
-	resp, err := e.parent.AuthInit(ctx, r)
+	resp, err := e.parent.API().Auth(ctx, r)
 	if err != nil {
 		return
 	}
@@ -66,7 +66,7 @@ func (e eeid) SignInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err er
 		r.UserNonVisibleData = req.Payload.Data
 	}
 
-	resp, err := e.parent.SignInit(ctx, r)
+	resp, err := e.parent.API().Sign(ctx, r)
 	if err != nil {
 		return
 	}
@@ -87,6 +87,10 @@ func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error) {
 	switch res.Status {
 	case bankidm.STATUS_PENDING:
 		resp.Status = eid.STATUS_PENDING
+		switch res.HintCode {
+		case bankidm.HINT_STARTED, bankidm.HINT_USER_SIGN:
+			resp.Status = eid.STATUS_ONGOING
+		}
 	case bankidm.STATUS_FAILED:
 		switch res.HintCode {
 		case bankidm.HINT_EXPIRED:
@@ -103,7 +107,7 @@ func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error) {
 
 		resp.Info.SSN = res.CompletionData.User.PersonalNumber
 		resp.Info.SSNCountry = "SE"
-		resp.Info.Name = res.CompletionData.User.GivenName
+		resp.Info.Name = res.CompletionData.User.Name
 		resp.Info.Surname = res.CompletionData.User.Surname
 		resp.Info.IP = net.ParseIP(res.CompletionData.Device.IPAddress)
 		resp.Info.DateOfBirth, _ = time.Parse("20060102", res.CompletionData.User.PersonalNumber[:8])
@@ -126,7 +130,7 @@ func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error) {
 }
 
 func (e eeid) Peek(ctx context.Context, in *eid.Inter) (resp *eid.Resp, err error) {
-	res, err := e.parent.api.Collect(in.Ref)
+	res, err := e.parent.api.Collect(ctx, in.Ref)
 	if err != nil {
 		return
 	}
@@ -151,10 +155,10 @@ func (e eeid) Collect(ctx context.Context, in *eid.Inter, cancelOnErr bool) (res
 	return
 }
 
-func (e eeid) Cancel(intermediate *eid.Inter) error {
-	return e.parent.api.Cancel(intermediate.Ref)
+func (e eeid) Cancel(ctx context.Context, intermediate *eid.Inter) error {
+	return e.parent.api.Cancel(ctx, intermediate.Ref)
 }
 
 func (e eeid) Ping() error {
-	return e.parent.Ping()
+	return e.parent.API().Ping()
 }

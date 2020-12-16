@@ -47,10 +47,10 @@ services:
     volumes:
       - .:/go/src/github.com/modfin/twofer:cached
       - gopkg:/go/pkg:cached
-  eid-example:
+  example:
     build:
       context: ./example
-      dockerfile: eid/Dockerfile.dev
+      dockerfile: Dockerfile.dev
     ports:
       - "8080:8080"
     volumes:
