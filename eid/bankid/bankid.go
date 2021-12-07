@@ -70,6 +70,46 @@ func (c *Client) API() *API {
 	return c.api
 }
 
+func (c *Client) Change(ctx context.Context, orderRef string, cancelOnErr bool) (resp *bankidm.CollectResponse, err error) {
+	defer func() {
+		if err != nil && cancelOnErr {
+			go func() {
+				fmt.Println("Canceling order,", err)
+				err := c.api.Cancel(ctx, orderRef)
+				if err != nil {
+					fmt.Println("could not cancel order", err)
+				}
+			}()
+		}
+	}()
+
+	startState, err := c.api.Collect(ctx, orderRef)
+	if err != nil {
+		return nil, err
+	}
+	switch startState.Status {
+	case bankidm.STATUS_FAILED, bankidm.STATUS_COMPLETE:
+		return resp, nil
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			return nil, err
+		case <-time.After(time.Second):
+		}
+
+		resp, err = c.api.Collect(ctx, orderRef)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.HintCode != startState.HintCode {
+			return resp, nil
+		}
+	}
+}
+
 func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool) (resp *bankidm.CollectResponse, err error) {
 	defer func() {
 		if err != nil && cancelOnErr {

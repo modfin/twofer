@@ -18,6 +18,19 @@ func (e eeid) Name() string {
 	return Name()
 }
 
+func (e eeid) Change(ctx context.Context, req *eid.Inter, cancelOnErr bool) (resp *eid.Resp, err error) {
+	res, err := e.parent.Change(ctx, req.Ref, cancelOnErr)
+	if err != nil {
+		return
+	}
+	resp, err = bidResToEidRes(res)
+	if err != nil {
+		return
+	}
+	resp.Inter = req
+	return
+}
+
 func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err error) {
 	if req.Who == nil {
 		req.Inferred()
@@ -99,6 +112,8 @@ func bidResToEidRes(res *bankidm.CollectResponse) (resp *eid.Resp, err error) {
 			resp.Status = eid.STATUS_CANCELED
 		case bankidm.HINT_CANCELED:
 			resp.Status = eid.STATUS_RP_CANCELED
+		case bankidm.HINT_START_FAILED:
+			resp.Status = eid.STATUS_START_FAILED
 		default:
 			resp.Status = eid.STATUS_FAILED
 		}

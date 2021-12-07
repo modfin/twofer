@@ -2,6 +2,7 @@ package freja
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -15,6 +16,10 @@ type eeid struct {
 
 func (e eeid) Name() string {
 	return Name()
+}
+
+func (e eeid) Change(ctx context.Context, req *eid.Inter, cancelOnErr bool) (resp *eid.Resp, err error) {
+	return nil, errors.New("NOT YET IMPLEMENTED")
 }
 
 func (e eeid) AuthInit(ctx context.Context, req *eid.Req) (in *eid.Inter, err error) {

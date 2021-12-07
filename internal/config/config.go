@@ -2,16 +2,17 @@ package config
 
 import (
 	"fmt"
-	"github.com/caarlos0/env/v6"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
-	EnableHttp bool `env:"DISABLE_HTTP" envDefault:"TRUE"`
-	EnableGrpc bool `env:"DISABLE_GRPC" envDefault:"TRUE"`
+	EnableHttp bool `env:"ENABLE_HTTP" envDefault:"TRUE"`
+	EnableGrpc bool `env:"ENABLE_GRPC" envDefault:"TRUE"`
 	HTTPPort   int  `env:"HTTP_PORT" envDefault:"8080"`
 	GRPCPort   int  `env:"GRPC_PORT" envDefault:"43210"`
 

@@ -2,9 +2,10 @@ package serveid
 
 import (
 	"fmt"
-	"golang.org/x/net/context"
 	"twofer/eid"
 	"twofer/grpc/geid"
+
+	"golang.org/x/net/context"
 )
 
 func New() *Server {
@@ -82,6 +83,26 @@ func (s Server) Collect(ctx context.Context, inter *geid.Inter) (r *geid.Resp, e
 		return
 	}
 	collect, err := cli.Collect(ctx, &eidInter, false)
+	if err != nil {
+		return
+	}
+	grpcRes, err := eid.ToGrpcResp(collect)
+	if err != nil {
+		return
+	}
+	return &grpcRes, nil
+}
+
+func (s Server) Change(ctx context.Context, inter *geid.Inter) (r *geid.Resp, err error) {
+	cli, err := s.Get(inter.Req.Provider.Name)
+	if err != nil {
+		return
+	}
+	eidInter, err := eid.FromGrpcInter(inter, cli)
+	if err != nil {
+		return
+	}
+	collect, err := cli.Change(ctx, &eidInter, false)
 	if err != nil {
 		return
 	}

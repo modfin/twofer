@@ -19,13 +19,16 @@ import (
 	"twofer/internal/servotp"
 	"twofer/internal/servqr"
 	"twofer/internal/servw6n"
+	"twofer/internal/httpserve"
 
 	"google.golang.org/grpc"
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
 
 	cfg := config.Get()
+	e := echo.New()
 
 	var grpcServer *grpc.Server
 	var opts []grpc.ServerOption
@@ -49,11 +52,16 @@ func main() {
 
 	if cfg.QREnabled {
 		fmt.Println("- Enabling QR")
-		gqr.RegisterQRServer(grpcServer, servqr.New())
+		_servqr := servqr.New()
+		gqr.RegisterQRServer(grpcServer, _servqr)
+		if cfg.EnableHttp {
+			fmt.Println("  - Serving QR via HTTP")
+			httpserve.RegisterQRServer(e, _servqr)
+		}
 	}
 
 	if cfg.EIDEnabled() {
-		startEid(grpcServer)
+		startEid(grpcServer, e)
 	}
 
 	if cfg.WebAuthn.Enabled {
@@ -66,11 +74,11 @@ func main() {
 		}
 	}
 
-	startServer(grpcServer)
+	startServer(grpcServer, e)
 
 }
 
-func startServer(grpcServer *grpc.Server) {
+func startServer(grpcServer *grpc.Server, e *echo.Echo) {
 
 	if config.Get().EnableGrpc {
 		go func() {
@@ -86,7 +94,7 @@ func startServer(grpcServer *grpc.Server) {
 	}
 	if config.Get().EnableHttp {
 		go func() {
-
+			fmt.Println(e.Start(":8080"))
 		}()
 	}
 
@@ -104,10 +112,11 @@ func startServer(grpcServer *grpc.Server) {
 	wg.Wait()
 }
 
-func startEid(grpcServer *grpc.Server) {
+func startEid(grpcServer *grpc.Server, e *echo.Echo) {
 	fmt.Println("- Enabling EID")
 	serve := serveid.New()
 	geid.RegisterEIDServer(grpcServer, serve)
+	httpserve.RegisterEIDServer(e, serve)
 
 	if config.Get().BankID.Enabled {
 		fmt.Println("  - Creating BankId")
