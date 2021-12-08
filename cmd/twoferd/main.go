@@ -83,8 +83,13 @@ func main() {
 	if cfg.PWD.Enabled {
 		fmt.Println("- Enabling PWD")
 		_servpwd, err := servpwd.New(servpwd.PWDConfig{
-			DefaultAlg:       gpwd.Alg(cfg.PWD.DefaultAlg),
-			DefaultHashCount: cfg.PWD.DefaultHashCount,
+			DefaultAlg:          gpwd.Alg(cfg.PWD.DefaultAlg),
+			DefaultHashCount:    cfg.PWD.DefaultHashCount,
+			DefaultBCryptCost:   cfg.PWD.DefaultBCryptCost,
+			DefaultSCryptN:      cfg.PWD.DefaultSCryptN,
+			DefaultSCryptR:      cfg.PWD.DefaultSCryptR,
+			DefaultSCryptP:      cfg.PWD.DefaultSCryptP,
+			DefaultSCryptKeyLen: cfg.PWD.DefaultSCryptKeyLen,
 		}, cfg.PWD.EncryptionKey)
 		if err == nil {
 			gpwd.RegisterPWDServer(grpcServer, _servpwd)

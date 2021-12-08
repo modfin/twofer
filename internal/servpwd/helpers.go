@@ -2,7 +2,6 @@ package servpwd
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
@@ -11,16 +10,16 @@ import (
 )
 
 
-func GetHmacDigest(password string, salt string, hashFunc hash.Hash, hashCount uint) string {
-	digest := password
-	for i := uint(0); i < hashCount; i++ {
+func GetHmacDigest(password string, salt string, hashFunc hash.Hash, hashCount int) string {
+	digest := []byte(password)
+	saltBytes := []byte(salt)
+	for i := 0; i < hashCount; i++ {
 		hashFunc.Reset()
-		hashFunc.Write(Base64Decode(salt))
+		hashFunc.Write(saltBytes)
 		hashFunc.Write([]byte(password))
-		bMac := hashFunc.Sum(nil)
-		digest = Base64Encode(bMac)
+		digest = hashFunc.Sum(nil)
 	}
-	return digest
+	return Base64Encode(digest)
 }
 
 func Base64Encode(b64 []byte) string {
@@ -40,8 +39,6 @@ func GenerateRandomBase64Bytes(bytes int) string {
 
 func Hash(a gpwd.Alg) hash.Hash {
 	switch a {
-	case gpwd.Alg_SHA_1:
-		return sha1.New()
 	case gpwd.Alg_SHA_256:
 		return sha256.New()
 	case gpwd.Alg_SHA_512:
