@@ -31,6 +31,9 @@ services:
       WEBAUTHN_USER_VERIFICATION: "discouraged"
       WEBAUTHN_HMAC_KEY: "SfWAuZk23Rrm2Wgvq2nf"
 
+      PWD_ENABLE: "true"
+      PWD_ENCRYPTION_KEY: |-
+        1:aes:Hg44JefQsFJMI1F0zhWMpw== 2:aes:ZS7MqnYbM3zL0ERjE0kFMWC5zuEwzFg5
 
     ports:
       - "43210:43210"

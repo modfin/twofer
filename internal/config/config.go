@@ -22,6 +22,7 @@ type Config struct {
 	QREnabled bool `env:"QR_ENABLE" envDefault:"TRUE"`
 	OTP       OTP
 	WebAuthn  WebAuthn
+	PWD       PWD
 }
 
 func (c Config) EIDEnabled() bool {
@@ -114,6 +115,13 @@ type WebAuthn struct {
 
 	RateLimit uint          `env:"WEBAUTHN_RATE_LIMIT" envDefault:"10"`
 	Timeout   time.Duration `env:"WEBAUTHN_TIMEOUT" envDefault:"60s"`
+}
+
+type PWD struct {
+	Enabled          bool     `env:"PWD_ENABLE" envDefault:"FALSE"`
+	EncryptionKey    []string `env:"PWD_ENCRYPTION_KEY" envSeparator:" "`
+	DefaultAlg       int32    `env:"PWD_ALG" envDefault:"0"`
+	DefaultHashCount uint     `env:"PWD_HASH_COUNT" envDefault:"1"`
 }
 
 var once sync.Once

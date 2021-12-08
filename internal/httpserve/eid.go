@@ -13,10 +13,6 @@ import (
 
 func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 
-	e.GET("/v1/eid/ping", func(c echo.Context) error {
-		return c.String(http.StatusOK, "pong")
-	})
-
 	e.GET("/v1/eid/providers", func(c echo.Context) error {
 		providers, err := s.GetProviders(c.Request().Context(), &geid.Empty{})
 		if err != nil {

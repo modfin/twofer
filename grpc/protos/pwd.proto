@@ -13,6 +13,11 @@ service PWD {
     };
 }
 
+enum Alg{
+    SHA_256 = 0;
+    SHA_512 = 1;
+}
+
 message EnrollReq {
     string password = 1;
 }

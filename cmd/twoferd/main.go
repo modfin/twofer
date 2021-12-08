@@ -12,17 +12,19 @@ import (
 	"twofer/eid/freja"
 	"twofer/grpc/geid"
 	"twofer/grpc/gotp"
+	"twofer/grpc/gpwd"
 	"twofer/grpc/gqr"
 	"twofer/grpc/gw6n"
 	"twofer/internal/config"
+	"twofer/internal/httpserve"
 	"twofer/internal/serveid"
 	"twofer/internal/servotp"
+	"twofer/internal/servpwd"
 	"twofer/internal/servqr"
 	"twofer/internal/servw6n"
-	"twofer/internal/httpserve"
 
-	"google.golang.org/grpc"
 	"github.com/labstack/echo/v4"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -45,6 +47,10 @@ func main() {
 		}, config.Get().OTP.EncryptionKey)
 		if err == nil {
 			gotp.RegisterOTPServer(grpcServer, otpserv)
+			if cfg.EnableHttp {
+				fmt.Println("  - Serving OTP via HTTP")
+				httpserve.RegisterOTPServer(e, otpserv)
+			}
 		} else {
 			fmt.Println("Could not enable OTP", err)
 		}
@@ -65,12 +71,29 @@ func main() {
 	}
 
 	if cfg.WebAuthn.Enabled {
-		fmt.Println("- Enablin WebAuthn")
+		fmt.Println("- Enabling WebAuthn")
 		authn, err := servw6n.New(cfg.WebAuthn)
 		if err != nil {
 			fmt.Println("WebAuthn", err)
 		} else {
 			gw6n.RegisterWebAuthnServer(grpcServer, authn)
+		}
+	}
+
+	if cfg.PWD.Enabled {
+		fmt.Println("- Enabling PWD")
+		_servpwd, err := servpwd.New(servpwd.PWDConfig{
+			DefaultAlg:       gpwd.Alg(cfg.PWD.DefaultAlg),
+			DefaultHashCount: cfg.PWD.DefaultHashCount,
+		}, cfg.PWD.EncryptionKey)
+		if err == nil {
+			gpwd.RegisterPWDServer(grpcServer, _servpwd)
+			if cfg.EnableHttp {
+				fmt.Println("  - Serving PWD via HTTP")
+				httpserve.RegisterPWDServer(e, _servpwd)
+			}
+		} else {
+			fmt.Println("Could no start PWD grpc server")
 		}
 	}
 
