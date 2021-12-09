@@ -5,8 +5,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"net/http"
-	"twofer/grpc/gotp"
-	"twofer/internal/servotp"
+	"github.com/modfin/twofer/grpc/gotp"
+	"github.com/modfin/twofer/internal/servotp"
 )
 
 func RegisterOTPServer(e *echo.Echo, s *servotp.Server) {

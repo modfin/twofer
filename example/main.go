@@ -11,10 +11,10 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"twofer/example/dao"
-	"twofer/grpc/geid"
-	"twofer/grpc/gqr"
-	"twofer/grpc/gw6n"
+	"github.com/modfin/twofer/example/dao"
+	"github.com/modfin/twofer/grpc/geid"
+	"github.com/modfin/twofer/grpc/gqr"
+	"github.com/modfin/twofer/grpc/gw6n"
 )
 
 var (

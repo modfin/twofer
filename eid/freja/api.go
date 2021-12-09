@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"twofer/eid/freja/frejam"
+	"github.com/modfin/twofer/eid/freja/frejam"
 )
 
 type API struct {

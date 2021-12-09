@@ -2,8 +2,8 @@ package serveid
 
 import (
 	"fmt"
-	"twofer/eid"
-	"twofer/grpc/geid"
+	"github.com/modfin/twofer/eid"
+	"github.com/modfin/twofer/grpc/geid"
 
 	"golang.org/x/net/context"
 )

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net"
 	"time"
-	"twofer/eid"
-	"twofer/eid/bankid/bankidm"
+	"github.com/modfin/twofer/eid"
+	"github.com/modfin/twofer/eid/bankid/bankidm"
 )
 
 type eeid struct {

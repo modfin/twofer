@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 	"time"
-	"twofer/grpc/geid"
+	"github.com/modfin/twofer/grpc/geid"
 )
 
 type ToEID interface {

@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"twofer/grpc/gotp"
-	"twofer/grpc/gqr"
-	"twofer/internal/crypt"
-	"twofer/internal/ratelimit"
+	"github.com/modfin/twofer/grpc/gotp"
+	"github.com/modfin/twofer/grpc/gqr"
+	"github.com/modfin/twofer/internal/crypt"
+	"github.com/modfin/twofer/internal/ratelimit"
 )
 
 type OTPConfig struct {

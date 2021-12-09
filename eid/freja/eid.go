@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
-	"twofer/eid"
-	"twofer/eid/freja/frejam"
+	"github.com/modfin/twofer/eid"
+	"github.com/modfin/twofer/eid/freja/frejam"
 )
 
 type eeid struct {

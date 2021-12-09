@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"twofer/grpc/geid"
-	"twofer/internal/serveid"
+	"github.com/modfin/twofer/grpc/geid"
+	"github.com/modfin/twofer/internal/serveid"
 
 	"github.com/labstack/echo/v4"
 )

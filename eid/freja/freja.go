@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
-	"twofer/eid"
-	"twofer/eid/freja/frejam"
-	"twofer/internal/mtls"
+	"github.com/modfin/twofer/eid"
+	"github.com/modfin/twofer/eid/freja/frejam"
+	"github.com/modfin/twofer/internal/mtls"
 )
 
 type Client struct {

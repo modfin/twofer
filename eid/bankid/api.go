@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/modfin/twofer/eid/bankid/bankidm"
 	"io/ioutil"
 	"net/http"
-	"twofer/eid/bankid/bankidm"
 )
 
 type API struct {

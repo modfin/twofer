@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"twofer/eid"
-	"twofer/eid/bankid/bankidm"
-	"twofer/internal/mtls"
+	"github.com/modfin/twofer/eid"
+	"github.com/modfin/twofer/eid/bankid/bankidm"
+	"github.com/modfin/twofer/internal/mtls"
 )
 
 type ClientConfig struct {

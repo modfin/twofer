@@ -6,7 +6,7 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"hash"
-	"twofer/grpc/gpwd"
+	"github.com/modfin/twofer/grpc/gpwd"
 )
 
 

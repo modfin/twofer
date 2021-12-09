@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"twofer/grpc/gqr"
-	"twofer/internal/servqr"
-	"twofer/qr"
+	"github.com/modfin/twofer/grpc/gqr"
+	"github.com/modfin/twofer/internal/servqr"
+	"github.com/modfin/twofer/qr"
 
 	"github.com/labstack/echo/v4"
 )

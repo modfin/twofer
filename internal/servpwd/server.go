@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
-	"twofer/grpc/gpwd"
-	"twofer/internal/crypt"
+	"github.com/modfin/twofer/grpc/gpwd"
+	"github.com/modfin/twofer/internal/crypt"
 )
 
 type PWDConfig struct {

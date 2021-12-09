@@ -5,8 +5,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"net/http"
-	"twofer/grpc/gpwd"
-	"twofer/internal/servpwd"
+	"github.com/modfin/twofer/grpc/gpwd"
+	"github.com/modfin/twofer/internal/servpwd"
 )
 
 func RegisterPWDServer(e *echo.Echo, s *servpwd.Server) {
