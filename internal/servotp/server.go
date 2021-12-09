@@ -7,12 +7,14 @@ import (
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/hotp"
 	"github.com/pquerna/otp/totp"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/net/context"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 	"twofer/grpc/gotp"
+	"twofer/grpc/gqr"
 	"twofer/internal/crypt"
 	"twofer/internal/ratelimit"
 )
@@ -236,4 +238,41 @@ func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResp
 		UserBlob: base64.StdEncoding.EncodeToString(sec),
 	}, nil
 
+}
+
+func (s *Server) GetQRImage(ctx context.Context, va *gotp.Credentials) (*gqr.Image, error) {
+	sec, err := base64.StdEncoding.DecodeString(va.UserBlob)
+	if err != nil {
+		return nil, err
+	}
+	sec, err = s.store.Decrypt(sec)
+	if err != nil {
+		return nil, err
+	}
+
+	var v wrapper
+	err = json.Unmarshal(sec, &v)
+	if err != nil {
+		return nil, err
+	}
+
+	data := gqr.Data{
+		RecoveryLevel:        0,
+		Size:                 0,
+		Data:                 v.URI,
+	}
+
+	size := int(data.Size)
+
+	if size < 10 {
+		size = 256
+	}
+
+	level := qrcode.RecoveryLevel(data.RecoveryLevel)
+	image, err := qrcode.Encode(data.Data, level, size)
+
+	return &gqr.Image{
+		Data:        image,
+		ContentType: "image/png",
+	}, err
 }

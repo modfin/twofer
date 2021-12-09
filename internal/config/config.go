@@ -122,8 +122,10 @@ type PWD struct {
 	EncryptionKey []string `env:"PWD_ENCRYPTION_KEY" envSeparator:" "`
 	DefaultAlg    int32    `env:"PWD_ALG" envDefault:"0"`
 
-	DefaultHashCount    int `env:"PWD_HASH_COUNT" envDefault:"1"`
-	DefaultBCryptCost   int `env:"PWD_BCRYPT_COST" envDefault:"10"`
+	DefaultHashCount int `env:"PWD_HASH_COUNT" envDefault:"1"`
+
+	DefaultBCryptCost int `env:"PWD_BCRYPT_COST" envDefault:"10"`
+
 	DefaultSCryptN      int `env:"PWD_SCRYPT_N" envDefault:"32768"`
 	DefaultSCryptR      int `env:"PWD_SCRYPT_R" envDefault:"8"`
 	DefaultSCryptP      int `env:"PWD_SCRYPT_P" envDefault:"1"`

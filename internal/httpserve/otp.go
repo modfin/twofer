@@ -43,4 +43,21 @@ func RegisterOTPServer(e *echo.Echo, s *servotp.Server) {
 		}
 		return c.JSON(http.StatusOK, authResp)
 	})
+
+	e.POST("/v1/otp/qr", func(c echo.Context) error {
+		b, err := ioutil.ReadAll(c.Request().Body)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		var va gotp.Credentials
+		err = json.Unmarshal(b, &va)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		qrImage, err := s.GetQRImage(c.Request().Context(), &va)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+		return c.JSON(http.StatusOK, qrImage)
+	})
 }

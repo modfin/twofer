@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"twofer/grpc/gotp"
+	"twofer/grpc/gqr"
 )
 
 type OtpClient struct {
@@ -76,4 +77,32 @@ func (c *OtpClient) Auth(ctx context.Context, req *gotp.Credentials) (gotp.AuthR
 		return gotp.AuthResponse{}, err
 	}
 	return userAuthResponse, nil
+}
+
+func (c *OtpClient) GetQRImage(ctx context.Context, req *gotp.Credentials) (gqr.Image, error) {
+	bs, err := json.Marshal(req)
+	if err != nil {
+		return gqr.Image{}, err
+	}
+	buf := bytes.NewBuffer(bs)
+
+	u := fmt.Sprintf("%s/%s", c.baseUrl, "v1/otp/qr")
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, u, buf)
+	if err != nil {
+		return gqr.Image{}, err
+	}
+	resp, err := c.c.Do(hreq)
+	if err != nil {
+		return gqr.Image{}, err
+	}
+	var qrImage gqr.Image
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return gqr.Image{}, err
+	}
+	err = json.Unmarshal(b, &qrImage)
+	if err != nil {
+		return gqr.Image{}, err
+	}
+	return qrImage, nil
 }
