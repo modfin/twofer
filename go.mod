@@ -1,4 +1,4 @@
-module twofer
+module github.com/modfin/twofer
 
 go 1.14
 
