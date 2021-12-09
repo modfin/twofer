@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package geid;
 
-
 service EID {
     rpc GetProviders (Empty) returns (Providers) {
     };
@@ -15,6 +14,8 @@ service EID {
     rpc Peek (Inter) returns (Resp) {
     };
     rpc Cancel (Inter) returns (Empty) {
+    };
+    rpc Change (Inter) returns (Resp) {
     };
 
 }
@@ -80,6 +81,7 @@ message Resp {
         STATUS_EXPIRED = 6;
         STATUS_REJECTED = 7;
         STATUS_FAILED = 8;
+        STATUS_START_FAILED = 9;
     }
 
     Inter inter = 2;

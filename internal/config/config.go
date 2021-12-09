@@ -2,16 +2,17 @@ package config
 
 import (
 	"fmt"
-	"github.com/caarlos0/env/v6"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
-	EnableHttp bool `env:"DISABLE_HTTP" envDefault:"TRUE"`
-	EnableGrpc bool `env:"DISABLE_GRPC" envDefault:"TRUE"`
+	EnableHttp bool `env:"ENABLE_HTTP" envDefault:"TRUE"`
+	EnableGrpc bool `env:"ENABLE_GRPC" envDefault:"TRUE"`
 	HTTPPort   int  `env:"HTTP_PORT" envDefault:"8080"`
 	GRPCPort   int  `env:"GRPC_PORT" envDefault:"43210"`
 
@@ -21,6 +22,7 @@ type Config struct {
 	QREnabled bool `env:"QR_ENABLE" envDefault:"TRUE"`
 	OTP       OTP
 	WebAuthn  WebAuthn
+	PWD       PWD
 }
 
 func (c Config) EIDEnabled() bool {
@@ -113,6 +115,21 @@ type WebAuthn struct {
 
 	RateLimit uint          `env:"WEBAUTHN_RATE_LIMIT" envDefault:"10"`
 	Timeout   time.Duration `env:"WEBAUTHN_TIMEOUT" envDefault:"60s"`
+}
+
+type PWD struct {
+	Enabled       bool     `env:"PWD_ENABLE" envDefault:"FALSE"`
+	EncryptionKey []string `env:"PWD_ENCRYPTION_KEY" envSeparator:" "`
+	DefaultAlg    int32    `env:"PWD_ALG" envDefault:"0"`
+
+	DefaultHashCount int `env:"PWD_HASH_COUNT" envDefault:"1"`
+
+	DefaultBCryptCost int `env:"PWD_BCRYPT_COST" envDefault:"10"`
+
+	DefaultSCryptN      int `env:"PWD_SCRYPT_N" envDefault:"32768"`
+	DefaultSCryptR      int `env:"PWD_SCRYPT_R" envDefault:"8"`
+	DefaultSCryptP      int `env:"PWD_SCRYPT_P" envDefault:"1"`
+	DefaultSCryptKeyLen int `env:"PWD_SCRYPT_KEY_LEN" envDefault:"32"`
 }
 
 var once sync.Once

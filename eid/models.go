@@ -21,6 +21,7 @@ type Client interface {
 	Peek(ctx context.Context, req *Inter) (*Resp, error)
 	Collect(ctx context.Context, req *Inter, cancelOnErr bool) (*Resp, error)
 	Cancel(ctx context.Context, intermediate *Inter) error
+	Change(ctx context.Context, req *Inter, cancelOnErr bool) (*Resp, error)
 
 	Ping() error
 }
@@ -122,15 +123,16 @@ type Inter struct {
 type Status string
 
 const (
-	STATUS_UNKNOWN     Status = "UNKNOWN"
-	STATUS_PENDING     Status = "PENDING"
-	STATUS_ONGOING     Status = "ONGOING"
-	STATUS_CANCELED    Status = "CANCELED"
-	STATUS_RP_CANCELED Status = "RP_CANCELED"
-	STATUS_EXPIRED     Status = "EXPIRED"
-	STATUS_APPROVED    Status = "APPROVED"
-	STATUS_REJECTED    Status = "REJECTED"
-	STATUS_FAILED      Status = "FAILED"
+	STATUS_UNKNOWN      Status = "UNKNOWN"
+	STATUS_PENDING      Status = "PENDING"
+	STATUS_ONGOING      Status = "ONGOING"
+	STATUS_CANCELED     Status = "CANCELED"
+	STATUS_RP_CANCELED  Status = "RP_CANCELED"
+	STATUS_EXPIRED      Status = "EXPIRED"
+	STATUS_APPROVED     Status = "APPROVED"
+	STATUS_REJECTED     Status = "REJECTED"
+	STATUS_FAILED       Status = "FAILED"
+	STATUS_START_FAILED Status = "START_FAILED"
 )
 
 type Resp struct {
@@ -263,6 +265,8 @@ func ToGrpcResp(res *Resp) (r geid.Resp, e error) {
 		r.Status = geid.Resp_STATUS_REJECTED
 	case STATUS_FAILED:
 		r.Status = geid.Resp_STATUS_FAILED
+	case STATUS_START_FAILED:
+		r.Status = geid.Resp_STATUS_START_FAILED
 	default:
 		err = errors.New("this should never happen")
 		return

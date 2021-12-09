@@ -66,11 +66,11 @@ const (
 	HINT_USER_SIGN   HintCode = "userSign"
 
 	// Failed hints
-	HINT_EXPIRED     HintCode = "expiredTransaction"
-	HINT_CERT_ERR    HintCode = "certificateErr"
-	HINT_USER_CANCEL HintCode = "userCancel"
-	HINT_CANCELED    HintCode = "cancelled"
-	HINT_START_FAIL  HintCode = "startFailed"
+	HINT_EXPIRED      HintCode = "expiredTransaction"
+	HINT_CERT_ERR     HintCode = "certificateErr"
+	HINT_USER_CANCEL  HintCode = "userCancel"
+	HINT_CANCELED     HintCode = "cancelled"
+	HINT_START_FAILED HintCode = "startFailed"
 )
 
 type CollectResponse struct {

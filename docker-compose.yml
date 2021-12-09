@@ -9,16 +9,16 @@ services:
 
       EID_BANKID_ENABLE: "true"
       EID_BANKID_URL: "https://appapi2.test.bankid.com"
-      EID_BANKID_ROOT_CA_PEM_FILE: "./certs/bankid/x509rootca.pem"
-      EID_BANKID_CLIENT_CERT_FILE: "./certs/bankid/x509cert.pem"
-      EID_BANKID_CLIENT_KEY_FILE: "./certs/bankid/x509key.pem"
+#      EID_BANKID_ROOT_CA_PEM_FILE: "./certs/bankid/x509rootca.pem"
+#      EID_BANKID_CLIENT_CERT_FILE: "./certs/bankid/x509cert.pem"
+#      EID_BANKID_CLIENT_KEY_FILE: "./certs/bankid/x509key.pem"
 
       EID_FREJA_ENABLE: "true"
       EID_FREJA_URL: "https://services.test.frejaeid.com"
-      EID_FREJA_ROOT_CA_PEM_FILE: "./certs/freja/x509rootca.pem"
-      EID_FREJA_CLIENT_CERT_FILE: "./certs/freja/x509cert.pem"
-      EID_FREJA_CLIENT_KEY_FILE: "./certs/freja/x509key.pem"
-      EID_FREJA_JWS_CERT_FILE: "./certs/freja/xJWScert.pem"
+#      EID_FREJA_ROOT_CA_PEM_FILE: "./certs/freja/x509rootca.pem"
+#      EID_FREJA_CLIENT_CERT_FILE: "./certs/freja/x509cert.pem"
+#      EID_FREJA_CLIENT_KEY_FILE: "./certs/freja/x509key.pem"
+#      EID_FREJA_JWS_CERT_FILE: "./certs/freja/xJWScert.pem"
 
       OTP_ENABLE: "true"
       OTP_ENCRYPTION_KEY: |-
@@ -31,9 +31,14 @@ services:
       WEBAUTHN_USER_VERIFICATION: "discouraged"
       WEBAUTHN_HMAC_KEY: "SfWAuZk23Rrm2Wgvq2nf"
 
+      PWD_ENABLE: "true"
+      PWD_ALG: 3
+      PWD_ENCRYPTION_KEY: |-
+        1:aes:Hg44JefQsFJMI1F0zhWMpw== 2:aes:ZS7MqnYbM3zL0ERjE0kFMWC5zuEwzFg5
 
     ports:
       - "43210:43210"
+      - "3035:8080"
     volumes:
       - .:/go/src/github.com/modfin/twofer:cached
       - gopkg:/go/pkg:cached

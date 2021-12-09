@@ -12,20 +12,25 @@ import (
 	"twofer/eid/freja"
 	"twofer/grpc/geid"
 	"twofer/grpc/gotp"
+	"twofer/grpc/gpwd"
 	"twofer/grpc/gqr"
 	"twofer/grpc/gw6n"
 	"twofer/internal/config"
+	"twofer/internal/httpserve"
 	"twofer/internal/serveid"
 	"twofer/internal/servotp"
+	"twofer/internal/servpwd"
 	"twofer/internal/servqr"
 	"twofer/internal/servw6n"
 
+	"github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
 )
 
 func main() {
 
 	cfg := config.Get()
+	e := echo.New()
 
 	var grpcServer *grpc.Server
 	var opts []grpc.ServerOption
@@ -42,6 +47,10 @@ func main() {
 		}, config.Get().OTP.EncryptionKey)
 		if err == nil {
 			gotp.RegisterOTPServer(grpcServer, otpserv)
+			if cfg.EnableHttp {
+				fmt.Println("  - Serving OTP via HTTP")
+				httpserve.RegisterOTPServer(e, otpserv)
+			}
 		} else {
 			fmt.Println("Could not enable OTP", err)
 		}
@@ -49,15 +58,20 @@ func main() {
 
 	if cfg.QREnabled {
 		fmt.Println("- Enabling QR")
-		gqr.RegisterQRServer(grpcServer, servqr.New())
+		_servqr := servqr.New()
+		gqr.RegisterQRServer(grpcServer, _servqr)
+		if cfg.EnableHttp {
+			fmt.Println("  - Serving QR via HTTP")
+			httpserve.RegisterQRServer(e, _servqr)
+		}
 	}
 
 	if cfg.EIDEnabled() {
-		startEid(grpcServer)
+		startEid(grpcServer, e)
 	}
 
 	if cfg.WebAuthn.Enabled {
-		fmt.Println("- Enablin WebAuthn")
+		fmt.Println("- Enabling WebAuthn")
 		authn, err := servw6n.New(cfg.WebAuthn)
 		if err != nil {
 			fmt.Println("WebAuthn", err)
@@ -66,11 +80,33 @@ func main() {
 		}
 	}
 
-	startServer(grpcServer)
+	if cfg.PWD.Enabled {
+		fmt.Println("- Enabling PWD")
+		_servpwd, err := servpwd.New(servpwd.PWDConfig{
+			DefaultAlg:          gpwd.Alg(cfg.PWD.DefaultAlg),
+			DefaultHashCount:    cfg.PWD.DefaultHashCount,
+			DefaultBCryptCost:   cfg.PWD.DefaultBCryptCost,
+			DefaultSCryptN:      cfg.PWD.DefaultSCryptN,
+			DefaultSCryptR:      cfg.PWD.DefaultSCryptR,
+			DefaultSCryptP:      cfg.PWD.DefaultSCryptP,
+			DefaultSCryptKeyLen: cfg.PWD.DefaultSCryptKeyLen,
+		}, cfg.PWD.EncryptionKey)
+		if err == nil {
+			gpwd.RegisterPWDServer(grpcServer, _servpwd)
+			if cfg.EnableHttp {
+				fmt.Println("  - Serving PWD via HTTP")
+				httpserve.RegisterPWDServer(e, _servpwd)
+			}
+		} else {
+			fmt.Println("Could no start PWD grpc server")
+		}
+	}
+
+	startServer(grpcServer, e)
 
 }
 
-func startServer(grpcServer *grpc.Server) {
+func startServer(grpcServer *grpc.Server, e *echo.Echo) {
 
 	if config.Get().EnableGrpc {
 		go func() {
@@ -86,7 +122,7 @@ func startServer(grpcServer *grpc.Server) {
 	}
 	if config.Get().EnableHttp {
 		go func() {
-
+			fmt.Println(e.Start(":8080"))
 		}()
 	}
 
@@ -104,10 +140,11 @@ func startServer(grpcServer *grpc.Server) {
 	wg.Wait()
 }
 
-func startEid(grpcServer *grpc.Server) {
+func startEid(grpcServer *grpc.Server, e *echo.Echo) {
 	fmt.Println("- Enabling EID")
 	serve := serveid.New()
 	geid.RegisterEIDServer(grpcServer, serve)
+	httpserve.RegisterEIDServer(e, serve)
 
 	if config.Get().BankID.Enabled {
 		fmt.Println("  - Creating BankId")
