@@ -175,3 +175,9 @@ Since both BankID, Freja and OTP have a QR-code components, a gRPC api is includ
 **Use**
 * gRPC `Generate`
 
+## Dev
+Release new versions of the Docker image onto [Dockerhub](https://hub.docker.com/r/modfin/twofer)  
+```
+docker login --username=yourhubusername # then enter pass
+./docker-build-push.sh
+```
