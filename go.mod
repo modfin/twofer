@@ -8,7 +8,7 @@ require (
 	github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.7.4
-	github.com/labstack/echo/v4 v4.7.2
+	github.com/labstack/echo/v4 v4.9.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mdp/qrterminal/v3 v3.0.0
 	github.com/pquerna/otp v1.2.0
