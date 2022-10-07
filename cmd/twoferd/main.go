@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/modfin/twofer/eid/bankid"
 	"github.com/modfin/twofer/eid/freja"
@@ -22,6 +23,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
@@ -131,9 +133,20 @@ func startServer(grpcServer *grpc.Server, e *echo.Echo) {
 
 	<-signalChannel
 	wg := sync.WaitGroup{}
-	wg.Add(1)
+	wg.Add(2)
 	go func() {
 		grpcServer.GracefulStop()
+		wg.Done()
+	}()
+
+	go func() {
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+
+		err := e.Shutdown(timeout)
+		if err != nil {
+			log.Fatalf("failure during Echo's shutdown: %v", err)
+		}
 		wg.Done()
 	}()
 
@@ -156,15 +169,14 @@ func startEid(grpcServer *grpc.Server, e *echo.Echo) {
 		})
 		if err != nil {
 			fmt.Println("ERROR", err)
-		}
-		if err == nil {
+		} else {
 			err = client.API().Ping()
 			if err == nil {
 				fmt.Println("  - Adding BankId")
 				serve.Add(client)
 			}
 			if err != nil {
-				fmt.Println("  - Err: Could not ping bankid", err)
+				panic(fmt.Sprintf("  - Err: Could not ping bankid. %v", err))
 			}
 		}
 	}
