@@ -1,4 +1,4 @@
-FROM golang:1.15
+FROM golang:1.19.2
 
 RUN go get -u -v github.com/codeskyblue/fswatch
 
