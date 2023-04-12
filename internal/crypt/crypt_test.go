@@ -8,11 +8,11 @@ import (
 func TestStore(t *testing.T) {
 
 	store, err := New([]string{
-		"1:aes128:uTdWcGl+cOnIgHoGnuBF3w==",
+		"1:aes:uTdWcGl+cOnIgHoGnuBF3w==",
 	})
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("crypt.New(...) returned error: %v", err)
 	}
 
 	encrypted, err := store.Encrypt([]byte("hello"))
@@ -31,8 +31,8 @@ func TestStore(t *testing.T) {
 	}
 
 	store, err = New([]string{
-		"1:aes128:uTdWcGl+cOnIgHoGnuBF3w==",
-		"2:aes192:vqs/8Sk7H2cpzHvd3lLPn8lOK/j3g/8s",
+		"1:aes:uTdWcGl+cOnIgHoGnuBF3w==",
+		"2:aes:vqs/8Sk7H2cpzHvd3lLPn8lOK/j3g/8s",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -58,9 +58,9 @@ func TestStore(t *testing.T) {
 	}
 
 	store, err = New([]string{
-		"1:aes128:uTdWcGl+cOnIgHoGnuBF3w==",
-		"2:aes192:vqs/8Sk7H2cpzHvd3lLPn8lOK/j3g/8s",
-		"3:aes256:atFSKGC+DOD7+WOF/OLordrPbNVIHQvNnMkcRC2qEvI=",
+		"1:aes:uTdWcGl+cOnIgHoGnuBF3w==",
+		"2:aes:vqs/8Sk7H2cpzHvd3lLPn8lOK/j3g/8s",
+		"3:aes:atFSKGC+DOD7+WOF/OLordrPbNVIHQvNnMkcRC2qEvI=",
 	})
 	if err != nil {
 		t.Fatal(err)

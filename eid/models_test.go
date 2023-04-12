@@ -125,9 +125,12 @@ func (c *TestClient) Peek(ctx context.Context, req *Inter) (*Resp, error) {
 func (c *TestClient) Collect(ctx context.Context, req *Inter, cancelOnErr bool) (*Resp, error) {
 	return &Resp{}, nil
 }
-func (c *TestClient) Cancel(intermediate *Inter) error {
+func (c *TestClient) Cancel(_ context.Context, intermediate *Inter) error {
 	return nil
 }
 func (c *TestClient) Ping() error {
 	return nil
+}
+func (c *TestClient) Change(_ context.Context, _ *Inter, _ bool) (*Resp, error) {
+	return nil, nil
 }
