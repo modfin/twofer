@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
-	"time"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/modfin/twofer/grpc/gw6n"
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/ratelimit"
+	"time"
 )
 
 func New(config config.WebAuthn) (*Server, error) {
