@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/modfin/twofer/eid/bankid"
 	"github.com/modfin/twofer/eid/freja"
 	"github.com/modfin/twofer/grpc/geid"
@@ -33,6 +34,7 @@ func main() {
 
 	cfg := config.Get()
 	e := echo.New()
+	e.Use(middleware.Logger())
 
 	var grpcServer *grpc.Server
 	var opts []grpc.ServerOption
