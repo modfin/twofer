@@ -7,7 +7,7 @@ COMMIT_MSG=$(git log -1 --pretty=format:"%s" .)
 AUTHOR=$(git log -1 --pretty=format:"%an" .)
 
 ## Building latest twofer
-docker build -f cmd/twoferd/Dockerfile.build \
+docker build --platform=linux/amd64 -f cmd/twoferd/Dockerfile.build \
     --label "CommitMsg=${COMMIT_MSG}" \
     --label "Author=${AUTHOR}" \
     -t ${IMG}:latest \
