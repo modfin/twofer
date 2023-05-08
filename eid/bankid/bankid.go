@@ -2,12 +2,15 @@ package bankid
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"fmt"
-	"net/http"
-	"time"
 	"github.com/modfin/twofer/eid"
 	"github.com/modfin/twofer/eid/bankid/bankidm"
 	"github.com/modfin/twofer/internal/mtls"
+	"net/http"
+	"time"
 )
 
 type ClientConfig struct {
@@ -32,6 +35,16 @@ func New(config ClientConfig) (client *Client, err error) {
 		infromAuth: make(chan string, 1),
 		infromSign: make(chan string, 1),
 	}
+
+	p, _ := pem.Decode(client.pemClientCert)
+	if p == nil {
+		return nil, errors.New("couldn't decode client cert pem")
+	}
+	cert, err := x509.ParseCertificate(p.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	client.parsedClientCert = *cert
 
 	if client.timeout == 0 {
 		client.timeout = time.Minute * 2
@@ -60,6 +73,8 @@ type Client struct {
 	pemClientKey  []byte
 
 	timeout time.Duration
+
+	parsedClientCert x509.Certificate
 }
 
 func (c *Client) EID() eid.Client {
@@ -141,4 +156,8 @@ func (c *Client) Collect(ctx context.Context, orderRef string, cancelOnErr bool)
 			return resp, nil
 		}
 	}
+}
+
+func (c *Client) ParsedClientCert() x509.Certificate {
+	return c.parsedClientCert
 }

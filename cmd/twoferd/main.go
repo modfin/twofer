@@ -175,6 +175,7 @@ func startEid(grpcServer *grpc.Server, e *echo.Echo) {
 			err = client.API().Ping()
 			if err == nil {
 				fmt.Println("  - Adding BankId")
+				fmt.Println("  - BankId Client Cert NotAfter:", client.ParsedClientCert().NotAfter)
 				serve.Add(client)
 			}
 			if err != nil {
