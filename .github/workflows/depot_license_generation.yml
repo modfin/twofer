@@ -1,0 +1,32 @@
+name: License Generation
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**go.mod'
+      - '**package-lock.json'
+      - '**pom.xml'
+      - '**cargo.lock'
+      - '.depot.yml'
+      - '!**/node_modules/**'
+jobs:
+  license_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Dependencies' License Resolve
+        uses: modfin/depot@v0.0.4
+        with:
+          flags: "-r"
+          command: save --lint
+      - name: Apply Changes
+        if: always()
+        uses: EndBug/add-and-commit@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          author_name: Depot License Bot
+          author_email: depot_license_bot@github.com
+          message: 'Automatic addition of dependency license information'
