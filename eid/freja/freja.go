@@ -4,13 +4,12 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"golang.org/x/oauth2/jws"
-	"io/ioutil"
-	"net/http"
-	"time"
 	"github.com/modfin/twofer/eid"
 	"github.com/modfin/twofer/eid/freja/frejam"
 	"github.com/modfin/twofer/internal/mtls"
+	"golang.org/x/oauth2/jws"
+	"net/http"
+	"time"
 )
 
 type Client struct {
@@ -99,7 +98,7 @@ func (c *Client) Ping() error {
 	if err != nil {
 		return err
 	}
-	_, err = ioutil.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 
 	return err
 }

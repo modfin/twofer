@@ -2,7 +2,6 @@ package httpserve
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/modfin/twofer/grpc/geid"
@@ -22,7 +21,7 @@ func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 	})
 
 	e.POST("/v1/eid/auth", func(c echo.Context) error {
-		b, err := ioutil.ReadAll(c.Request().Body)
+		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
 		}
@@ -39,7 +38,7 @@ func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 	})
 
 	e.POST("/v1/eid/sign", func(c echo.Context) error {
-		b, err := ioutil.ReadAll(c.Request().Body)
+		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
 		}
@@ -56,7 +55,7 @@ func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 	})
 
 	e.POST("/v1/eid/change", func(c echo.Context) error {
-		b, err := ioutil.ReadAll(c.Request().Body)
+		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
 		}
@@ -73,7 +72,7 @@ func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 	})
 
 	e.POST("/v1/eid/collect", func(c echo.Context) error {
-		b, err := ioutil.ReadAll(c.Request().Body)
+		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
 		}
@@ -90,7 +89,7 @@ func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 	})
 
 	e.POST("/v1/eid/peek", func(c echo.Context) error {
-		b, err := ioutil.ReadAll(c.Request().Body)
+		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
 		}
@@ -107,7 +106,7 @@ func RegisterEIDServer(e *echo.Echo, s *serveid.Server) {
 	})
 
 	e.POST("/v1/eid/cancel", func(c echo.Context) error {
-		b, err := ioutil.ReadAll(c.Request().Body)
+		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
 		}

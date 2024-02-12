@@ -10,7 +10,6 @@ import (
 	"github.com/modfin/twofer/grpc/gpwd"
 	"github.com/modfin/twofer/grpc/gqr"
 	"github.com/modfin/twofer/qr"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -29,7 +28,6 @@ func NewClient(baseurl string) Client {
 		Qr:  NewQrClient(baseurl),
 	}
 }
-
 
 type EidClient struct {
 	c       *http.Client
@@ -54,7 +52,7 @@ func (c *EidClient) Providers(ctx context.Context) (geid.Providers, error) {
 		return geid.Providers{}, err
 	}
 	var geidProviders geid.Providers
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return geid.Providers{}, err
 	}
@@ -82,7 +80,7 @@ func (c *EidClient) AuthInit(ctx context.Context, req *geid.Req) (geid.Inter, er
 		return geid.Inter{}, err
 	}
 	var inter geid.Inter
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return geid.Inter{}, err
 	}
@@ -110,7 +108,7 @@ func (c *EidClient) SignInit(ctx context.Context, req *geid.Req) (geid.Inter, er
 		return geid.Inter{}, err
 	}
 	var inter geid.Inter
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return geid.Inter{}, err
 	}
@@ -138,7 +136,7 @@ func (c *EidClient) Collect(ctx context.Context, req *geid.Inter) (geid.Resp, er
 		return geid.Resp{}, err
 	}
 	var geidResp geid.Resp
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return geid.Resp{}, err
 	}
@@ -166,7 +164,7 @@ func (c *EidClient) Change(ctx context.Context, req *geid.Inter) (geid.Resp, err
 		return geid.Resp{}, err
 	}
 	var geidResp geid.Resp
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return geid.Resp{}, err
 	}
@@ -194,7 +192,7 @@ func (c *EidClient) Peek(ctx context.Context, req *geid.Inter) (geid.Resp, error
 		return geid.Resp{}, err
 	}
 	var geidResp geid.Resp
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return geid.Resp{}, err
 	}
@@ -232,7 +230,6 @@ type OtpClient struct {
 	baseUrl string
 }
 
-
 func NewOtpClient(baseurl string) *OtpClient {
 	return &OtpClient{
 		c:       http.DefaultClient,
@@ -257,7 +254,7 @@ func (c *OtpClient) Enroll(ctx context.Context, req *gotp.Enrollment) (gotp.Enro
 		return gotp.EnrollmentResponse{}, err
 	}
 	var userEnrollmentResponse gotp.EnrollmentResponse
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return gotp.EnrollmentResponse{}, err
 	}
@@ -285,7 +282,7 @@ func (c *OtpClient) Auth(ctx context.Context, req *gotp.Credentials) (gotp.AuthR
 		return gotp.AuthResponse{}, err
 	}
 	var userAuthResponse gotp.AuthResponse
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return gotp.AuthResponse{}, err
 	}
@@ -313,7 +310,7 @@ func (c *OtpClient) GetQRImage(ctx context.Context, req *gotp.Credentials) (gqr.
 		return gqr.Image{}, err
 	}
 	var qrImage gqr.Image
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return gqr.Image{}, err
 	}
@@ -323,7 +320,6 @@ func (c *OtpClient) GetQRImage(ctx context.Context, req *gotp.Credentials) (gqr.
 	}
 	return qrImage, nil
 }
-
 
 type PwdClient struct {
 	c       *http.Client
@@ -354,7 +350,7 @@ func (c *PwdClient) Enroll(ctx context.Context, req *gpwd.EnrollReq) (gpwd.Blob,
 		return gpwd.Blob{}, err
 	}
 	var userBlob gpwd.Blob
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return gpwd.Blob{}, err
 	}
@@ -382,7 +378,7 @@ func (c *PwdClient) Auth(ctx context.Context, req *gpwd.AuthReq) (gpwd.Res, erro
 		return gpwd.Res{}, err
 	}
 	var userRes gpwd.Res
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return gpwd.Res{}, err
 	}
@@ -392,8 +388,6 @@ func (c *PwdClient) Auth(ctx context.Context, req *gpwd.AuthReq) (gpwd.Res, erro
 	}
 	return userRes, nil
 }
-
-
 
 type QrClient struct {
 	c       *http.Client
@@ -420,7 +414,7 @@ func (c *QrClient) GetQrData(ctx context.Context, uriBody string) (qr.QRData, er
 		return qr.QRData{}, err
 	}
 	var qrData qr.QRData
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return qr.QRData{}, err
 	}

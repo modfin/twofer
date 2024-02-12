@@ -6,9 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"github.com/modfin/twofer/eid/freja/frejam"
+	"net/http"
 )
 
 type API struct {
@@ -35,7 +34,7 @@ func (a *API) AuthInitRequest(ctx context.Context, authReq frejam.AuthRequest) (
 		return "", err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +77,7 @@ func (a *API) AuthGetResults(ctx context.Context) ([]frejam.AuthResponse, error)
 		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func (a *API) AuthGetOneResult(ctx context.Context, authRef string) (*frejam.Aut
 		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +165,7 @@ func (a *API) AuthCancelRequest(ctx context.Context, authRef string) error {
 		return err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -204,7 +203,7 @@ func (a *API) SignInitRequest(ctx context.Context, signReq frejam.SignRequest) (
 		return "", err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -242,7 +241,7 @@ func (a *API) SignGetOneResult(ctx context.Context, signRef string) (*frejam.Sig
 		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +282,7 @@ func (a *API) SignGetResults(ctx context.Context) ([]frejam.SignResponse, error)
 		return nil, err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +325,7 @@ func (a *API) SignCancelRequest(ctx context.Context, signRef string) error {
 		return err
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

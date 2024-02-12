@@ -6,15 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	"google.golang.org/grpc"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"strings"
 	"github.com/modfin/twofer/example/dao"
 	"github.com/modfin/twofer/grpc/geid"
 	"github.com/modfin/twofer/grpc/gqr"
 	"github.com/modfin/twofer/grpc/gw6n"
+	"google.golang.org/grpc"
+	"log"
+	"net/http"
+	"strings"
 )
 
 var (
@@ -126,7 +125,7 @@ func initInferred(w http.ResponseWriter, r *http.Request) {
 func ssnAuthInit(w http.ResponseWriter, r *http.Request) {
 	pr := r.URL.Query().Get("provider")
 	u := &geid.User{}
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		internalError(w, err)
 		return
@@ -235,7 +234,7 @@ func cancel(w http.ResponseWriter, r *http.Request) {
 func ssnSignInit(w http.ResponseWriter, r *http.Request) {
 	pr := r.URL.Query().Get("provider")
 	u := &geid.Req{}
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		internalError(w, err)
 		return
@@ -329,7 +328,7 @@ func loginFinish(w http.ResponseWriter, r *http.Request) {
 	var cfg = createConfig(r)
 
 	session := []byte(r.Header.Get("WebAuthn-Session"))
-	signature, err := ioutil.ReadAll(r.Body)
+	signature, err := io.ReadAll(r.Body)
 	if err != nil {
 		httpError(w, err)
 		return
@@ -394,7 +393,7 @@ func registerFinish(w http.ResponseWriter, r *http.Request) {
 	userId := r.Header.Get("user")
 
 	session := []byte(r.Header.Get("WebAuthn-Session"))
-	signature, err := ioutil.ReadAll(r.Body)
+	signature, err := io.ReadAll(r.Body)
 
 	if err != nil {
 		httpError(w, err)

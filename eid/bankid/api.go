@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/modfin/twofer/eid/bankid/bankidm"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -14,8 +14,8 @@ type API struct {
 	parent *Client
 }
 
-func (c *API) Ping() error {
-	_, err := c.parent.client.Get(c.parent.baseURL)
+func (a *API) Ping() error {
+	_, err := a.parent.client.Get(a.parent.baseURL)
 	return err
 }
 
@@ -37,7 +37,7 @@ func (a *API) Auth(ctx context.Context, request bankidm.AuthRequest) (r *bankidm
 		return nil, err
 	}
 
-	resdata, err := ioutil.ReadAll(res.Body)
+	resdata, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (a *API) Sign(ctx context.Context, request bankidm.SignRequest) (r *bankidm
 		return nil, err
 	}
 
-	resdata, err := ioutil.ReadAll(res.Body)
+	resdata, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (a *API) Collect(ctx context.Context, orderRef string) (r *bankidm.CollectR
 		return nil, err
 	}
 
-	resdata, err := ioutil.ReadAll(res.Body)
+	resdata, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (a *API) Cancel(ctx context.Context, orderRef string) (err error) {
 		return err
 	}
 
-	resdata, err := ioutil.ReadAll(res.Body)
+	resdata, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
