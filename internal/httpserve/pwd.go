@@ -3,8 +3,8 @@ package httpserve
 import (
 	"encoding/json"
 	"github.com/labstack/echo/v4"
-	"github.com/modfin/twofer/grpc/gpwd"
 	"github.com/modfin/twofer/internal/servpwd"
+	"io"
 	"net/http"
 )
 
@@ -14,7 +14,7 @@ func RegisterPWDServer(e *echo.Echo, s *servpwd.Server) {
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, err)
 		}
-		var enrollReq gpwd.EnrollReq
+		var enrollReq servpwd.EnrollReq
 		err = json.Unmarshal(b, &enrollReq)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, err.Error())
@@ -31,7 +31,7 @@ func RegisterPWDServer(e *echo.Echo, s *servpwd.Server) {
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, err)
 		}
-		var authReq gpwd.AuthReq
+		var authReq servpwd.AuthReq
 		err = json.Unmarshal(b, &authReq)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, err)

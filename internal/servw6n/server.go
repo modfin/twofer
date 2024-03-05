@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/modfin/twofer/grpc/gw6n"
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/ratelimit"
 	"time"
@@ -46,7 +45,7 @@ type Server struct {
 	timeout       time.Duration
 }
 
-func (s *Server) create(c interface{ GetCfg() *gw6n.Config }) (*webauthn.WebAuthn, error) {
+func (s *Server) create(c interface{ GetCfg() *Config }) (*webauthn.WebAuthn, error) {
 	if c == nil {
 		return webauthn.New(s.defaultConfig)
 	}
@@ -65,7 +64,7 @@ func (s *Server) create(c interface{ GetCfg() *gw6n.Config }) (*webauthn.WebAuth
 	})
 }
 
-func (s *Server) EnrollInit(_ context.Context, req *gw6n.EnrollInitReq) (res *gw6n.InitRes, err error) {
+func (s *Server) EnrollInit(_ context.Context, req *EnrollInitReq) (res *InitRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -121,14 +120,14 @@ func (s *Server) EnrollInit(_ context.Context, req *gw6n.EnrollInitReq) (res *gw
 		User:     u,
 	}.Marshal(s.hmacKey)
 
-	response := &gw6n.InitRes{
+	response := &InitRes{
 		Session: session,
 		Json:    data,
 	}
 	return response, nil
 }
 
-func (s *Server) EnrollFinal(_ context.Context, req *gw6n.FinalReq) (res *gw6n.FinalRes, err error) {
+func (s *Server) EnrollFinal(_ context.Context, req *FinalReq) (res *FinalRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -162,11 +161,11 @@ func (s *Server) EnrollFinal(_ context.Context, req *gw6n.FinalReq) (res *gw6n.F
 
 	session.User.Credentials = append(session.User.Credentials, Credential{Credential: *credential, RPID: service.Config.RPID})
 
-	res = &gw6n.FinalRes{}
+	res = &FinalRes{}
 	res.UserBlob, err = json.Marshal(session.User)
 	return res, err
 }
-func (s *Server) AuthInit(_ context.Context, req *gw6n.AuthInitReq) (res *gw6n.InitRes, err error) {
+func (s *Server) AuthInit(_ context.Context, req *AuthInitReq) (res *InitRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -213,12 +212,12 @@ func (s *Server) AuthInit(_ context.Context, req *gw6n.AuthInitReq) (res *gw6n.I
 		return
 	}
 
-	return &gw6n.InitRes{
+	return &InitRes{
 		Session: session,
 		Json:    response,
 	}, nil
 }
-func (s *Server) AuthFinal(_ context.Context, req *gw6n.FinalReq) (res *gw6n.FinalRes, err error) {
+func (s *Server) AuthFinal(_ context.Context, req *FinalReq) (res *FinalRes, err error) {
 
 	service, err := s.create(req)
 	if err != nil {
@@ -244,12 +243,12 @@ func (s *Server) AuthFinal(_ context.Context, req *gw6n.FinalReq) (res *gw6n.Fin
 	}
 	_, err = service.ValidateLogin(session.User, *session.Data, body)
 	if err != nil {
-		return &gw6n.FinalRes{
+		return &FinalRes{
 			Valid: false,
 		}, err
 	}
 
-	return &gw6n.FinalRes{
+	return &FinalRes{
 		Valid: true,
 	}, nil
 

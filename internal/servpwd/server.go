@@ -5,14 +5,13 @@ import (
 	"crypto/hmac"
 	"encoding/json"
 	"fmt"
+	"github.com/modfin/twofer/internal/crypt"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
-	"github.com/modfin/twofer/grpc/gpwd"
-	"github.com/modfin/twofer/internal/crypt"
 )
 
 type PWDConfig struct {
-	DefaultAlg          gpwd.Alg
+	DefaultAlg          Alg
 	DefaultHashCount    int
 	DefaultBCryptCost   int
 	DefaultSCryptN      int
@@ -44,10 +43,10 @@ func New(conf PWDConfig, keys []string) (*Server, error) {
 }
 
 type wrapper struct {
-	Digest      string   `json:"digest"`
-	Salt        string   `json:"salt"`
-	Alg         gpwd.Alg `json:"alg"`
-	AlgMetadata []byte   `json:"alg_metadata"`
+	Digest      string `json:"digest"`
+	Salt        string `json:"salt"`
+	Alg         Alg    `json:"alg"`
+	AlgMetadata []byte `json:"alg_metadata"`
 }
 
 type shaMetadata struct {
@@ -65,14 +64,14 @@ type scryptMetadata struct {
 	KeyLen int `json:"default_s_crypt_key_len"`
 }
 
-func (s *Server) Enroll(ctx context.Context, enReq *gpwd.EnrollReq) (*gpwd.Blob, error) {
+func (s *Server) Enroll(ctx context.Context, enReq *EnrollReq) (*Blob, error) {
 	var o wrapper
 	o.Alg = s.conf.DefaultAlg
 
 	switch s.conf.DefaultAlg {
-	case gpwd.Alg_SHA_256:
+	case Alg_SHA_256:
 		fallthrough
-	case gpwd.Alg_SHA_512:
+	case Alg_SHA_512:
 		o.Salt = GenerateRandomBase64Bytes(32)
 		o.Digest = GetHmacDigest(enReq.Password, o.Salt, Hash(s.conf.DefaultAlg), s.conf.DefaultHashCount)
 		metadataBytes, err := json.Marshal(shaMetadata{HashCount: s.conf.DefaultHashCount})
@@ -81,7 +80,7 @@ func (s *Server) Enroll(ctx context.Context, enReq *gpwd.EnrollReq) (*gpwd.Blob,
 		}
 		o.AlgMetadata = metadataBytes
 
-	case gpwd.Alg_SCrypt:
+	case Alg_SCrypt:
 		o.Salt = GenerateRandomBase64Bytes(32)
 		dk, err := scrypt.Key([]byte(enReq.Password), []byte(o.Salt), s.conf.DefaultSCryptN, s.conf.DefaultSCryptR, s.conf.DefaultSCryptP, s.conf.DefaultSCryptKeyLen)
 		if err != nil {
@@ -98,7 +97,7 @@ func (s *Server) Enroll(ctx context.Context, enReq *gpwd.EnrollReq) (*gpwd.Blob,
 			return nil, err
 		}
 		o.AlgMetadata = metadataBytes
-	case gpwd.Alg_BCrypt:
+	case Alg_BCrypt:
 		dk, err := bcrypt.GenerateFromPassword([]byte(enReq.Password), s.conf.DefaultBCryptCost)
 		if err != nil {
 			return nil, err
@@ -116,10 +115,10 @@ func (s *Server) Enroll(ctx context.Context, enReq *gpwd.EnrollReq) (*gpwd.Blob,
 		return nil, err
 	}
 
-	return &gpwd.Blob{UserBlob: Base64Encode(b)}, nil
+	return &Blob{UserBlob: Base64Encode(b)}, nil
 }
 
-func (s *Server) Auth(ctx context.Context, authReq *gpwd.AuthReq) (*gpwd.Res, error) {
+func (s *Server) Auth(ctx context.Context, authReq *AuthReq) (*Res, error) {
 	sec := Base64Decode(authReq.UserBlob)
 	sec, err := s.store.Decrypt(sec)
 	if err != nil {
@@ -137,9 +136,9 @@ func (s *Server) Auth(ctx context.Context, authReq *gpwd.AuthReq) (*gpwd.Res, er
 	var valid bool
 
 	switch v.Alg {
-	case gpwd.Alg_SHA_256:
+	case Alg_SHA_256:
 		fallthrough
-	case gpwd.Alg_SHA_512:
+	case Alg_SHA_512:
 		var _shaMetadata shaMetadata
 		err = json.Unmarshal(v.AlgMetadata, &_shaMetadata)
 		if err != nil {
@@ -147,7 +146,7 @@ func (s *Server) Auth(ctx context.Context, authReq *gpwd.AuthReq) (*gpwd.Res, er
 		}
 		newDigest := GetHmacDigest(authReq.Password, v.Salt, Hash(v.Alg), _shaMetadata.HashCount)
 		valid = hmac.Equal(Base64Decode(newDigest), Base64Decode(v.Digest))
-	case gpwd.Alg_SCrypt:
+	case Alg_SCrypt:
 		var _scryptMetadata scryptMetadata
 		err = json.Unmarshal(v.AlgMetadata, &_scryptMetadata)
 		if err != nil {
@@ -159,7 +158,7 @@ func (s *Server) Auth(ctx context.Context, authReq *gpwd.AuthReq) (*gpwd.Res, er
 		}
 		valid = hmac.Equal(newDigest, Base64Decode(v.Digest))
 
-	case gpwd.Alg_BCrypt:
+	case Alg_BCrypt:
 		err = bcrypt.CompareHashAndPassword(Base64Decode(v.Digest), []byte(authReq.Password))
 		if err != nil && err != bcrypt.ErrMismatchedHashAndPassword {
 			return nil, err
@@ -167,11 +166,11 @@ func (s *Server) Auth(ctx context.Context, authReq *gpwd.AuthReq) (*gpwd.Res, er
 		valid = err != bcrypt.ErrMismatchedHashAndPassword
 	}
 
-	return &gpwd.Res{Valid: valid, Message: "password processed"}, nil
+	return &Res{Valid: valid, Message: "password processed"}, nil
 
 }
 
-func (s *Server) Upgrade(_ context.Context, req *gpwd.Blob) (*gpwd.Blob, error) {
+func (s *Server) Upgrade(_ context.Context, req *Blob) (*Blob, error) {
 	sec := Base64Decode(req.UserBlob)
 	sec, err := s.store.Decrypt(sec)
 	if err != nil {
@@ -182,5 +181,5 @@ func (s *Server) Upgrade(_ context.Context, req *gpwd.Blob) (*gpwd.Blob, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &gpwd.Blob{UserBlob: Base64Encode(b)}, nil
+	return &Blob{UserBlob: Base64Encode(b)}, nil
 }

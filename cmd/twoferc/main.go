@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mdp/qrterminal/v3"
-	"io/ioutil"
+	"github.com/modfin/twofer/internal/serveid"
+	"github.com/modfin/twofer/internal/servotp"
+	"github.com/modfin/twofer/internal/servqr"
 	"log"
 	"os"
 	"strings"
-	"github.com/modfin/twofer/grpc/geid"
-	"github.com/modfin/twofer/grpc/gotp"
-	"github.com/modfin/twofer/grpc/gqr"
 
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
@@ -44,13 +43,13 @@ func main() {
 			ssn := c.String("ssn")
 			country := c.String("country")
 			data := c.String("data")
-			client := geid.NewEIDClient(conn)
+			client := serveid.NewEIDClient(conn)
 
 			switch action {
 			case "auth":
-				inter, err := client.AuthInit(context.Background(), &geid.Req{
-					Provider: &geid.Provider{Name: provider},
-					Who: &geid.User{
+				inter, err := client.AuthInit(context.Background(), &serveid.Req{
+					Provider: &serveid.Provider{Name: provider},
+					Who: &serveid.User{
 						Inferred:   inferred,
 						Ssn:        ssn,
 						SsnCountry: country,
@@ -84,14 +83,14 @@ func main() {
 				if len(ssn) == 0 {
 					return errors.New("an ssn must be provided for signing, this can not be inferred")
 				}
-				inter, err := client.SignInit(context.Background(), &geid.Req{
-					Provider: &geid.Provider{Name: provider},
-					Who: &geid.User{
+				inter, err := client.SignInit(context.Background(), &serveid.Req{
+					Provider: &serveid.Provider{Name: provider},
+					Who: &serveid.User{
 						Inferred:   false,
 						Ssn:        ssn,
 						SsnCountry: country,
 					},
-					Payload: &geid.Req_Payload{
+					Payload: &serveid.Req_Payload{
 						Text: data,
 						Data: nil,
 					},
@@ -144,9 +143,9 @@ func main() {
 						return errors.New("a output file must be provided")
 					}
 
-					qr := gqr.NewQRClient(conn)
+					qr := servqr.NewQRClient(conn)
 
-					image, err := qr.Generate(context.Background(), &gqr.Data{
+					image, err := qr.Generate(context.Background(), &servqr.Data{
 						RecoveryLevel: 2,
 						Size:          256,
 						Data:          data,
@@ -156,7 +155,7 @@ func main() {
 						return err
 					}
 
-					return ioutil.WriteFile(filename, image.Data, 0660)
+					return os.WriteFile(filename, image.Data, 0660)
 				},
 			},
 			{
@@ -219,41 +218,41 @@ func main() {
 							digits := c.Uint("digits")
 							ss := c.Int("secret-size")
 
-							var ralg gotp.Alg
+							var ralg servotp.Alg
 							switch strings.ToLower(alg) {
 							case "sha1":
-								ralg = gotp.Alg_SHA_1
+								ralg = servotp.Alg_SHA_1
 							case "sha512":
-								ralg = gotp.Alg_SHA_512
+								ralg = servotp.Alg_SHA_512
 							case "sha256":
 								fallthrough
 							default:
-								ralg = gotp.Alg_SHA_1
+								ralg = servotp.Alg_SHA_1
 							}
 
-							var rmode gotp.Mode
+							var rmode servotp.Mode
 							switch mode {
 							case "time":
-								rmode = gotp.Mode_TIME
+								rmode = servotp.Mode_TIME
 							case "counter":
-								rmode = gotp.Mode_COUNTER
+								rmode = servotp.Mode_COUNTER
 							default:
 								return errors.New("not a vaild mode")
 							}
 
-							var rdigits gotp.Digits
+							var rdigits servotp.Digits
 							switch digits {
 							case 6:
-								rdigits = gotp.Digits_SIX
+								rdigits = servotp.Digits_SIX
 							case 8:
-								rdigits = gotp.Digits_EIGHT
+								rdigits = servotp.Digits_EIGHT
 							default:
 								return errors.New("digits must be 6 or 8")
 							}
 
-							client := gotp.NewOTPClient(conn)
+							client := servotp.NewOTPClient(conn)
 
-							r, err := client.Enroll(context.Background(), &gotp.Enrollment{
+							r, err := client.Enroll(context.Background(), &servotp.Enrollment{
 								Issuer:     issuer,
 								Account:    user,
 								Alg:        ralg,
@@ -300,9 +299,9 @@ func main() {
 							secret := c.String("secret")
 							otp := c.String("otp")
 
-							client := gotp.NewOTPClient(conn)
+							client := servotp.NewOTPClient(conn)
 
-							r, err := client.Auth(context.Background(), &gotp.Credentials{
+							r, err := client.Auth(context.Background(), &servotp.Credentials{
 								Otp:      otp,
 								UserBlob: secret,
 							})

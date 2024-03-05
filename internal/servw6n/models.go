@@ -1,4 +1,4 @@
-package models
+package servw6n
 
 type Config struct {
 	RPID             string `json:"RPID,omitempty"`
@@ -7,60 +7,18 @@ type Config struct {
 	UserVerification string `json:"UserVerification,omitempty"`
 }
 
-func (m *Config) GetRPID() string {
-	if m != nil {
-		return m.RPID
-	}
-	return ""
-}
-
-func (m *Config) GetRPDisplayName() string {
-	if m != nil {
-		return m.RPDisplayName
-	}
-	return ""
-}
-
-func (m *Config) GetRPOrigin() string {
-	if m != nil {
-		return m.RPOrigin
-	}
-	return ""
-}
-
-func (m *Config) GetUserVerification() string {
-	if m != nil {
-		return m.UserVerification
-	}
-	return ""
-}
-
-type User struct {
+type EnrollUser struct {
 	Id   string `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 }
 
-func (m *User) GetId() string {
-	if m != nil {
-		return m.Id
-	}
-	return ""
-}
-
-func (m *User) GetName() string {
-	if m != nil {
-		return m.Name
-	}
-	return ""
-}
-
 type EnrollInitReq struct {
-	User     *User   `json:"user,omitempty"`
-	UserBlob []byte  `json:"userBlob,omitempty"`
-	Cfg      *Config `json:"cfg,omitempty"`
+	User     *EnrollUser `json:"user,omitempty"`
+	UserBlob []byte      `json:"userBlob,omitempty"`
+	Cfg      *Config     `json:"cfg,omitempty"`
 }
 
-func (m *EnrollInitReq) GetUser() *User {
+func (m *EnrollInitReq) GetUser() *EnrollUser {
 	if m != nil {
 		return m.User
 	}
@@ -149,13 +107,6 @@ func (m *FinalReq) GetCfg() *Config {
 type FinalRes struct {
 	Valid    bool   `json:"valid,omitempty"`
 	UserBlob []byte `json:"userBlob,omitempty"`
-}
-
-func (m *FinalRes) GetValid() bool {
-	if m != nil {
-		return m.Valid
-	}
-	return false
 }
 
 func (m *FinalRes) GetUserBlob() []byte {

@@ -1,11 +1,9 @@
 package serveid
 
 import (
+	"context"
 	"fmt"
-	"github.com/modfin/twofer/eid"
-	"github.com/modfin/twofer/grpc/geid"
-
-	"golang.org/x/net/context"
+	"github.com/modfin/twofer/internal/eid"
 )
 
 func New() *Server {
@@ -18,133 +16,76 @@ type Server struct {
 	*eid.EID
 }
 
-func (s Server) GetProviders(context.Context, *geid.Empty) (*geid.Providers, error) {
+func (s *Server) Get(provider string) (eid.Client, error) {
+	return s.EID.Get(provider)
+}
 
-	fmt.Println("Request GetProviders")
-
-	prov := &geid.Providers{}
+func (s *Server) GetProviders() ([]eid.Provider, error) {
+	prov := make([]eid.Provider, 0)
 
 	for _, v := range s.List() {
-		p := &geid.Provider{Name: v}
-		prov.Providers = append(prov.Providers, p)
+		p := eid.Provider{Name: v}
+		prov = append(prov, p)
 	}
 	return prov, nil
 }
 
-func (s Server) AuthInit(ctx context.Context, req *geid.Req) (in *geid.Inter, err error) {
+func (s Server) AuthInit(ctx context.Context, req *eid.Req) (*eid.Inter, error) {
 	cli, err := s.Get(req.Provider.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
-	eidReq, err := eid.FromGrpcReq(req, cli)
-	if err != nil {
-		return
-	}
-	authInit, err := cli.AuthInit(ctx, &eidReq)
-	if err != nil {
-		return
-	}
-	grpcInter, err := eid.ToGrpcInter(authInit)
-	if err != nil {
-		return
-	}
-	return &grpcInter, nil
+
+	return cli.AuthInit(ctx, req)
 }
 
-func (s Server) SignInit(ctx context.Context, req *geid.Req) (in *geid.Inter, err error) {
+func (s Server) SignInit(ctx context.Context, req *eid.Req) (*eid.Inter, error) {
 	fmt.Println("Someone's asking about things")
 	cli, err := s.Get(req.Provider.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
-	fmt.Printf("Using provider %s to do sign request\n", cli.Name())
-	eidReq, err := eid.FromGrpcReq(req, cli)
-	if err != nil {
-		return
-	}
-	signInit, err := cli.SignInit(ctx, &eidReq)
-	if err != nil {
-		return
-	}
-	grpcInter, err := eid.ToGrpcInter(signInit)
-	if err != nil {
-		return
-	}
-	return &grpcInter, nil
+
+	return cli.SignInit(ctx, req)
 }
 
-func (s Server) Collect(ctx context.Context, inter *geid.Inter) (r *geid.Resp, err error) {
+func (s Server) Collect(ctx context.Context, inter *eid.Inter) (*eid.Resp, error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
-	eidInter, err := eid.FromGrpcInter(inter, cli)
-	if err != nil {
-		return
-	}
-	collect, err := cli.Collect(ctx, &eidInter, false)
-	if err != nil {
-		return
-	}
-	grpcRes, err := eid.ToGrpcResp(collect)
-	if err != nil {
-		return
-	}
-	return &grpcRes, nil
+
+	return cli.Collect(ctx, inter, false)
 }
 
-func (s Server) Change(ctx context.Context, inter *geid.Inter) (r *geid.Resp, err error) {
+func (s Server) Change(ctx context.Context, inter *eid.Inter) (*eid.Resp, error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
-	eidInter, err := eid.FromGrpcInter(inter, cli)
-	if err != nil {
-		return
-	}
-	collect, err := cli.Change(ctx, &eidInter, false)
-	if err != nil {
-		return
-	}
-	grpcRes, err := eid.ToGrpcResp(collect)
-	if err != nil {
-		return
-	}
-	return &grpcRes, nil
+
+	return cli.Change(ctx, inter, false)
 }
 
-func (s Server) Peek(ctx context.Context, inter *geid.Inter) (res *geid.Resp, err error) {
+func (s Server) Peek(ctx context.Context, inter *eid.Inter) (*eid.Resp, error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
-	eidInter, err := eid.FromGrpcInter(inter, cli)
-	if err != nil {
-		return
-	}
-	peek, err := cli.Peek(ctx, &eidInter)
-	if err != nil {
-		return
-	}
-	grpcRes, err := eid.ToGrpcResp(peek)
-	if err != nil {
-		return
-	}
-	return &grpcRes, nil
+
+	return cli.Peek(ctx, inter)
 }
 
-func (s Server) Cancel(ctx context.Context, inter *geid.Inter) (emp *geid.Empty, err error) {
+func (s Server) Cancel(ctx context.Context, inter *eid.Inter) (*eid.Empty, error) {
 	cli, err := s.Get(inter.Req.Provider.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
-	eidCancel, err := eid.FromGrpcInter(inter, cli)
+
+	err = cli.Cancel(ctx, inter)
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = cli.Cancel(ctx, &eidCancel)
-	if err != nil {
-		return
-	}
-	return &geid.Empty{}, nil
+
+	return &eid.Empty{}, nil
 }

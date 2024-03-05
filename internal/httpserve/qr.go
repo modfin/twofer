@@ -2,9 +2,8 @@ package httpserve
 
 import (
 	"encoding/json"
-	"github.com/modfin/twofer/grpc/gqr"
 	"github.com/modfin/twofer/internal/servqr"
-	"github.com/modfin/twofer/qr"
+	"io"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -18,7 +17,7 @@ func RegisterQRServer(e *echo.Echo, s *servqr.Server) {
 		}
 		var uriBody string
 		err = json.Unmarshal(b, &uriBody)
-		qrr, err := s.Generate(c.Request().Context(), &gqr.Data{
+		qrr, err := s.Generate(c.Request().Context(), &servqr.Data{
 			RecoveryLevel: 0,
 			Size:          0,
 			Data:          uriBody,
@@ -26,7 +25,7 @@ func RegisterQRServer(e *echo.Echo, s *servqr.Server) {
 		if err != nil {
 			return err
 		}
-		qrData := qr.QRData{
+		qrData := servqr.QRData{
 			Image:     qrr.Data,
 			Reference: uriBody,
 		}

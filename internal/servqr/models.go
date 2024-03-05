@@ -57,3 +57,8 @@ type Image struct {
 	ContentType string `json:"contentType,omitempty"`
 	Data        []byte `json:"data,omitempty"`
 }
+
+type QRData struct {
+	Reference string `json:"reference"`
+	Image     []byte `json:"image"`
+}

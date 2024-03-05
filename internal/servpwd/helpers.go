@@ -6,9 +6,7 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"hash"
-	"github.com/modfin/twofer/grpc/gpwd"
 )
-
 
 func GetHmacDigest(password string, salt string, hashFunc hash.Hash, hashCount int) string {
 	digest := []byte(password)
@@ -37,11 +35,11 @@ func GenerateRandomBase64Bytes(bytes int) string {
 	return Base64Encode(b)
 }
 
-func Hash(a gpwd.Alg) hash.Hash {
+func Hash(a Alg) hash.Hash {
 	switch a {
-	case gpwd.Alg_SHA_256:
+	case Alg_SHA_256:
 		return sha256.New()
-	case gpwd.Alg_SHA_512:
+	case Alg_SHA_512:
 		return sha512.New()
 	}
 	panic("unreached")

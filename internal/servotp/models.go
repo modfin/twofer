@@ -1,4 +1,4 @@
-package models
+package servotp
 
 type Alg int32
 

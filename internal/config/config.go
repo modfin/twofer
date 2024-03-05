@@ -11,13 +11,9 @@ import (
 )
 
 type Config struct {
-	EnableHttp bool `env:"ENABLE_HTTP" envDefault:"TRUE"`
-	EnableGrpc bool `env:"ENABLE_GRPC" envDefault:"TRUE"`
-	HTTPPort   int  `env:"HTTP_PORT" envDefault:"8080"`
-	GRPCPort   int  `env:"GRPC_PORT" envDefault:"43210"`
+	HTTPPort int `env:"HTTP_PORT" envDefault:"8080"`
 
-	FrejaID FrejaID
-	BankID  BankID
+	BankID BankID
 
 	QREnabled bool `env:"QR_ENABLE" envDefault:"TRUE"`
 	OTP       OTP
@@ -65,44 +61,6 @@ func (b BankID) GetClientKey() []byte {
 		return []byte(b.ClientKeyFile)
 	}
 	return []byte(b.ClientKey)
-}
-
-type FrejaID struct {
-	Enabled        bool     `env:"EID_FREJA_ENABLE" envDefault:"FALSE"`
-	URL            *url.URL `env:"EID_FREJA_URL"`
-	RootCA         string   `env:"EID_FREJA_ROOT_CA_PEM"`
-	RootCAFile     string   `env:"EID_FREJA_ROOT_CA_PEM_FILE,file"`
-	ClientCert     string   `env:"EID_FREJA_CLIENT_CERT"`
-	ClientCertFile string   `env:"EID_FREJA_CLIENT_CERT_FILE,file"`
-	ClientKey      string   `env:"EID_FREJA_CLIENT_KEY"`
-	ClientKeyFile  string   `env:"EID_FREJA_CLIENT_KEY_FILE,file"`
-	JWSCert        string   `env:"EID_FREJA_JWS_CERT"`
-	JWSCertFile    string   `env:"EID_FREJA_JWS_CERT_FILE,file"`
-}
-
-func (b FrejaID) GetRootCA() []byte {
-	if b.RootCAFile != "" {
-		return []byte(b.RootCAFile)
-	}
-	return []byte(b.RootCA)
-}
-func (b FrejaID) GetClientCert() []byte {
-	if b.ClientCertFile != "" {
-		return []byte(b.ClientCertFile)
-	}
-	return []byte(b.ClientCert)
-}
-func (b FrejaID) GetClientKey() []byte {
-	if b.ClientKeyFile != "" {
-		return []byte(b.ClientKeyFile)
-	}
-	return []byte(b.ClientKey)
-}
-func (b FrejaID) GetJWSCert() []byte {
-	if b.JWSCertFile != "" {
-		return []byte(b.JWSCertFile)
-	}
-	return []byte(b.JWSCert)
 }
 
 type WebAuthn struct {
