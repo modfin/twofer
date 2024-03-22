@@ -518,7 +518,6 @@ func (s *IntegrationTestSuite) TestChange() {
 	if err != nil {
 		s.NoError(err, "error sending cancel request")
 	}
-
 	if resp.StatusCode != http.StatusNoContent {
 		s.FailNow("Received invalid status code from auth endpoint", strconv.Itoa(resp.StatusCode), s.twoferURL+"/bankid/v6/cancel")
 	}
