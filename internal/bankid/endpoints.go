@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	authUrl    = "/rp/v6.0/auth"
-	signUrl    = "/rp/v6.0/sign"
-	collectUrl = "/rp/v6.0/collect"
-	cancelUrl  = "/rp/v6.0/cancel"
+	AuthUrl    = "/rp/v6.0/auth"
+	SignUrl    = "/rp/v6.0/sign"
+	CollectUrl = "/rp/v6.0/collect"
+	CancelUrl  = "/rp/v6.0/cancel"
 )
 
 type API struct {
@@ -41,7 +41,7 @@ func (a *API) Auth(ctx context.Context, r *AuthSignRequest) (*AuthSignResponse, 
 		return nil, err
 	}
 
-	res, err := post[AuthSignRequest, AuthSignResponse](ctx, a.client, r, a.baseURL+authUrl)
+	res, err := post[AuthSignRequest, AuthSignResponse](ctx, a.client, r, a.baseURL+AuthUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (a *API) Sign(ctx context.Context, r *AuthSignRequest) (*AuthSignResponse, 
 		return nil, err
 	}
 
-	return post[AuthSignRequest, AuthSignResponse](ctx, a.client, r, a.baseURL+signUrl)
+	return post[AuthSignRequest, AuthSignResponse](ctx, a.client, r, a.baseURL+SignUrl)
 }
 
 func (a *API) Collect(ctx context.Context, r *CollectRequest) (*CollectResponse, error) {
@@ -64,7 +64,7 @@ func (a *API) Collect(ctx context.Context, r *CollectRequest) (*CollectResponse,
 		return nil, err
 	}
 
-	res, err := post[CollectRequest, CollectResponse](ctx, a.client, r, a.baseURL+collectUrl)
+	res, err := post[CollectRequest, CollectResponse](ctx, a.client, r, a.baseURL+CollectUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (a *API) Cancel(ctx context.Context, r *CancelRequest) error {
 		return err
 	}
 
-	_, err = post[CancelRequest, Empty](ctx, a.client, r, a.baseURL+cancelUrl)
+	_, err = post[CancelRequest, Empty](ctx, a.client, r, a.baseURL+CancelUrl)
 	return err
 }
 

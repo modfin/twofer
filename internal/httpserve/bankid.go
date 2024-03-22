@@ -32,6 +32,19 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return e.JSON(500, "failed to initiate auth against BankId")
 		}
 
+		// In the case a client wants to initiate a new request every second instead of relying on SSE
+		// we respond with the first entry and then close the connection
+		response := e.QueryParam("type")
+		if response == "once" {
+			msg := bankid.AuthSignAPIResponse{
+				OrderRef: res.OrderRef,
+				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", res.AutoStartToken),
+				QR:       res.BuildQrCode(0),
+			}
+
+			return e.JSON(200, msg)
+		}
+
 		sender, err := sse.NewSender(e.Response().Writer)
 		if err != nil {
 			fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
@@ -52,7 +65,7 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 
 			msg := bankid.AuthSignAPIResponse{
 				OrderRef: res.OrderRef,
-				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s", res.AutoStartToken),
+				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", res.AutoStartToken),
 				QR:       res.BuildQrCode(i),
 			}
 
@@ -101,6 +114,19 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return e.JSON(500, "failed to initiate sign against BankId")
 		}
 
+		// In the case a client wants to initiate a new request every second instead of relying on SSE
+		// we respond with the first entry and then close the connection
+		response := e.QueryParam("type")
+		if response == "once" {
+			msg := bankid.AuthSignAPIResponse{
+				OrderRef: res.OrderRef,
+				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", res.AutoStartToken),
+				QR:       res.BuildQrCode(0),
+			}
+
+			return e.JSON(200, msg)
+		}
+
 		sender, err := sse.NewSender(e.Response().Writer)
 		if err != nil {
 			fmt.Printf("ERR: failed to setup sign response stream: %s\n", err.Error())
@@ -121,7 +147,7 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 
 			msg := bankid.AuthSignAPIResponse{
 				OrderRef: res.OrderRef,
-				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s", res.AutoStartToken),
+				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", res.AutoStartToken),
 				QR:       res.BuildQrCode(i),
 			}
 
@@ -204,14 +230,14 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return e.JSON(400, bankid.GenericResponse{Message: "invalid request payload"})
 		}
 
-		var request bankid.CollectRequest
+		var request bankid.CancelRequest
 		err = json.Unmarshal(b, &request)
 		if err != nil {
 			fmt.Printf("ERR: failed to unmarshal cancel request message: %s\n", err.Error())
 			return e.JSON(400, bankid.GenericResponse{Message: "invalid request payload content"})
 		}
 
-		_, err = client.Collect(e.Request().Context(), &request)
+		err = client.Cancel(e.Request().Context(), &request)
 		if err != nil {
 			fmt.Printf("ERR: initiating cancel request against bankid: %s\n", err.Error())
 			return e.JSON(500, "failed to start cancel against BankID")
