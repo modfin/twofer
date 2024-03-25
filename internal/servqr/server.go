@@ -3,7 +3,6 @@ package servqr
 import (
 	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/net/context"
-	"github.com/modfin/twofer/grpc/gqr"
 )
 
 func New() *Server {
@@ -13,7 +12,7 @@ func New() *Server {
 type Server struct {
 }
 
-func (s Server) Generate(ctx context.Context, data *gqr.Data) (*gqr.Image, error) {
+func (s Server) Generate(ctx context.Context, data *Data) (*Image, error) {
 	size := int(data.Size)
 
 	if size < 10 {
@@ -23,7 +22,7 @@ func (s Server) Generate(ctx context.Context, data *gqr.Data) (*gqr.Image, error
 	level := qrcode.RecoveryLevel(data.RecoveryLevel)
 	image, err := qrcode.Encode(data.Data, level, size)
 
-	return &gqr.Image{
+	return &Image{
 		Data:        image,
 		ContentType: "image/png",
 	}, err

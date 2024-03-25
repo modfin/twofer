@@ -4,6 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/modfin/twofer/internal/crypt"
+	"github.com/modfin/twofer/internal/ratelimit"
+	"github.com/modfin/twofer/internal/servqr"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/hotp"
 	"github.com/pquerna/otp/totp"
@@ -13,10 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/modfin/twofer/grpc/gotp"
-	"github.com/modfin/twofer/grpc/gqr"
-	"github.com/modfin/twofer/internal/crypt"
-	"github.com/modfin/twofer/internal/ratelimit"
 )
 
 type OTPConfig struct {
@@ -61,7 +60,7 @@ type Server struct {
 	ratelimiter *ratelimit.Ratelimiter
 }
 
-func (s *Server) Upgrade(context.Context, *gotp.Blob) (*gotp.Blob, error) {
+func (s *Server) Upgrade(context.Context, *Blob) (*Blob, error) {
 	panic("implement me")
 }
 
@@ -70,13 +69,13 @@ type wrapper struct {
 	Counter uint64 `json:"counter,omitempty"`
 }
 
-func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.EnrollmentResponse, err error) {
+func (s *Server) Enroll(ctx context.Context, en *Enrollment) (resp *EnrollmentResponse, err error) {
 
 	digits := otp.DigitsSix
 	switch en.Digits {
-	case gotp.Digits_SIX:
+	case Digits_SIX:
 		digits = otp.DigitsSix
-	case gotp.Digits_EIGHT:
+	case Digits_EIGHT:
 		digits = otp.DigitsEight
 	}
 
@@ -86,7 +85,7 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.En
 
 	var o wrapper
 	switch en.Mode {
-	case gotp.Mode_TIME:
+	case Mode_TIME:
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      en.Issuer,
 			AccountName: en.Account,
@@ -100,7 +99,7 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.En
 		}
 		o.URI = key.URL()
 
-	case gotp.Mode_COUNTER:
+	case Mode_COUNTER:
 		key, err := hotp.Generate(hotp.GenerateOpts{
 			Issuer:      en.Issuer,
 			AccountName: en.Account,
@@ -127,13 +126,13 @@ func (s *Server) Enroll(ctx context.Context, en *gotp.Enrollment) (resp *gotp.En
 		return nil, err
 	}
 
-	return &gotp.EnrollmentResponse{
+	return &EnrollmentResponse{
 		Uri:      o.URI,
 		UserBlob: base64.StdEncoding.EncodeToString(b),
 	}, nil
 }
 
-func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResponse, error) {
+func (s *Server) Auth(ctx context.Context, va *Credentials) (*AuthResponse, error) {
 
 	sec, err := base64.StdEncoding.DecodeString(va.UserBlob)
 	if err != nil {
@@ -233,14 +232,14 @@ func (s *Server) Auth(ctx context.Context, va *gotp.Credentials) (*gotp.AuthResp
 		return nil, err
 	}
 
-	return &gotp.AuthResponse{
+	return &AuthResponse{
 		Valid:    valid,
 		UserBlob: base64.StdEncoding.EncodeToString(sec),
 	}, nil
 
 }
 
-func (s *Server) GetQRImage(ctx context.Context, va *gotp.Credentials) (*gqr.Image, error) {
+func (s *Server) GetQRImage(ctx context.Context, va *Credentials) (*servqr.Image, error) {
 	sec, err := base64.StdEncoding.DecodeString(va.UserBlob)
 	if err != nil {
 		return nil, err
@@ -256,10 +255,10 @@ func (s *Server) GetQRImage(ctx context.Context, va *gotp.Credentials) (*gqr.Ima
 		return nil, err
 	}
 
-	data := gqr.Data{
-		RecoveryLevel:        0,
-		Size:                 0,
-		Data:                 v.URI,
+	data := servqr.Data{
+		RecoveryLevel: 0,
+		Size:          0,
+		Data:          v.URI,
 	}
 
 	size := int(data.Size)
@@ -271,7 +270,7 @@ func (s *Server) GetQRImage(ctx context.Context, va *gotp.Credentials) (*gqr.Ima
 	level := qrcode.RecoveryLevel(data.RecoveryLevel)
 	image, err := qrcode.Encode(data.Data, level, size)
 
-	return &gqr.Image{
+	return &servqr.Image{
 		Data:        image,
 		ContentType: "image/png",
 	}, err

@@ -13,13 +13,6 @@ services:
 #      EID_BANKID_CLIENT_CERT_FILE: "./certs/bankid/x509cert.pem"
 #      EID_BANKID_CLIENT_KEY_FILE: "./certs/bankid/x509key.pem"
 
-      EID_FREJA_ENABLE: "true"
-      EID_FREJA_URL: "https://services.test.frejaeid.com"
-#      EID_FREJA_ROOT_CA_PEM_FILE: "./certs/freja/x509rootca.pem"
-#      EID_FREJA_CLIENT_CERT_FILE: "./certs/freja/x509cert.pem"
-#      EID_FREJA_CLIENT_KEY_FILE: "./certs/freja/x509key.pem"
-#      EID_FREJA_JWS_CERT_FILE: "./certs/freja/xJWScert.pem"
-
       OTP_ENABLE: "true"
       OTP_ENCRYPTION_KEY: |-
         1:aes:Hg44JefQsFJMI1F0zhWMpw== 2:aes:ZS7MqnYbM3zL0ERjE0kFMWC5zuEwzFg5
