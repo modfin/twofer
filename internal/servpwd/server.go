@@ -38,7 +38,7 @@ func New(conf PWDConfig, keys []string) (*Server, error) {
 	if s.store == nil {
 		s.store = &crypt.NilStore{}
 	}
-	fmt.Printf("	- Using PWD default alg: %s", conf.DefaultAlg)
+	fmt.Printf("	- Using PWD default alg: %d", conf.DefaultAlg)
 	return s, nil
 }
 
