@@ -45,7 +45,7 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return e.JSON(200, msg)
 		}
 
-		sender, err := sse.NewSender(e.Response().Writer)
+		sender, err := sse.NewSender(e.Response())
 		if err != nil {
 			fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
 			return e.JSON(500, "failed to setup response stream")
@@ -127,7 +127,7 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return e.JSON(200, msg)
 		}
 
-		sender, err := sse.NewSender(e.Response().Writer)
+		sender, err := sse.NewSender(e.Response())
 		if err != nil {
 			fmt.Printf("ERR: failed to setup sign response stream: %s\n", err.Error())
 			return e.JSON(500, "failed to setup response stream")

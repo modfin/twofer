@@ -3,25 +3,28 @@ package sse
 import (
 	"errors"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 // Sender represents a http server-sent events sender used to send compatible SSE events.
 // See https://html.spec.whatwg.org/multipage/server-sent-events.html
 type Sender struct {
-	writer  http.ResponseWriter
-	flusher http.Flusher
+	response *echo.Response
+	writer   http.ResponseWriter
+	flusher  http.Flusher
 }
 
-func NewSender(writer http.ResponseWriter) (*Sender, error) {
-	flusher, ok := writer.(http.Flusher)
+func NewSender(response *echo.Response) (*Sender, error) {
+	flusher, ok := response.Writer.(http.Flusher)
 	if !ok {
 		return nil, errors.New("failed to instantiate a http.Flusher from the response writer")
 	}
 
 	return &Sender{
-		writer:  writer,
-		flusher: flusher,
+		response: response,
+		writer:   response.Writer,
+		flusher:  flusher,
 	}, nil
 }
 
@@ -60,6 +63,6 @@ func (s *Sender) Send(event Event) error {
 	}
 
 	s.flusher.Flush()
-
+	s.response.Committed = true
 	return nil
 }
