@@ -80,6 +80,14 @@ type AuthSignResponse struct {
 	QrStartSecret  string `json:"qrStartSecret"`
 }
 
+func (r *AuthSignResponse) APIResponse(qrCodeTime int) AuthSignAPIResponse {
+	return AuthSignAPIResponse{
+		OrderRef: r.OrderRef,
+		URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", r.AutoStartToken),
+		QR:       r.BuildQrCode(qrCodeTime),
+	}
+}
+
 // BuildQrCode builds a BankID compatible QR code
 // See https://www.bankid.com/utvecklare/guider/teknisk-integrationsguide/qrkoder
 func (r *AuthSignResponse) BuildQrCode(time int) string {

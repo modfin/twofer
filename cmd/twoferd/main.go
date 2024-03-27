@@ -2,7 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/eid/bankid"
@@ -11,12 +20,6 @@ import (
 	"github.com/modfin/twofer/internal/servotp"
 	"github.com/modfin/twofer/internal/servpwd"
 	"github.com/modfin/twofer/internal/servqr"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -89,14 +92,23 @@ func main() {
 }
 
 func startServer(e *echo.Echo) {
+	appCtx, appClose := context.WithCancel(context.Background())
 	go func() {
-		fmt.Println(e.Start(":8080"))
+		err := e.Start(":8080")
+		if !errors.Is(err, http.ErrServerClosed) {
+			fmt.Println(err)
+		}
+		appClose()
 	}()
 
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM)
 
-	<-signalChannel
+	select {
+	case <-signalChannel:
+	case <-appCtx.Done():
+	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
