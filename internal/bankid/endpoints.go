@@ -9,6 +9,9 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/modfin/twofer/internal/sse"
 )
 
 const (
@@ -113,44 +116,78 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 	}
 }
 
-func (a *API) WatchForChange(ctx context.Context, orderRef string) chan WatchResponse {
+func (a *API) WatchForChange(ctx echo.Context, orderRef string) (*sse.Sender, <-chan WatchResponse, error) {
 	watch := make(chan WatchResponse)
+	sender, err := sse.NewSender(ctx.Response())
+	if err != nil {
+		fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
+		return nil, nil, err
+	}
+
+	sender.Prepare()
+
+	lastState, err := a.Collect(ctx.Request().Context(), &CollectRequest{OrderRef: orderRef})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var statusEvent struct {
+		Status Status
+		Hint   HintCode
+	}
+
+	updateStatus := func() {
+		statusEvent.Status = lastState.Status
+		statusEvent.Hint = lastState.HintCode
+		sender.Send("status", statusEvent)
+
+	}
+
+	updateStatus()
 
 	go func() {
 		changeRequest := &ChangeRequest{
 			OrderRef:          orderRef,
 			WaitUntilFinished: false,
 		}
+		for {
+			check, err := a.Change(ctx.Request().Context(), changeRequest)
+			if err != nil {
+				if !errors.Is(err, context.Canceled) {
+					fmt.Println("ERR from change in bankid v6 auth/sign init: ", err)
+					watch <- WatchResponse{
+						Cancelled: true,
+						Status:    "",
+					}
+					close(watch)
+					return
+				}
 
-		check, err := a.Change(ctx, changeRequest)
-		if err != nil {
-			if !errors.Is(err, context.Canceled) {
-				fmt.Println("ERR from change in bankid v6 auth/sign init: ", err)
 				watch <- WatchResponse{
 					Cancelled: true,
-					Status:    "",
+					Status:    err.Error(),
 				}
 				close(watch)
 				return
 			}
 
-			watch <- WatchResponse{
-				Cancelled: true,
-				Status:    err.Error(),
+			if check.Status != lastState.Status || check.HintCode != lastState.HintCode {
+				lastState = check
+				updateStatus()
 			}
-			close(watch)
-			return
-		}
 
-		watch <- WatchResponse{
-			Cancelled: false,
-			Status:    string(check.Status),
+			if check.Status != Pending {
+				watch <- WatchResponse{
+					Cancelled: check.Status == Failed,
+					Status:    string(check.Status),
+				}
+				close(watch)
+				return
+			}
 		}
-		close(watch)
-		return
 	}()
 
-	return watch
+	return sender, watch, nil
 }
 
 func (a *API) Cancel(ctx context.Context, r *CancelRequest) error {
