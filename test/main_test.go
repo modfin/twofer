@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/modfin/twofer/internal/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
 	"github.com/modfin/twofer/test/fakes"
 	"github.com/stretchr/testify/suite"
-	"log/slog"
-	"net/http"
-	"testing"
-	"time"
 )
 
 type IntegrationTestSuite struct {
@@ -47,7 +48,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	go func() {
 		slog.Info("Starting twofer")
 		err := s.twofer.Start(":8999")
-		if err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
 			fmt.Println("Error starting twofer", err.Error())
 		}
 	}()
