@@ -2,7 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/eid/bankid"
@@ -11,12 +20,6 @@ import (
 	"github.com/modfin/twofer/internal/servotp"
 	"github.com/modfin/twofer/internal/servpwd"
 	"github.com/modfin/twofer/internal/servqr"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -92,7 +95,9 @@ func startServer(e *echo.Echo) {
 	appCtx, appClose := context.WithCancel(context.Background())
 	go func() {
 		err := e.Start(":8080")
-		fmt.Println(err)
+		if !errors.Is(err, http.ErrServerClosed) {
+			fmt.Println(err)
+		}
 		appClose()
 	}()
 
