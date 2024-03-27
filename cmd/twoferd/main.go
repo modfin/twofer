@@ -89,14 +89,21 @@ func main() {
 }
 
 func startServer(e *echo.Echo) {
+	appCtx, appClose := context.WithCancel(context.Background())
 	go func() {
-		fmt.Println(e.Start(":8080"))
+		err := e.Start(":8080")
+		fmt.Println(err)
+		appClose()
 	}()
 
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM)
 
-	<-signalChannel
+	select {
+	case <-signalChannel:
+	case <-appCtx.Done():
+	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
