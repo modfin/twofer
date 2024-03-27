@@ -56,13 +56,6 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 		interrupt := client.WatchForChange(e.Request().Context(), res.OrderRef)
 
 		for i := 0; i < 30; i++ {
-			select {
-			case <-interrupt:
-				return e.JSON(http.StatusOK, bankid.Empty{})
-			default:
-				break
-			}
-
 			msg := bankid.AuthSignAPIResponse{
 				OrderRef: res.OrderRef,
 				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", res.AutoStartToken),
@@ -89,7 +82,11 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			}
 
 			// Optimally subtract time that has elapsed, but no need to be that exact
-			time.Sleep(time.Second)
+			select {
+			case <-interrupt:
+				return e.JSON(http.StatusOK, bankid.Empty{})
+			case <-time.After(time.Second):
+			}
 		}
 
 		return e.JSON(http.StatusOK, bankid.Empty{})
@@ -138,13 +135,6 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 		interrupt := client.WatchForChange(e.Request().Context(), res.OrderRef)
 
 		for i := 0; i < 30; i++ {
-			select {
-			case <-interrupt:
-				return e.JSON(http.StatusOK, bankid.Empty{})
-			default:
-				break
-			}
-
 			msg := bankid.AuthSignAPIResponse{
 				OrderRef: res.OrderRef,
 				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", res.AutoStartToken),
@@ -171,9 +161,12 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			}
 
 			// Optimally subtract time that has elapsed, but no need to be that exact
-			time.Sleep(time.Second)
+			select {
+			case <-interrupt:
+				return e.JSON(http.StatusOK, bankid.Empty{})
+			case <-time.After(time.Second):
+			}
 		}
-
 		return e.JSON(http.StatusOK, bankid.Empty{})
 	})
 
