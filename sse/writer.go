@@ -64,7 +64,6 @@ func writeField(buf *bytes.Buffer, field, data string) {
 }
 
 func (w *Writer) SendEvent(event, data, id, retry string) error {
-	//var buf strings.Builder
 	var buf bytes.Buffer
 	writeField(&buf, "event", event)
 	writeField(&buf, "data", data)
