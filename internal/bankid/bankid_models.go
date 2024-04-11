@@ -175,9 +175,11 @@ type StepUp struct {
 	MRTD bool `json:"mrtd"`
 }
 
-type WatchResponse struct {
+type WatchChanges struct {
 	Cancelled bool
-	Status    string
+	Status    Status
+	Hint      HintCode
+	Err       error
 }
 
 type CancelRequest struct {

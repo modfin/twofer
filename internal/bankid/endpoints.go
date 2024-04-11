@@ -4,14 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/labstack/echo/v4"
-	"github.com/modfin/twofer/internal/sse"
 )
 
 const (
@@ -116,78 +111,62 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 	}
 }
 
-func (a *API) WatchForChange(ctx echo.Context, orderRef string) (*sse.Sender, <-chan WatchResponse, error) {
-	watch := make(chan WatchResponse)
-	sender, err := sse.NewSender(ctx.Response())
+func (a *API) WatchForChange(ctx context.Context, orderRef string) (<-chan WatchChanges, error) {
+	collectRequest := &CollectRequest{OrderRef: orderRef}
+	if err := collectRequest.Validate(); err != nil {
+		return nil, err
+	}
+
+	currentState, err := a.Collect(ctx, collectRequest)
 	if err != nil {
-		fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
-		return nil, nil, err
+		return nil, err
 	}
 
-	sender.Prepare()
+	watch := make(chan WatchChanges, 1) // Make it a buffered channel so that we can post initial state before we return
 
-	lastState, err := a.Collect(ctx.Request().Context(), &CollectRequest{OrderRef: orderRef})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var statusEvent struct {
-		Status Status
-		Hint   HintCode
-	}
-
-	updateStatus := func() {
-		statusEvent.Status = lastState.Status
-		statusEvent.Hint = lastState.HintCode
-		sender.Send("status", statusEvent)
-
-	}
-
-	updateStatus()
-
-	go func() {
-		changeRequest := &ChangeRequest{
-			OrderRef:          orderRef,
-			WaitUntilFinished: false,
+	sendChange := func(change WatchChanges) {
+		select {
+		case watch <- change:
+		case <-time.After(time.Second):
 		}
+	}
+	updateStatus := func(state *CollectResponse) {
+		sendChange(WatchChanges{
+			Cancelled: state.Status == Failed,
+			Status:    state.Status,
+			Hint:      state.HintCode,
+		})
+	}
+
+	go func(lastState *CollectResponse) {
+		defer close(watch)
 		for {
-			check, err := a.Change(ctx.Request().Context(), changeRequest)
-			if err != nil {
-				if !errors.Is(err, context.Canceled) {
-					fmt.Println("ERR from change in bankid v6 auth/sign init: ", err)
-					watch <- WatchResponse{
-						Cancelled: true,
-						Status:    "",
-					}
-					close(watch)
-					return
-				}
+			select {
+			case <-ctx.Done():
+				err = ctx.Err()
+				sendChange(WatchChanges{Cancelled: true, Err: ctx.Err()})
+				return
+			case <-time.After(time.Second):
+			}
 
-				watch <- WatchResponse{
-					Cancelled: true,
-					Status:    err.Error(),
-				}
-				close(watch)
+			resp, err := a.Collect(ctx, collectRequest)
+			if err != nil {
+				sendChange(WatchChanges{Cancelled: true, Err: err})
 				return
 			}
 
-			if check.Status != lastState.Status || check.HintCode != lastState.HintCode {
-				lastState = check
-				updateStatus()
+			if resp.Status != lastState.Status || resp.HintCode != lastState.HintCode {
+				updateStatus(resp)
+				lastState = resp
 			}
 
-			if check.Status != Pending {
-				watch <- WatchResponse{
-					Cancelled: check.Status == Failed,
-					Status:    string(check.Status),
-				}
-				close(watch)
+			if resp.Status != Pending {
 				return
 			}
 		}
-	}()
+	}(currentState)
 
-	return sender, watch, nil
+	return watch, nil
 }
 
 func (a *API) Cancel(ctx context.Context, r *CancelRequest) error {

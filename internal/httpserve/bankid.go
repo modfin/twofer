@@ -3,6 +3,7 @@ package httpserve
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/modfin/twofer/internal/sse"
 	"io"
 	"net/http"
 	"time"
@@ -11,8 +12,24 @@ import (
 	"github.com/modfin/twofer/internal/bankid"
 )
 
+type (
+	statusUpdate struct {
+		Status bankid.Status
+		Hint   bankid.HintCode
+	}
+)
+
 func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
-	e.POST("/bankid/v6/auth", func(c echo.Context) error {
+	e.POST("/bankid/v6/auth", auth(client))
+	e.POST("/bankid/v6/sign", sign(client))
+	e.POST("/bankid/v6/change", change(client))
+	e.POST("/bankid/v6/collect", collect(client))
+	e.POST("/bankid/v6/cancel", cancel(client))
+}
+
+func auth(client *bankid.API) func(c echo.Context) error {
+	// TODO: Refactor auth and sign into single function that can handle both since the code if pretty much identical?
+	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return c.JSON(400, bankid.GenericResponse{Message: "invalid request payload"})
@@ -38,30 +55,47 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return c.JSON(200, res.APIResponse(0))
 		}
 
-		sender, interrupt, err := client.WatchForChange(c, res.OrderRef)
+		sender, err := sse.NewSender(c.Response())
+		if err != nil {
+			fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
+			return err
+		}
+
+		sender.Prepare()
+
+		changes, err := client.WatchForChange(c.Request().Context(), res.OrderRef)
 		if err != nil {
 			return c.JSON(500, "failed to setup response stream")
 		}
 
-		for i := 0; i < 30; i++ {
-			err = sender.Send("message", res.APIResponse(i)) // TODO: Should we change "message" to something else?
-			if err != nil {
-				fmt.Printf("ERR: failed to send auth response message: %s\n", err.Error())
-				return c.JSON(500, "failed to send response message")
-			}
-
-			// Optimally subtract time that has elapsed, but no need to be that exact
+		updateQR := time.NewTicker(time.Second)
+		qrCount := 1
+		for {
 			select {
-			case <-interrupt:
-				return c.JSON(http.StatusOK, bankid.Empty{})
-			case <-time.After(time.Second):
+			case <-updateQR.C:
+				err = sender.Send("message", res.APIResponse(qrCount)) // TODO: Should we change "message" to something else?
+				if err != nil {
+					fmt.Printf("ERR: failed to send auth response message: %v\n", err)
+					return c.JSON(500, "failed to send response message")
+				}
+			case state, ok := <-changes:
+				if !ok {
+					return c.JSON(http.StatusOK, bankid.Empty{})
+				}
+				// TODO: Stop updateQR timer when QR-code have been scanned
+				err = sender.Send("status", statusUpdate{Status: state.Status, Hint: state.Hint})
+				if err != nil {
+					fmt.Printf("ERR: failed to send status update: %v\n", err)
+					return c.JSON(500, "failed to send response message")
+				}
 			}
 		}
+	}
+}
 
-		return c.JSON(http.StatusOK, bankid.Empty{})
-	})
-
-	e.POST("/bankid/v6/sign", func(c echo.Context) error {
+func sign(client *bankid.API) func(c echo.Context) error {
+	// TODO: Refactor auth and sign into single function that can handle both since the code if pretty much identical?
+	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return c.JSON(400, bankid.GenericResponse{Message: "invalid request payload"})
@@ -87,29 +121,46 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 			return c.JSON(200, res.APIResponse(0))
 		}
 
-		sender, interrupt, err := client.WatchForChange(c, res.OrderRef)
+		sender, err := sse.NewSender(c.Response())
+		if err != nil {
+			fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
+			return err
+		}
+
+		sender.Prepare()
+
+		changes, err := client.WatchForChange(c.Request().Context(), res.OrderRef)
 		if err != nil {
 			return c.JSON(500, "failed to setup response stream")
 		}
 
-		for i := 0; i < 30; i++ {
-			err = sender.Send("message", res.APIResponse(i)) // TODO: Should we change "message" to something else?
-			if err != nil {
-				fmt.Printf("ERR: failed to send sign response message: %s\n", err.Error())
-				return c.JSON(500, "failed to send response message")
-			}
-
-			// Optimally subtract time that has elapsed, but no need to be that exact
+		updateQR := time.NewTicker(time.Second)
+		qrCount := 1
+		for {
 			select {
-			case <-interrupt:
-				return c.JSON(http.StatusOK, bankid.Empty{})
-			case <-time.After(time.Second):
+			case <-updateQR.C:
+				err = sender.Send("message", res.APIResponse(qrCount)) // TODO: Should we change "message" to something else?
+				if err != nil {
+					fmt.Printf("ERR: failed to send sign response message: %v\n", err)
+					return c.JSON(500, "failed to send response message")
+				}
+			case state, ok := <-changes:
+				if !ok {
+					return c.JSON(http.StatusOK, bankid.Empty{})
+				}
+				// TODO: Stop updateQR timer when QR-code have been scanned
+				err = sender.Send("status", statusUpdate{Status: state.Status, Hint: state.Hint})
+				if err != nil {
+					fmt.Printf("ERR: failed to send status update: %v\n", err)
+					return c.JSON(500, "failed to send response message")
+				}
 			}
 		}
-		return c.JSON(http.StatusOK, bankid.Empty{})
-	})
+	}
+}
 
-	e.POST("/bankid/v6/change", func(c echo.Context) error {
+func change(client *bankid.API) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: failed to read change request message: %s\n", err.Error())
@@ -130,9 +181,11 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 		}
 
 		return c.JSON(http.StatusOK, res)
-	})
+	}
+}
 
-	e.POST("/bankid/v6/collect", func(c echo.Context) error {
+func collect(client *bankid.API) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: failed to read collect request message: %s\n", err.Error())
@@ -153,9 +206,11 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 		}
 
 		return c.JSON(http.StatusOK, res)
-	})
+	}
+}
 
-	e.POST("/bankid/v6/cancel", func(c echo.Context) error {
+func cancel(client *bankid.API) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: failed to read cancel request message: %s\n", err.Error())
@@ -176,5 +231,5 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
 		}
 
 		return c.NoContent(http.StatusNoContent)
-	})
+	}
 }
