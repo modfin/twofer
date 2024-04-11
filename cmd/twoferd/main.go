@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -106,23 +105,17 @@ func startServer(e *echo.Echo) {
 
 	select {
 	case <-signalChannel:
+		appClose() // Cancel 'app context' when we receive SIGTERM
 	case <-appCtx.Done():
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
 
-		err := e.Shutdown(timeout)
-		if err != nil {
-			log.Fatalf("failure during Echo's shutdown: %v", err)
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
+	err := e.Shutdown(timeout)
+	if err != nil {
+		log.Fatalf("failure during Echo's shutdown: %v", err)
+	}
 }
 
 func startEid(e *echo.Echo) {
