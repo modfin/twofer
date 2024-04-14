@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -83,6 +84,9 @@ func process(ctx context.Context, rc io.ReadCloser, ec chan<- Event) {
 			// Continue to read data
 		}
 		fieldName, fieldData, eom, err := readField(buf)
+		if errors.Is(err, io.EOF) {
+			return
+		}
 		if err != nil {
 			fmt.Printf("failed to read field, error: %v\n", err)
 			return

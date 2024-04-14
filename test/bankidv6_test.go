@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/modfin/twofer/internal/bankid"
+	"github.com/modfin/twofer/internal/sse"
 )
 
 func (s *IntegrationTestSuite) TestAuthCallOnce() {
@@ -82,11 +83,9 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 	// Default to splitting on each line
 	scanner := bufio.NewScanner(resp.Body)
 	defer resp.Body.Close()
-	var eventTypes = [3]string{"status", "message", "message"}
-	var qrTime int
-	for i := 0; i < 3; i++ { // Server should run for 30 seconds, but let's not wait that long for tests. If pattern holds for 2 messages it should be fine
+	for i := 0; i < 2; i++ { // Server should run for 30 seconds, but let's not wait that long for tests. If pattern holds for 2 messages it should be fine
 		s.T().Logf("Iteration #%d", i)
-		// msg := sse.Event{}
+		msg := sse.Event{}
 
 		scanRes := scanner.Scan()
 		if !scanRes {
@@ -98,7 +97,7 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 		s.Equal("id", idSplit[0])
 		s.Equal(strconv.Itoa(i), idSplit[1])
 
-		// msg.Id = idSplit[1]
+		msg.Id = idSplit[1]
 
 		scanRes = scanner.Scan()
 		if !scanRes {
@@ -108,9 +107,9 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 		eventLine := scanner.Text()
 		eventSplit := strings.Split(eventLine, ": ")
 		s.Equal("event", eventSplit[0])
-		s.Equal(eventTypes[i], eventSplit[1])
+		s.Equal("message", eventSplit[1])
 
-		// msg.Event = eventSplit[1]
+		msg.Event = eventSplit[1]
 
 		scanRes = scanner.Scan()
 		if !scanRes {
@@ -121,7 +120,7 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 		dataSplit := strings.Split(dataLine, ": ")
 		s.Equal("data", dataSplit[0])
 
-		// msg.Data = dataSplit[1]
+		msg.Data = dataSplit[1]
 
 		// SSE messages ends in extra empty line, so scan once more
 		scanRes = scanner.Scan()
@@ -129,44 +128,26 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 			s.FailNow("Server-Sent Events message stopped after data")
 		}
 
-		switch eventTypes[i] {
-		case "message":
-			var res bankid.AuthSignAPIResponse
-			err = json.Unmarshal([]byte(dataSplit[1]), &res)
-			if err != nil {
-				s.NoError(err, "error unmarshaling SSE data for msg")
-			}
-
-			s.True(res.OrderRef != "")
-
-			truth, ok := s.bankidv6.Orders[res.OrderRef]
-			s.True(ok, "no matching order in bankid fake")
-
-			mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
-			mac.Write([]byte(strconv.Itoa(qrTime)))
-			qrAuthCode := mac.Sum(nil)
-
-			authCode := hex.EncodeToString(qrAuthCode)
-			qr := "bankid." + truth.QrStartToken + "." + strconv.Itoa(qrTime) + "." + authCode
-			s.Equal(qr, res.QR)
-
-			s.Equal("bankid:///?autostarttoken="+truth.AutoStartToken+"&redirect=null", res.URI)
-			qrTime++
-		case "status":
-			var res struct {
-				Status string
-				Hint   string
-			}
-			err = json.Unmarshal([]byte(dataSplit[1]), &res)
-			if err != nil {
-				s.NoError(err, "error unmarshaling SSE data for msg")
-			}
-
-			s.T().Logf("Status: %v", res)
-			s.True(res.Status != "", "Status is empty")
-
-			s.True(res.Hint != "", "Hint is empty")
+		var res bankid.AuthSignAPIResponse
+		err = json.Unmarshal([]byte(msg.Data), &res)
+		if err != nil {
+			s.NoError(err, "error unmarshaling SSE data for msg")
 		}
+
+		s.True(res.OrderRef != "")
+
+		truth, ok := s.bankidv6.Orders[res.OrderRef]
+		s.True(ok, "no matching order in bankid fake")
+
+		mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
+		mac.Write([]byte(strconv.Itoa(i)))
+		qrAuthCode := mac.Sum(nil)
+
+		authCode := hex.EncodeToString(qrAuthCode)
+		qr := "bankid." + truth.QrStartToken + "." + strconv.Itoa(i) + "." + authCode
+		s.Equal(qr, res.QR)
+
+		s.Equal("bankid:///?autostarttoken="+truth.AutoStartToken+"&redirect=null", res.URI)
 	}
 }
 
@@ -383,11 +364,9 @@ func (s *IntegrationTestSuite) TestSignCall() {
 	// Default to splitting on each line
 	scanner := bufio.NewScanner(resp.Body)
 	defer resp.Body.Close()
-	var eventTypes = [3]string{"status", "message", "message"}
-	var qrTime int
-	for i := 0; i < 3; i++ { // Server should run for 30 seconds, but let's not wait that long for tests. If pattern holds for 2 messages it should be fine
+	for i := 0; i < 2; i++ { // Server should run for 30 seconds, but let's not wait that long for tests. If pattern holds for 2 messages it should be fine
 		s.T().Logf("Iteration #%d", i)
-		// msg := sse.Event{}
+		msg := sse.Event{}
 
 		scanRes := scanner.Scan()
 		if !scanRes {
@@ -399,7 +378,7 @@ func (s *IntegrationTestSuite) TestSignCall() {
 		s.Equal("id", idSplit[0])
 		s.Equal(strconv.Itoa(i), idSplit[1])
 
-		// msg.Id = idSplit[1]
+		msg.Id = idSplit[1]
 
 		scanRes = scanner.Scan()
 		if !scanRes {
@@ -409,9 +388,9 @@ func (s *IntegrationTestSuite) TestSignCall() {
 		eventLine := scanner.Text()
 		eventSplit := strings.Split(eventLine, ": ")
 		s.Equal("event", eventSplit[0])
-		s.Equal(eventTypes[i], eventSplit[1])
+		s.Equal("message", eventSplit[1])
 
-		// msg.Event = eventSplit[1]
+		msg.Event = eventSplit[1]
 
 		scanRes = scanner.Scan()
 		if !scanRes {
@@ -422,7 +401,7 @@ func (s *IntegrationTestSuite) TestSignCall() {
 		dataSplit := strings.Split(dataLine, ": ")
 		s.Equal("data", dataSplit[0])
 
-		// msg.Data = dataSplit[1]
+		msg.Data = dataSplit[1]
 
 		// SSE messages ends in extra empty line, so scan once more
 		scanRes = scanner.Scan()
@@ -430,44 +409,26 @@ func (s *IntegrationTestSuite) TestSignCall() {
 			s.FailNow("Server-Sent Events message stopped after data")
 		}
 
-		switch eventTypes[i] {
-		case "message":
-			var res bankid.AuthSignAPIResponse
-			err = json.Unmarshal([]byte(dataSplit[1]), &res)
-			if err != nil {
-				s.NoError(err, "error unmarshaling SSE data for msg")
-			}
-
-			s.True(res.OrderRef != "")
-
-			truth, ok := s.bankidv6.Orders[res.OrderRef]
-			s.True(ok, "no matching order in bankid fake")
-
-			mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
-			mac.Write([]byte(strconv.Itoa(qrTime)))
-			qrAuthCode := mac.Sum(nil)
-
-			signCode := hex.EncodeToString(qrAuthCode)
-			qr := "bankid." + truth.QrStartToken + "." + strconv.Itoa(qrTime) + "." + signCode
-			s.Equal(qr, res.QR)
-
-			s.Equal("bankid:///?autostarttoken="+truth.AutoStartToken+"&redirect=null", res.URI)
-			qrTime++
-		case "status":
-			var res struct {
-				Status string
-				Hint   string
-			}
-			err = json.Unmarshal([]byte(dataSplit[1]), &res)
-			if err != nil {
-				s.NoError(err, "error unmarshaling SSE data for msg")
-			}
-
-			s.T().Logf("Status: %v", res)
-			s.True(res.Status != "", "Status is empty")
-
-			s.True(res.Hint != "", "Hint is empty")
+		var res bankid.AuthSignAPIResponse
+		err = json.Unmarshal([]byte(msg.Data), &res)
+		if err != nil {
+			s.NoError(err, "error unmarshaling SSE data for msg")
 		}
+
+		s.True(res.OrderRef != "")
+
+		truth, ok := s.bankidv6.Orders[res.OrderRef]
+		s.True(ok, "no matching order in bankid fake")
+
+		mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
+		mac.Write([]byte(strconv.Itoa(i)))
+		qrAuthCode := mac.Sum(nil)
+
+		signCode := hex.EncodeToString(qrAuthCode)
+		qr := "bankid." + truth.QrStartToken + "." + strconv.Itoa(i) + "." + signCode
+		s.Equal(qr, res.QR)
+
+		s.Equal("bankid:///?autostarttoken="+truth.AutoStartToken+"&redirect=null", res.URI)
 	}
 }
 

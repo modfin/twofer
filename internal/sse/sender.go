@@ -1,11 +1,9 @@
 package sse
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"sync/atomic"
 
 	"github.com/labstack/echo/v4"
 )
@@ -13,10 +11,9 @@ import (
 // Sender represents a http server-sent events sender used to send compatible SSE events.
 // See https://html.spec.whatwg.org/multipage/server-sent-events.html
 type Sender struct {
-	eventID  atomic.Uint32
 	response *echo.Response
 	writer   http.ResponseWriter
-	flusher  http.Flusher
+	flush    func()
 }
 
 func NewSender(response *echo.Response) (*Sender, error) {
@@ -28,7 +25,7 @@ func NewSender(response *echo.Response) (*Sender, error) {
 	return &Sender{
 		response: response,
 		writer:   response.Writer,
-		flusher:  flusher,
+		flush:    flusher.Flush,
 	}, nil
 }
 
@@ -39,30 +36,24 @@ func (s *Sender) Prepare() {
 	s.writer.Header().Set("Transfer-Encoding", "chunked")
 }
 
-// type Event struct {
-// 	Id    string `json:"id"`
-// 	Event string `json:"event"`
-// 	Data  string `json:"data"`
-// }
+type Event struct {
+	Id    string `json:"id"`
+	Event string `json:"event"`
+	Data  string `json:"data"`
+}
 
-func (s *Sender) Send(event string, data any) error {
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		fmt.Printf("ERR: failed to marshal event message: %v\n", err)
-		return err
-	}
-
-	_, err = fmt.Fprintf(s.writer, "id: %d\n", s.eventID.Add(1)-1)
+func (s *Sender) Send(event Event) error {
+	_, err := fmt.Fprintf(s.writer, "id: %s\n", event.Id)
 	if err != nil {
 		return err
 	}
 
-	_, err = fmt.Fprintf(s.writer, "event: %s\n", event)
+	_, err = fmt.Fprintf(s.writer, "event: %s\n", event.Event)
 	if err != nil {
 		return err
 	}
 
-	_, err = fmt.Fprintf(s.writer, "data: %s\n", bytes)
+	_, err = fmt.Fprintf(s.writer, "data: %s\n", event.Data)
 	if err != nil {
 		return err
 	}
@@ -72,7 +63,7 @@ func (s *Sender) Send(event string, data any) error {
 		return err
 	}
 
-	s.flusher.Flush()
-	s.response.Committed = true
+	s.flush()
+	s.response.Committed = true // Needed to fix 'superfluous response.WriteHeader' console messages
 	return nil
 }

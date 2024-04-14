@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -111,52 +113,94 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 	}
 }
 
-func (a *API) WatchForChange(ctx context.Context, orderRef string) (<-chan WatchChanges, error) {
+func (a *API) WatchForChange(ctx context.Context, orderRef string) <-chan WatchResponse {
+	watch := make(chan WatchResponse)
+
+	go func() {
+		changeRequest := &ChangeRequest{
+			OrderRef:          orderRef,
+			WaitUntilFinished: false,
+		}
+
+		check, err := a.Change(ctx, changeRequest)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) {
+				fmt.Println("ERR from change in bankid v6 auth/sign init: ", err)
+				watch <- WatchResponse{
+					Cancelled: true,
+					Status:    "",
+				}
+				close(watch)
+				return
+			}
+
+			watch <- WatchResponse{
+				Cancelled: true,
+				Status:    err.Error(),
+			}
+			close(watch)
+			return
+		}
+
+		watch <- WatchResponse{
+			Cancelled: false,
+			Status:    string(check.Status),
+		}
+		close(watch)
+		return
+	}()
+
+	return watch
+}
+
+type Change struct {
+	CollectResponse
+	Err error
+}
+
+func (a *API) WatchForChangeV2(ctx context.Context, orderRef string) (<-chan Change, error) {
 	collectRequest := &CollectRequest{OrderRef: orderRef}
-	if err := collectRequest.Validate(); err != nil {
-		return nil, err
-	}
 
 	currentState, err := a.Collect(ctx, collectRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	watch := make(chan WatchChanges, 1) // Make it a buffered channel so that we can post initial state before we return
+	watch := make(chan Change, 1) // Make it a buffered channel so that we can post initial state before we return
 
-	sendChange := func(change WatchChanges) {
+	sendError := func(err error) {
 		select {
-		case watch <- change:
+		case watch <- Change{Err: err}:
 		case <-time.After(time.Second):
 		}
 	}
-	updateStatus := func(state *CollectResponse) {
-		sendChange(WatchChanges{
-			Cancelled: state.Status == Failed,
-			Status:    state.Status,
-			Hint:      state.HintCode,
-		})
+	sendChange := func(change CollectResponse) {
+		select {
+		case watch <- Change{CollectResponse: change}:
+		case <-time.After(time.Second):
+		}
 	}
+
+	sendChange(*currentState)
 
 	go func(lastState *CollectResponse) {
 		defer close(watch)
 		for {
 			select {
 			case <-ctx.Done():
-				err = ctx.Err()
-				sendChange(WatchChanges{Cancelled: true, Err: ctx.Err()})
+				sendError(ctx.Err())
 				return
 			case <-time.After(time.Second):
 			}
 
 			resp, err := a.Collect(ctx, collectRequest)
 			if err != nil {
-				sendChange(WatchChanges{Cancelled: true, Err: err})
+				sendError(err)
 				return
 			}
 
 			if resp.Status != lastState.Status || resp.HintCode != lastState.HintCode {
-				updateStatus(resp)
+				sendChange(*resp)
 				lastState = resp
 			}
 
