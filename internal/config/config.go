@@ -19,6 +19,8 @@ type Config struct {
 	OTP       OTP
 	WebAuthn  WebAuthn
 	PWD       PWD
+
+	StreamEncoder string `env:"STREAM_ENCODER" envDefault:"NDJSON"`
 }
 
 func (c Config) EIDEnabled() bool {

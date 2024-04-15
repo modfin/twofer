@@ -9,21 +9,23 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/modfin/twofer/api"
-	"github.com/modfin/twofer/internal/sse"
-	sse2 "github.com/modfin/twofer/sse"
-
 	"github.com/labstack/echo/v4"
+
+	"github.com/modfin/twofer/api"
 	"github.com/modfin/twofer/internal/bankid"
+	"github.com/modfin/twofer/internal/sse"
+	"github.com/modfin/twofer/stream"
 )
 
 const qrCodeUpdatePeriod = time.Second
 
-func RegisterBankIDServer(e *echo.Echo, client *bankid.API) {
+type NewStreamEncoder func(http.ResponseWriter) (stream.Encoder, error)
+
+func RegisterBankIDServer(e *echo.Echo, client *bankid.API, newEncoder NewStreamEncoder) {
 	e.POST("/bankid/v6/auth", auth(client))
-	e.POST("/bankid/v6/authv2", authSign(client.Auth, client.WatchForChangeV2, qrCodeUpdatePeriod))
+	e.POST("/bankid/v6/authv2", authSign(client.Auth, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder))
 	e.POST("/bankid/v6/sign", sign(client))
-	e.POST("/bankid/v6/signv2", authSign(client.Sign, client.WatchForChangeV2, qrCodeUpdatePeriod))
+	e.POST("/bankid/v6/signv2", authSign(client.Sign, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder))
 	e.POST("/bankid/v6/change", change(client))
 	e.POST("/bankid/v6/collect", collect(client))
 	e.POST("/bankid/v6/cancel", cancel(client))
@@ -326,7 +328,7 @@ const (
 	errorEvent  = "error"
 )
 
-func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration) func(echo.Context) error {
+func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder) func(echo.Context) error {
 	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
 		if err != nil {
@@ -353,13 +355,13 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration) func(e
 			return c.JSON(200, createResponseFromAuthSign(res, 0))
 		}
 
-		stream, err := sse2.NewWriter(c.Response())
+		stream, err := newStreamEncoder(c.Response())
 		if err != nil {
 			fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
 			return err
 		}
 
-		err = stream.SendJSON(qrCodeEvent, createResponseFromAuthSign(res, 0))
+		err = stream(qrCodeEvent, createResponseFromAuthSign(res, 0))
 		if err != nil {
 			fmt.Printf("ERR: failed to write auth response to stream: %s\n", err.Error())
 			return err
@@ -378,7 +380,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration) func(e
 		for {
 			select {
 			case <-updateQR.C:
-				err = stream.SendJSON(qrCodeEvent, createResponseFromAuthSign(res, qrCount))
+				err = stream(qrCodeEvent, createResponseFromAuthSign(res, qrCount))
 				if err != nil {
 					fmt.Printf("ERR: failed to send updated QR code message: %v\n", err)
 					return echo.NewHTTPError(http.StatusInternalServerError, "failed to send updated QR code message")
@@ -393,7 +395,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration) func(e
 
 				if state.Err != nil {
 					// Something failed, channel will close after this...
-					err = stream.SendJSON(errorEvent, createResponseFromError(res.OrderRef, state.Err))
+					err = stream(errorEvent, createResponseFromError(res.OrderRef, state.Err))
 					if err != nil {
 						fmt.Printf("ERR: failed to send status update: %v\n", err)
 						return echo.NewHTTPError(http.StatusInternalServerError, "failed to send error message")
@@ -407,7 +409,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration) func(e
 				}
 
 				// Stream latest status to caller
-				err = stream.SendJSON(statusEvent, createResponseFromCollect(state))
+				err = stream(statusEvent, createResponseFromCollect(state))
 				if err != nil {
 					fmt.Printf("ERR: failed to send status update: %v\n", err)
 					return echo.NewHTTPError(http.StatusInternalServerError, "failed to send status update")

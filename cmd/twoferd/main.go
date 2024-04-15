@@ -11,7 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/eid/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
@@ -19,8 +21,8 @@ import (
 	"github.com/modfin/twofer/internal/servotp"
 	"github.com/modfin/twofer/internal/servpwd"
 	"github.com/modfin/twofer/internal/servqr"
-
-	"github.com/labstack/echo/v4"
+	"github.com/modfin/twofer/stream/ndjson"
+	"github.com/modfin/twofer/stream/sse"
 )
 
 func main() {
@@ -154,6 +156,15 @@ func startEid(e *echo.Echo) {
 	} else {
 		fmt.Println("  - Adding BankId v6.0")
 		fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
-		httpserve.RegisterBankIDServer(e, bankid.APIv60)
+		httpserve.RegisterBankIDServer(e, bankid.APIv60, getStreamEncoder(config.Get().StreamEncoder))
+	}
+}
+
+func getStreamEncoder(encoder string) httpserve.NewStreamEncoder {
+	switch encoder {
+	case "SSE":
+		return sse.NewEncoder
+	default:
+		return ndjson.NewEncoder
 	}
 }

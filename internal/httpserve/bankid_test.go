@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,8 +13,11 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+
+	"github.com/modfin/twofer/api"
 	"github.com/modfin/twofer/internal/bankid"
-	"github.com/modfin/twofer/sse"
+	"github.com/modfin/twofer/stream/ndjson"
+	"github.com/modfin/twofer/stream/sse"
 )
 
 const (
@@ -28,17 +32,21 @@ const (
 )
 
 type (
-	authSignTestFn func(*testing.T) authSignFn
-	watchTestFn    func(*testing.T) watchFn
-	newContextFn   func(r *http.Request, w http.ResponseWriter) echo.Context
-	authSignTest   struct {
+	authSignTestFn  func(*testing.T) authSignFn
+	watchTestFn     func(*testing.T) watchFn
+	newContextFn    func(r *http.Request, w http.ResponseWriter) echo.Context
+	responseCheckFn func(*testing.T, context.Context, io.ReadCloser, authSignTest)
+	authSignTest    struct {
 		name           string
+		encoder        NewStreamEncoder
+		testDecoder    responseCheckFn
 		request        bankid.AuthSignRequest
 		params         *url.Values
 		authSign       authSignTestFn
 		watch          watchTestFn
 		wantHTTPStatus int
 		wantEvents     []sse.Event
+		wantResponses  []api.BankIdV6Response
 	}
 )
 
@@ -50,9 +58,9 @@ var (
 		QrStartSecret:  testAuthQrStartSecret,
 	}
 
-	pending_OutstandingTransaction = bankid.CollectResponse{OrderRef: testAuthOrderRef, Status: bankid.Pending, HintCode: bankid.OutstandingTransaction}
-	pending_UserSign               = bankid.CollectResponse{OrderRef: testAuthOrderRef, Status: bankid.Pending, HintCode: bankid.UserSign}
-	complete_OK                    = bankid.CollectResponse{
+	pendingOutstandingTransaction = bankid.CollectResponse{OrderRef: testAuthOrderRef, Status: bankid.Pending, HintCode: bankid.OutstandingTransaction}
+	pendingUserSign               = bankid.CollectResponse{OrderRef: testAuthOrderRef, Status: bankid.Pending, HintCode: bankid.UserSign}
+	completeOK                    = bankid.CollectResponse{
 		OrderRef: testAuthOrderRef,
 		Status:   bankid.Complete,
 		// Data below taken from /collect API example
@@ -77,13 +85,15 @@ func Test_authSign(t *testing.T) {
 	e := echo.New()
 	for _, tt := range []authSignTest{
 		{
-			name:     "happy_auth_flow",
-			request:  bankid.AuthSignRequest{EndUserIp: testIP},
-			authSign: authSignTestMock(authResponseOK, nil),
+			name:        "happy_auth_flow_sse_stream",
+			encoder:     sse.NewEncoder,
+			testDecoder: sseCheck,
+			request:     bankid.AuthSignRequest{EndUserIp: testIP},
+			authSign:    authSignTestMock(authResponseOK, nil),
 			watch: watchMock([]bankid.CollectResponse{
-				pending_OutstandingTransaction,
-				pending_UserSign,
-				complete_OK,
+				pendingOutstandingTransaction,
+				pendingUserSign,
+				completeOK,
 			}, nil),
 			wantHTTPStatus: http.StatusOK,
 			wantEvents: []sse.Event{
@@ -97,6 +107,34 @@ func Test_authSign(t *testing.T) {
 				{Event: "status", Data: `{"orderRef":"131daac9-16c6-4618-beb0-365768f37288","status":"complete","completionData":{"user":{"personalNumber":"190000000000","name":"Karl Karlsson","givenName":"Karl","surName":"Karlsson"},"device":{"ipAddress":"127.0.0.1"},"bankIdIssueDate":"2020-02-01","stepUp":{},"signature":"\u003cbase64-encoded data\u003e","ocspResponse":"\u003cbase64-encoded data\u003e"}}`},
 			},
 		},
+		{
+			name:        "happy_auth_flow_ndjson_stream",
+			encoder:     ndjson.NewEncoder,
+			testDecoder: ndjsonCheck,
+			request:     bankid.AuthSignRequest{EndUserIp: testIP},
+			authSign:    authSignTestMock(authResponseOK, nil),
+			watch: watchMock([]bankid.CollectResponse{
+				pendingOutstandingTransaction,
+				pendingUserSign,
+				completeOK,
+			}, nil),
+			wantHTTPStatus: http.StatusOK,
+			wantResponses: []api.BankIdV6Response{
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", URI: "bankid:///?autostarttoken=7c40b5c9-fa74-49cf-b98c-bfe651f9a7c6\u0026redirect=null", QR: "bankid.67df3917-fa0d-44e5-b327-edcc928297f8.0.dc69358e712458a66a7525beef148ae8526b1c71610eff2c16cdffb4cdac9bf8"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", URI: "bankid:///?autostarttoken=7c40b5c9-fa74-49cf-b98c-bfe651f9a7c6\u0026redirect=null", QR: "bankid.67df3917-fa0d-44e5-b327-edcc928297f8.1.949d559bf23403952a94d103e67743126381eda00f0b3cbddbf7c96b1adcbce2"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", URI: "bankid:///?autostarttoken=7c40b5c9-fa74-49cf-b98c-bfe651f9a7c6\u0026redirect=null", QR: "bankid.67df3917-fa0d-44e5-b327-edcc928297f8.2.a9e5ec59cb4eee4ef4117150abc58fad7a85439a6a96ccbecc3668b41795b3f3"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", Status: "pending", HintCode: "outstandingTransaction"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", URI: "bankid:///?autostarttoken=7c40b5c9-fa74-49cf-b98c-bfe651f9a7c6\u0026redirect=null", QR: "bankid.67df3917-fa0d-44e5-b327-edcc928297f8.3.96077d77699971790b46ee1f04ff1e44fe96b0602c9c51e4ca9c6d031c7c3bb7"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", URI: "bankid:///?autostarttoken=7c40b5c9-fa74-49cf-b98c-bfe651f9a7c6\u0026redirect=null", QR: "bankid.67df3917-fa0d-44e5-b327-edcc928297f8.4.1d9a7e5dd98d08cb393f73c63ce032df0c9433512153ab9fb040b96cd45b1b11"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", Status: "pending", HintCode: "userSign"},
+				{OrderRef: "131daac9-16c6-4618-beb0-365768f37288", Status: "complete", CompletionData: &api.BankIdV6CompletionData{
+					User:            api.BankIdV6User{PersonalNumber: "190000000000", Name: "Karl Karlsson", GivenName: "Karl", SurName: "Karlsson"},
+					Device:          api.BankIdV6Device{IpAddress: "127.0.0.1"},
+					BankIdIssueDate: "2020-02-01",
+					Signature:       "\u003cbase64-encoded data\u003e",
+					OcspResponse:    "\u003cbase64-encoded data\u003e"}},
+			},
+		},
 	} {
 		t.Run(tt.name, testAuthSign(tt, e.NewContext))
 	}
@@ -104,7 +142,7 @@ func Test_authSign(t *testing.T) {
 
 func testAuthSign(tt authSignTest, newContext newContextFn) func(t *testing.T) {
 	return func(t *testing.T) {
-		// t.Parallel()
+		t.Parallel()
 
 		bodyData, err := json.Marshal(tt.request)
 		if err != nil {
@@ -124,7 +162,7 @@ func testAuthSign(tt authSignTest, newContext newContextFn) func(t *testing.T) {
 		res := httptest.NewRecorder()
 		ctx := newContext(req, res)
 
-		echoHandler := authSign(tt.authSign(t), tt.watch(t), qrTestPeriod)
+		echoHandler := authSign(tt.authSign(t), tt.watch(t), qrTestPeriod, tt.encoder)
 		err = echoHandler(ctx)
 		if err != nil {
 			t.Fatalf("got error: %v", err)
@@ -136,18 +174,7 @@ func testAuthSign(tt authSignTest, newContext newContextFn) func(t *testing.T) {
 			t.Errorf("ERROR: got HTTP status code: %d, want: %d\n", response.StatusCode, tt.wantHTTPStatus)
 		}
 
-		events := sse.NewReader(req.Context(), response.Body)
-		var cnt int
-		for e := range events {
-			// t.Logf("%v: got event: %v", time.Since(start), e)
-			if cnt < len(tt.wantEvents) && !reflect.DeepEqual(e, tt.wantEvents[cnt]) {
-				t.Errorf(" got event: %v\nwant event: %v", e, tt.wantEvents[cnt])
-			}
-			cnt++
-		}
-		if cnt != len(tt.wantEvents) {
-			t.Errorf("got %d events, want %d", cnt, len(tt.wantEvents))
-		}
+		tt.testDecoder(t, req.Context(), response.Body, tt)
 	}
 }
 
@@ -209,4 +236,32 @@ func watchMock(responses []bankid.CollectResponse, testErr error) watchTestFn {
 			return watch, nil
 		}
 	}
+}
+
+func ndjsonCheck(t *testing.T, ctx context.Context, body io.ReadCloser, tt authSignTest) {
+	responseChan := ndjson.NewReader[api.BankIdV6Response](ctx, body)
+	var cnt int
+	for res := range responseChan {
+		//t.Logf("got response: %v", res)
+		if cnt < len(tt.wantEvents) && !reflect.DeepEqual(res, tt.wantResponses[cnt]) {
+			t.Errorf(" got event: %v\nwant event: %v", res, tt.wantResponses[cnt])
+		}
+		cnt++
+	}
+}
+
+func sseCheck(t *testing.T, ctx context.Context, body io.ReadCloser, tt authSignTest) {
+	events := sse.NewReader(ctx, body)
+	var cnt int
+	for e := range events {
+		// t.Logf("%v: got event: %v", time.Since(start), e)
+		if cnt < len(tt.wantEvents) && !reflect.DeepEqual(e, tt.wantEvents[cnt]) {
+			t.Errorf(" got event: %v\nwant event: %v", e, tt.wantEvents[cnt])
+		}
+		cnt++
+	}
+	if cnt != len(tt.wantEvents) {
+		t.Errorf("got %d events, want %d", cnt, len(tt.wantEvents))
+	}
+
 }

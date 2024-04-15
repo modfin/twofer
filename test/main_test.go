@@ -88,7 +88,7 @@ func InitApplication(bankIDV6URL string) (*echo.Echo, error) {
 	client := &http.Client{}
 
 	twoferBankIDAPI := bankid.NewAPI(client, bankIDV6URL)
-	httpserve.RegisterBankIDServer(e, twoferBankIDAPI)
+	httpserve.RegisterBankIDServer(e, twoferBankIDAPI, nil)
 
 	return e, nil
 }

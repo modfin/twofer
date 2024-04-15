@@ -7,9 +7,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+
+	"github.com/modfin/twofer/stream"
 )
 
 type Writer struct {
+	mu sync.Mutex
 	http.ResponseWriter
 	flush func()
 }
@@ -18,6 +22,8 @@ var (
 	ErrInvalidWriter = errors.New("invalid writer")
 	ErrWrite         = errors.New("write error")
 )
+
+var _ stream.Writer = (*Writer)(nil) // Compile-time check that we implement stream.Writer interface
 
 func NewWriter(w http.ResponseWriter) (*Writer, error) {
 	f, ok := w.(http.Flusher)
@@ -32,6 +38,15 @@ func NewWriter(w http.ResponseWriter) (*Writer, error) {
 		ResponseWriter: w,
 		flush:          f.Flush,
 	}, nil
+}
+
+func NewEncoder(w http.ResponseWriter) (stream.Encoder, error) {
+	enc, err := NewWriter(w)
+	if err != nil {
+		return nil, err
+	}
+
+	return enc.SendJSON, nil
 }
 
 func writeField(buf *bytes.Buffer, field, data string) {
@@ -64,6 +79,9 @@ func writeField(buf *bytes.Buffer, field, data string) {
 }
 
 func (w *Writer) SendEvent(event, data, id, retry string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	var buf bytes.Buffer
 	writeField(&buf, "event", event)
 	writeField(&buf, "data", data)
