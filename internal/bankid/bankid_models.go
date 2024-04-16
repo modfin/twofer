@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -71,6 +72,19 @@ func (r *AuthSignRequest) ValidateSignRequest() error {
 	}
 
 	return nil
+}
+
+func (r *AuthSignRequest) MarshalJSON() ([]byte, error) {
+	type alias AuthSignRequest // Needed to avoid recursion
+	asr := alias(*r)
+
+	if asr.UserVisibleData != "" {
+		asr.UserVisibleData = base64.StdEncoding.EncodeToString([]byte(asr.UserVisibleData))
+	}
+	if asr.UserNonVisibleData != "" {
+		asr.UserNonVisibleData = base64.StdEncoding.EncodeToString([]byte(asr.UserNonVisibleData))
+	}
+	return json.Marshal(asr)
 }
 
 type AuthSignResponse struct {
