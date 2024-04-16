@@ -1,6 +1,6 @@
 FROM golang:1.21.9-alpine3.19 as builder
 
-RUN apk add --no-cache git curl build-base bash shadow
+#RUN apk add --no-cache git curl build-base bash shadow
 
 RUN mkdir -p /go/src/twofer
 WORKDIR /go/src/twofer
@@ -9,10 +9,11 @@ COPY . /go/src/twofer
 
 RUN ls
 
-RUN go build -o /twoferd ./cmd/twoferd/main.go
+RUN CGO_ENABLE=0 go build -o /twoferd ./cmd/twoferd/main.go
 
-FROM alpine:3.19.1
-RUN apk add --no-cache tzdata ca-certificates
+#FROM alpine:3.19.1
+#RUN apk add --no-cache tzdata ca-certificates
+FROM scratch
 EXPOSE 8080
 COPY --from=builder /twoferd /
-CMD /twoferd
+CMD [ "/twoferd" ]
