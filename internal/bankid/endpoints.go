@@ -184,13 +184,16 @@ func (a *API) WatchForChangeV2(ctx context.Context, orderRef string) (<-chan Cha
 	sendChange(*currentState)
 
 	go func(lastState *CollectResponse) {
+		// Poll BankID every two seconds (according to their spec)
+		pollTicker := time.NewTicker(time.Second * 2)
+		defer pollTicker.Stop()
 		defer close(watch)
 		for {
 			select {
 			case <-ctx.Done():
 				sendError(ctx.Err())
 				return
-			case <-time.After(time.Second):
+			case <-pollTicker.C:
 			}
 
 			resp, err := a.Collect(ctx, collectRequest)
