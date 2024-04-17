@@ -3,6 +3,7 @@ package httpserve
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -311,6 +312,15 @@ func createResponseFromCollect(change bankid.Change) api.BankIdV6Response {
 }
 
 func createResponseFromError(orderRef string, err error) api.BankIdV6Response {
+	var bie bankid.BankIdError
+	if errors.As(err, &bie) {
+		return api.BankIdV6Response{
+			OrderRef:     orderRef,
+			Status:       api.StatusError,
+			CollectError: bie.Details,
+			ErrorCode:    bie.ErrorCode,
+		}
+	}
 	return api.BankIdV6Response{
 		OrderRef:     orderRef,
 		Status:       api.StatusError,

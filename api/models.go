@@ -4,6 +4,7 @@ type (
 	BankIdV6Response struct {
 		OrderRef       string                  `json:"orderRef"`
 		CollectError   string                  `json:"error,omitempty"`
+		ErrorCode      string                  `json:"errorCode,omitempty"`
 		URI            string                  `json:"uri,omitempty"`
 		QR             string                  `json:"qr,omitempty"`
 		Status         string                  `json:"status,omitempty"`
