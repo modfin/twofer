@@ -313,6 +313,7 @@ func createResponseFromCollect(change bankid.Change) api.BankIdV6Response {
 func createResponseFromError(orderRef string, err error) api.BankIdV6Response {
 	return api.BankIdV6Response{
 		OrderRef:     orderRef,
+		Status:       api.StatusError,
 		CollectError: err.Error(),
 	}
 }

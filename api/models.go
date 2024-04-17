@@ -32,3 +32,10 @@ type (
 		MRTD bool `json:"mrtd,omitempty"`
 	}
 )
+
+const (
+	StatusPending  = "pending"
+	StatusComplete = "complete"
+	StatusFailed   = "failed"
+	StatusError    = "error"
+)
