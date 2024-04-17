@@ -172,12 +172,14 @@ func (a *API) WatchForChangeV2(ctx context.Context, orderRef string) (<-chan Cha
 		select {
 		case watch <- Change{Err: err}:
 		case <-time.After(time.Second):
+			// TODO: Log that we have skipped to send 'data' (channel timeout)
 		}
 	}
 	sendChange := func(change CollectResponse) {
 		select {
 		case watch <- Change{CollectResponse: change}:
 		case <-time.After(time.Second):
+			// TODO: Log that we have skipped to send 'data' (channel timeout)
 		}
 	}
 
