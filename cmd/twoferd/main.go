@@ -25,6 +25,8 @@ import (
 	"github.com/modfin/twofer/stream/sse"
 )
 
+const shutdownGracePeriod = time.Second * 200 // A BankID auth order is only valid for 30 seconds, unless it's scanned, then it's valid for 180 seconds.
+
 func main() {
 	cfg := config.Get()
 	e := echo.New()
@@ -111,7 +113,7 @@ func startServer(e *echo.Echo) {
 	case <-appCtx.Done():
 	}
 
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	timeout, cancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
 	defer cancel()
 
 	err := e.Shutdown(timeout)
