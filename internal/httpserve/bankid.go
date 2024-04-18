@@ -317,14 +317,14 @@ func createResponseFromError(orderRef string, err error) api.BankIdV6Response {
 		return api.BankIdV6Response{
 			OrderRef:     orderRef,
 			Status:       api.StatusError,
-			CollectError: bie.Details,
 			ErrorCode:    bie.ErrorCode,
+			ErrorText:    bie.Details,
 		}
 	}
 	return api.BankIdV6Response{
 		OrderRef:     orderRef,
 		Status:       api.StatusError,
-		CollectError: err.Error(),
+		ErrorText:    err.Error(),
 	}
 }
 
