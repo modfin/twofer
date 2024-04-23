@@ -172,14 +172,14 @@ func (a *API) WatchForChangeV2(ctx context.Context, orderRef string) (<-chan Cha
 		select {
 		case watch <- Change{Err: err}:
 		case <-time.After(time.Second):
-			// TODO: Log that we have skipped to send 'data' (channel timeout)
+			fmt.Printf("WatchForChangeV2 send timeout, failed to send: %v", err)
 		}
 	}
 	sendChange := func(change CollectResponse) {
 		select {
 		case watch <- Change{CollectResponse: change}:
 		case <-time.After(time.Second):
-			// TODO: Log that we have skipped to send 'data' (channel timeout)
+			fmt.Printf("WatchForChangeV2 send timeout, failed to send: %v", change)
 		}
 	}
 
@@ -251,6 +251,7 @@ func post[Request any, Response any](ctx context.Context, client *http.Client, r
 	}
 
 	if res.StatusCode != 200 {
+		fmt.Printf("%s returned status code %d with data: %s\n", url, res.StatusCode, body)
 		var bidError BankIdError
 		err = json.Unmarshal(body, &bidError)
 		if err == nil {

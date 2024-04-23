@@ -315,16 +315,16 @@ func createResponseFromError(orderRef string, err error) api.BankIdV6Response {
 	var bie bankid.BankIdError
 	if errors.As(err, &bie) {
 		return api.BankIdV6Response{
-			OrderRef:     orderRef,
-			Status:       api.StatusError,
-			ErrorCode:    bie.ErrorCode,
-			ErrorText:    bie.Details,
+			OrderRef:  orderRef,
+			Status:    api.StatusError,
+			ErrorCode: bie.ErrorCode,
+			ErrorText: bie.Details,
 		}
 	}
 	return api.BankIdV6Response{
-		OrderRef:     orderRef,
-		Status:       api.StatusError,
-		ErrorText:    err.Error(),
+		OrderRef:  orderRef,
+		Status:    api.StatusError,
+		ErrorText: err.Error(),
 	}
 }
 
@@ -408,6 +408,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 
 				if state.Err != nil {
 					// Something failed, channel will close after this...
+					fmt.Printf("ERR: collect returned error: %v\n", state.Err)
 					err = send(errorEvent, createResponseFromError(res.OrderRef, state.Err))
 					if err != nil {
 						fmt.Printf("ERR: failed to send status update: %v\n", err)
@@ -430,6 +431,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 
 				// Check for completion
 				if state.Status != "" && state.Status != bankid.Pending {
+					fmt.Printf("reached status: %v\n", state.Status)
 					return nil
 				}
 			}
