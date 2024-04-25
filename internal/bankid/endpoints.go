@@ -113,7 +113,7 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 	}
 }
 
-func (a *API) WatchForChange(ctx context.Context, orderRef string) chan WatchResponse {
+func (a *API) WatchForChange(ctx context.Context, orderRef string) <-chan WatchResponse {
 	watch := make(chan WatchResponse)
 
 	go func() {
@@ -153,6 +153,71 @@ func (a *API) WatchForChange(ctx context.Context, orderRef string) chan WatchRes
 	return watch
 }
 
+type Change struct {
+	CollectResponse
+	Err error
+}
+
+func (a *API) WatchForChangeV2(ctx context.Context, orderRef string) (<-chan Change, error) {
+	collectRequest := &CollectRequest{OrderRef: orderRef}
+
+	currentState, err := a.Collect(ctx, collectRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	watch := make(chan Change, 1) // Make it a buffered channel so that we can post initial state before we return
+
+	sendError := func(err error) {
+		select {
+		case watch <- Change{Err: err}:
+		case <-time.After(time.Second):
+			fmt.Printf("WatchForChangeV2 send timeout, failed to send: %v", err)
+		}
+	}
+	sendChange := func(change CollectResponse) {
+		select {
+		case watch <- Change{CollectResponse: change}:
+		case <-time.After(time.Second):
+			fmt.Printf("WatchForChangeV2 send timeout, failed to send: %v", change)
+		}
+	}
+
+	sendChange(*currentState)
+
+	go func(lastState *CollectResponse) {
+		// Poll BankID every two seconds (according to their spec)
+		pollTicker := time.NewTicker(time.Second * 2)
+		defer pollTicker.Stop()
+		defer close(watch)
+		for {
+			select {
+			case <-ctx.Done():
+				sendError(ctx.Err())
+				return
+			case <-pollTicker.C:
+			}
+
+			resp, err := a.Collect(ctx, collectRequest)
+			if err != nil {
+				sendError(err)
+				return
+			}
+
+			if resp.Status != lastState.Status || resp.HintCode != lastState.HintCode {
+				sendChange(*resp)
+				lastState = resp
+			}
+
+			if resp.Status != Pending {
+				return
+			}
+		}
+	}(currentState)
+
+	return watch, nil
+}
+
 func (a *API) Cancel(ctx context.Context, r *CancelRequest) error {
 	err := r.Validate()
 	if err != nil {
@@ -186,6 +251,7 @@ func post[Request any, Response any](ctx context.Context, client *http.Client, r
 	}
 
 	if res.StatusCode != 200 {
+		fmt.Printf("%s returned status code %d with data: %s\n", url, res.StatusCode, body)
 		var bidError BankIdError
 		err = json.Unmarshal(body, &bidError)
 		if err == nil {

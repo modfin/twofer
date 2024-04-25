@@ -2,8 +2,18 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/eid/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
@@ -11,17 +21,18 @@ import (
 	"github.com/modfin/twofer/internal/servotp"
 	"github.com/modfin/twofer/internal/servpwd"
 	"github.com/modfin/twofer/internal/servqr"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
-
-	"github.com/labstack/echo/v4"
+	"github.com/modfin/twofer/stream/ndjson"
+	"github.com/modfin/twofer/stream/sse"
 )
 
+const shutdownGracePeriod = time.Second * 200 // A BankID auth order is only valid for 30 seconds, unless it's scanned, then it's valid for 180 seconds.
+
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "prestophook" {
+		prestophook()
+		return
+	}
+
 	cfg := config.Get()
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -89,28 +100,36 @@ func main() {
 }
 
 func startServer(e *echo.Echo) {
+	appCtx, appClose := context.WithCancel(context.Background())
 	go func() {
-		fmt.Println(e.Start(":8080"))
+		err := e.Start(":8080")
+		if !errors.Is(err, http.ErrServerClosed) {
+			fmt.Println(err)
+		}
+		appClose()
 	}()
 
 	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, syscall.SIGTERM)
+	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT)
 
-	<-signalChannel
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
+	select {
+	case s := <-signalChannel:
+		fmt.Printf("twoferd received signal: %v\n", s)
+		appClose() // Cancel 'app context' when we receive SIGTERM
+	case <-appCtx.Done():
+	}
 
-		err := e.Shutdown(timeout)
-		if err != nil {
-			log.Fatalf("failure during Echo's shutdown: %v", err)
-		}
-		wg.Done()
-	}()
+	fmt.Println("Graceful shutdown initiated...")
 
-	wg.Wait()
+	timeout, cancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+	defer cancel()
+
+	err := e.Shutdown(timeout)
+	if err != nil {
+		log.Fatalf("failure during Echo's shutdown: %v", err)
+	}
+
+	fmt.Println("twoferd stopped")
 }
 
 func startEid(e *echo.Echo) {
@@ -149,6 +168,32 @@ func startEid(e *echo.Echo) {
 	} else {
 		fmt.Println("  - Adding BankId v6.0")
 		fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
-		httpserve.RegisterBankIDServer(e, bankid.APIv60)
+		httpserve.RegisterBankIDServer(e, bankid.APIv60, getStreamEncoder(config.Get().StreamEncoder))
 	}
+}
+
+func getStreamEncoder(encoder string) httpserve.NewStreamEncoder {
+	switch encoder {
+	case "SSE":
+		return sse.NewEncoder
+	default:
+		return ndjson.NewEncoder
+	}
+}
+
+func prestophook() {
+	fmt.Println("twofer - prestophook")
+
+	// Give K8S time to remove POD from service before stutdown is started
+	time.Sleep(time.Second)
+
+	// TODO: Check that twofer is actually PID 1 before we try to send signal?
+	err := syscall.Kill(1, syscall.SIGINT)
+	if err != nil {
+		fmt.Printf("prestophook: SIGINT error: %v", err)
+		return
+	}
+
+	// Wait for graceful shutdown period to end. When PID 1 have exited, we'll be terminated as well
+	time.Sleep(shutdownGracePeriod)
 }

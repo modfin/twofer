@@ -25,9 +25,9 @@ func New(config ClientConfig) (client *BankID, err error) {
 		pemClientCert: config.PemClientCert,
 		pemRootCA:     config.PemRootCA,
 
-		stop:       make(chan struct{}),
-		infromAuth: make(chan string, 1),
-		infromSign: make(chan string, 1),
+		//stop:       make(chan struct{}),
+		//infromAuth: make(chan string, 1),
+		//infromSign: make(chan string, 1),
 	}
 
 	p, _ := pem.Decode(client.pemClientCert)
@@ -41,14 +41,14 @@ func New(config ClientConfig) (client *BankID, err error) {
 	client.parsedClientCert = *cert
 
 	client.httpClient, err = mtls.CreateHTTPClient(client.pemRootCA, client.pemClientCert, client.pemClientKey)
+	if err != nil {
+		return nil, err
+	}
 
 	client.APIv51 = bankid_v51.NewEid(client.httpClient, config.BaseURL)
 
 	client.APIv60 = bankid.NewAPI(client.httpClient, client.baseURL)
 
-	if err != nil {
-		return
-	}
 	return
 }
 
@@ -60,9 +60,9 @@ type BankID struct {
 
 	httpClient *http.Client
 
-	stop       chan struct{}
-	infromAuth chan string
-	infromSign chan string
+	//stop       chan struct{}
+	//infromAuth chan string
+	//infromSign chan string
 
 	pemRootCA     []byte
 	pemClientCert []byte

@@ -4,24 +4,28 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 // Sender represents a http server-sent events sender used to send compatible SSE events.
 // See https://html.spec.whatwg.org/multipage/server-sent-events.html
 type Sender struct {
-	writer  http.ResponseWriter
-	flusher http.Flusher
+	response *echo.Response
+	writer   http.ResponseWriter
+	flush    func()
 }
 
-func NewSender(writer http.ResponseWriter) (*Sender, error) {
-	flusher, ok := writer.(http.Flusher)
+func NewSender(response *echo.Response) (*Sender, error) {
+	flusher, ok := response.Writer.(http.Flusher)
 	if !ok {
 		return nil, errors.New("failed to instantiate a http.Flusher from the response writer")
 	}
 
 	return &Sender{
-		writer:  writer,
-		flusher: flusher,
+		response: response,
+		writer:   response.Writer,
+		flush:    flusher.Flush,
 	}, nil
 }
 
@@ -59,7 +63,7 @@ func (s *Sender) Send(event Event) error {
 		return err
 	}
 
-	s.flusher.Flush()
-
+	s.flush()
+	s.response.Committed = true // Needed to fix 'superfluous response.WriteHeader' console messages
 	return nil
 }

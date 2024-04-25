@@ -7,12 +7,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/modfin/twofer/internal/bankid"
-	"github.com/modfin/twofer/internal/sse"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/modfin/twofer/internal/bankid"
+	"github.com/modfin/twofer/internal/sse"
 )
 
 func (s *IntegrationTestSuite) TestAuthCallOnce() {
@@ -83,6 +84,7 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 	scanner := bufio.NewScanner(resp.Body)
 	defer resp.Body.Close()
 	for i := 0; i < 2; i++ { // Server should run for 30 seconds, but let's not wait that long for tests. If pattern holds for 2 messages it should be fine
+		s.T().Logf("Iteration #%d", i)
 		msg := sse.Event{}
 
 		scanRes := scanner.Scan()
@@ -363,6 +365,7 @@ func (s *IntegrationTestSuite) TestSignCall() {
 	scanner := bufio.NewScanner(resp.Body)
 	defer resp.Body.Close()
 	for i := 0; i < 2; i++ { // Server should run for 30 seconds, but let's not wait that long for tests. If pattern holds for 2 messages it should be fine
+		s.T().Logf("Iteration #%d", i)
 		msg := sse.Event{}
 
 		scanRes := scanner.Scan()
