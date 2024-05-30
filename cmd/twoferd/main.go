@@ -17,7 +17,6 @@ import (
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/eid/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
-	"github.com/modfin/twofer/internal/serveid"
 	"github.com/modfin/twofer/internal/servotp"
 	"github.com/modfin/twofer/internal/servpwd"
 	"github.com/modfin/twofer/internal/servqr"
@@ -134,8 +133,8 @@ func startServer(e *echo.Echo) {
 
 func startEid(e *echo.Echo) {
 	fmt.Println("- Enabling EID")
-	serve := serveid.New()
-	httpserve.RegisterEIDServer(e, serve)
+	//serve := serveid.New()
+	//httpserve.RegisterEIDServer(e, serve)
 
 	if !config.Get().BankID.Enabled {
 		return
@@ -153,22 +152,21 @@ func startEid(e *echo.Echo) {
 		return
 	}
 
-	err = bankid.APIv51.Ping()
-	if err != nil {
-		fmt.Printf("  - Err: Could not ping bankid v5.1. %v", err)
-	} else {
-		fmt.Println("  - Adding BankId v5.1")
-		fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
-		serve.Add(bankid.APIv51)
-	}
+	//err = bankid.APIv51.Ping()
+	//if err != nil {
+	//	fmt.Printf("  - Err: Could not ping bankid v5.1. %v", err)
+	//} else {
+	//	fmt.Println("  - Adding BankId v5.1")
+	//	fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
+	//	serve.Add(bankid.APIv51)
+	//}
 
+	fmt.Println("  - Adding BankId v6.0")
+	fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
+	httpserve.RegisterBankIDServer(e, bankid.APIv60, getStreamEncoder(config.Get().StreamEncoder))
 	err = bankid.APIv60.Ping()
 	if err != nil {
 		fmt.Printf("  - Err: Could not ping bankid. %v", err)
-	} else {
-		fmt.Println("  - Adding BankId v6.0")
-		fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
-		httpserve.RegisterBankIDServer(e, bankid.APIv60, getStreamEncoder(config.Get().StreamEncoder))
 	}
 }
 
