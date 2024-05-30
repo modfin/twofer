@@ -2,8 +2,8 @@ FROM golang:1.21.9
 
 RUN apt-get update && apt-get install -y inotify-hookable
 
-RUN mkdir -p /twofer
-WORKDIR /twofer
+RUN mkdir -p /go/src/github.com/modfin/twofer
+WORKDIR /go/src/github.com/modfin/twofer
 
 # run fswatch
 CMD ./fw.sh serve start ./cmd/twoferd
