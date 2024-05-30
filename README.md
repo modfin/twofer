@@ -8,7 +8,7 @@ A stateless service implementing some two factor authentication methods, so life
  
  
 ## E-ID
-Twofer support Swedish BankId and FrejaID as Electronic identification. This can be used for signup in order to collect the 
+Twofer support Swedish BankId as Electronic identification. This can be used for signup in order to collect the 
  identity of the user, as a factor in a authentication scheme or for collecting signatures.
  
 ### API 
@@ -16,7 +16,7 @@ The gRPC API for Authentication and Signatures abstracts the provider that is be
 E-ID.  
 
 There is 5 method calls
-* `GetProviders` - Returns a list of active Eid providers registered. eg. BankId and/or FrejaId
+* `GetProviders` - Returns a list of active Eid providers registered. eg. BankId
 * `AuthInit` - Initiates a Authentication request  
 * `SignInit` - Initiates a Signature request
 * `Peek` - Returns the current status of a Auth or a Sign request
@@ -56,45 +56,6 @@ EID_BANKID_CLIENT_KEY_FILE=/path/to/bank-id-key.pem
 * Go to https://demo.bankid.com/ and register a test account.
 * Use gRPC client.
 
-
-### FrejaID - [frejaeid.com](https://org.frejaeid.com/en/developers-section)
-Twofer is in the context of FrejaID considered a Relying party.
-
-#### For testing
-* Request a .pfx file from Frejas customer service
-* Extract the pem file `openssl pkcs12 -in freja.pfx -out freja_all.pem -nodes` (password: qwerty123)
-* From freja_all.pem, extract Private Key portion into  `freja-key.pem`
-* From freja_all.pem, extract Certificate portion into  `freja-cert.pem` 
-* From [documentation](https://frejaeid.com/rest-api/Freja%20eID%20Relying%20Party%20Developers'%20Documentation.html#FrejaeIDRelyingPartyDevelopers'Documentation-ServerSSLcertificate) 
-copy Root CA pem into `freja-rootca.pem`
-* From [documentation](https://frejaeid.com/rest-api/Freja%20eID%20Relying%20Party%20Developers'%20Documentation.html#FrejaeIDRelyingPartyDevelopers'Documentation-JWSJWScertificate) 
-copy JWS pem into `freja-jws-cert.pem`
-
-
-**Config**
-When starting twofer add the following environment variables
-```bash
-EID_FREJA_ENABLE=true
-EID_FREJA_URL=https://services.test.frejaeid.com
-
-## Used to authenticate Freja servers towards twofer
-## EID_FREJA_ROOT_CA_PEM can be used to load pm directly from file
-EID_FREJA_ROOT_CA_PEM_FILE=/path/to/freja-rootca.pem   
-
- ## Used to authenticate your account towards Freja
-## EID_FREJA_CLIENT_CERT can be used to load pm directly from file
-EID_FREJA_CLIENT_CERT_FILE=/path/to/freja-cert.pem    
-
-## Used to authenticate your account towards Freja
-## EID_FREJA_CLIENT_KEY can be used to load pm directly from file
-EID_FREJA_CLIENT_KEY_FILE=/path/to/freja-key.pem       
-
-## Used to verify messages sent by Freja
-## EID_FREJA_JWS_CERT can be used to load pm directly from file
-EID_FREJA_JWS_CERT_FILE=/path/to/freja-jws-cert.pem    
-```
-
- 
 ## OTP
 TOTP and HOTP is often part of a multi factor scheme and while this is often not hard to implement, it might be harder 
 to protect and there are a few consideration when implementing it. There for twofer includes a OTP service that helps 
@@ -170,7 +131,7 @@ WEBAUTHN_TIMEOUT=60s # Default: 60s
 
 
 ## QR
-Since both BankID, Freja and OTP have a QR-code components, a gRPC api is included which turns test in to a png QR code image
+Since both BankID and OTP have a QR-code components, a gRPC api is included which turns test in to a png QR code image
 
 **Use**
 * gRPC `Generate`
