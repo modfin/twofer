@@ -31,7 +31,7 @@ Twofer is in the context of BankID considered a Relying party.
 * Extract the pem file `openssl pkcs12 -in FPTestcert3_20200618.p12 -out bank_id_all.pem -nodes` (password: qwerty123)
 * From bank_id_all.pem, extract Private Key portion into  `bank-id-key.pem`
 * From bank_id_all.pem, extract Certificate portion into  `bank-id-cert.pem` 
-* From [documentation](https://www.bankid.com/assets/bankid/rp/bankid-relying-party-guidelines-v3.5.pdf) copy Root CA pem (section 8) into `bank-id-rootca.pem`
+* From [documentation](https://developers.bankid.com/getting-started/backend/environments) copy Root CA pem (section 8) into `bank-id-rootca.pem`
 
 **Config**
 When starting twofer add the following environment variables
