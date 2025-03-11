@@ -27,7 +27,7 @@ There is 5 method calls
 Twofer is in the context of BankID considered a Relying party.
 
 #### For testing
-* Download the a certificate SSL certificate for test [FPTestcert3_20200618.p12](https://www.bankid.com/assets/bankid/rp/FPTestcert3_20200618.p12)
+* Download a [SSL certificate for test](https://developers.bankid.com/test-portal/test-information).
 * Extract the pem file `openssl pkcs12 -in FPTestcert3_20200618.p12 -out bank_id_all.pem -nodes` (password: qwerty123)
 * From bank_id_all.pem, extract Private Key portion into  `bank-id-key.pem`
 * From bank_id_all.pem, extract Certificate portion into  `bank-id-cert.pem` 
