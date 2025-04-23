@@ -14,6 +14,7 @@ import (
 
 type AuthSignRequest struct {
 	EndUserIp             string      `json:"endUserIp"`
+	ReturnUrl             string      `json:"returnUrl,omitempty"`
 	Requirement           Requirement `json:"requirement,omitempty"`
 	UserVisibleData       string      `json:"userVisibleData,omitempty"`
 	UserNonVisibleData    string      `json:"userNonVisibleData,omitempty"`
