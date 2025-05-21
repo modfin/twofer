@@ -8,6 +8,7 @@ import (
 	bankid_v51 "github.com/modfin/twofer/internal/eid/bankid/v5.1"
 	"github.com/modfin/twofer/internal/mtls"
 	"net/http"
+	"time"
 )
 
 type ClientConfig struct {
@@ -16,6 +17,8 @@ type ClientConfig struct {
 	PemRootCA     []byte
 	PemClientCert []byte
 	PemClientKey  []byte
+
+	PollInterval time.Duration
 }
 
 func New(config ClientConfig) (client *BankID, err error) {
@@ -47,7 +50,7 @@ func New(config ClientConfig) (client *BankID, err error) {
 
 	client.APIv51 = bankid_v51.NewEid(client.httpClient, config.BaseURL)
 
-	client.APIv60 = bankid.NewAPI(client.httpClient, client.baseURL)
+	client.APIv60 = bankid.NewAPI(client.httpClient, client.baseURL, config.PollInterval)
 
 	return
 }

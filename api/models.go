@@ -1,6 +1,32 @@
 package api
 
 type (
+	BankIdv6AuthSignRequest struct {
+		EndUserIp             string                      `json:"endUserIp"`
+		Requirement           BankIdv6AuthSignRequirement `json:"requirement,omitempty"`
+		UserVisibleData       string                      `json:"userVisibleData,omitempty"`
+		UserNonVisibleData    string                      `json:"userNonVisibleData,omitempty"`
+		UserVisibleDataFormat string                      `json:"userVisibleDataFormat,omitempty"`
+	}
+	BankIdv6AuthSignRequirement struct {
+		PinCode             bool     `json:"pinCode,omitempty"`
+		MRTD                bool     `json:"mrtd,omitempty"`
+		CardReader          string   `json:"cardReader,omitempty"`
+		CertificatePolicies []string `json:"certificatePolicies,omitempty"`
+		PersonalNumber      string   `json:"personalNumber,omitempty"`
+	}
+	BankIdv6ChangeRequest struct {
+		OrderRef string `json:"orderRef"`
+
+		// WaitUntilFinished allows the request to wait until the referenced request has either completed or failed,
+		// and will not return on state changes during the ongoing process.
+		WaitUntilFinished bool `json:"onFinished"`
+	}
+
+	BankIdv6CollectRequest struct {
+		OrderRef string `json:"orderRef"`
+	}
+
 	BankIdV6Response struct {
 		OrderRef       string                  `json:"orderRef"`
 		ErrorCode      string                  `json:"errorCode,omitempty"`
@@ -39,4 +65,5 @@ const (
 	StatusComplete = "complete"
 	StatusFailed   = "failed"
 	StatusError    = "error"
+	StatusQrCode   = "qrcode"
 )

@@ -20,7 +20,7 @@ type Config struct {
 	WebAuthn  WebAuthn
 	PWD       PWD
 
-	StreamEncoder string `env:"STREAM_ENCODER" envDefault:"NDJSON"`
+	StreamEncoder string `env:"STREAM_ENCODER" envDefault:"SSE"`
 }
 
 func (c Config) EIDEnabled() bool {
@@ -36,14 +36,15 @@ type OTP struct {
 }
 
 type BankID struct {
-	Enabled        bool     `env:"EID_BANKID_ENABLE" envDefault:"FALSE"`
-	URL            *url.URL `env:"EID_BANKID_URL"`
-	RootCA         string   `env:"EID_BANKID_ROOT_CA_PEM"`
-	RootCAFile     string   `env:"EID_BANKID_ROOT_CA_PEM_FILE,file"`
-	ClientCert     string   `env:"EID_BANKID_CLIENT_CERT"`
-	ClientCertFile string   `env:"EID_BANKID_CLIENT_CERT_FILE,file"`
-	ClientKey      string   `env:"EID_BANKID_CLIENT_KEY"`
-	ClientKeyFile  string   `env:"EID_BANKID_CLIENT_KEY_FILE,file"`
+	Enabled        bool          `env:"EID_BANKID_ENABLE" envDefault:"FALSE"`
+	URL            *url.URL      `env:"EID_BANKID_URL"`
+	RootCA         string        `env:"EID_BANKID_ROOT_CA_PEM"`
+	RootCAFile     string        `env:"EID_BANKID_ROOT_CA_PEM_FILE,file"`
+	ClientCert     string        `env:"EID_BANKID_CLIENT_CERT"`
+	ClientCertFile string        `env:"EID_BANKID_CLIENT_CERT_FILE,file"`
+	ClientKey      string        `env:"EID_BANKID_CLIENT_KEY"`
+	ClientKeyFile  string        `env:"EID_BANKID_CLIENT_KEY_FILE,file"`
+	PollInterval   time.Duration `env:"EID_BANKID_POLL_INTERVAL" envDefault:"2s"` // Poll BankID every two seconds as default (according to their spec)
 }
 
 func (b BankID) GetRootCA() []byte {

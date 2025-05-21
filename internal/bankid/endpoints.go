@@ -19,14 +19,16 @@ const (
 )
 
 type API struct {
-	baseURL string
-	client  *http.Client
+	baseURL      string
+	client       *http.Client
+	pollInterval time.Duration
 }
 
-func NewAPI(client *http.Client, baseURL string) *API {
+func NewAPI(client *http.Client, baseURL string, pollInterval time.Duration) *API {
 	return &API{
-		client:  client,
-		baseURL: baseURL,
+		client:       client,
+		baseURL:      baseURL,
+		pollInterval: pollInterval,
 	}
 }
 
@@ -94,7 +96,7 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 		case <-ctx.Done():
 			err = ctx.Err()
 			return nil, err
-		case <-time.After(time.Second):
+		case <-time.After(a.pollInterval):
 		}
 
 		var resp *CollectResponse

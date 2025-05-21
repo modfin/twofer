@@ -24,11 +24,15 @@ type NewStreamEncoder func(http.ResponseWriter) (stream.Encoder, error)
 
 func RegisterBankIDServer(e *echo.Echo, client *bankid.API, newEncoder NewStreamEncoder) {
 	e.POST("/bankid/v6/auth", auth(client))
-	e.POST("/bankid/v6/authv2", authSign(client.Auth, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder))
+	e.POST("/bankid/v6/authv2", authSign(client.Auth, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder)) // Deprecated: Don't use
+	e.POST("/bankid/v6/authv3", authSignV3(client.Auth, qrCodeUpdatePeriod, newEncoder))                        // Same as 'auth' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
 	e.POST("/bankid/v6/sign", sign(client))
-	e.POST("/bankid/v6/signv2", authSign(client.Sign, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder))
+	e.POST("/bankid/v6/signv2", authSign(client.Sign, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder)) // Deprecated: Don't use
+	e.POST("/bankid/v6/signv3", authSignV3(client.Sign, qrCodeUpdatePeriod, newEncoder))                        // Same as 'sign' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
 	e.POST("/bankid/v6/change", change(client))
+	e.POST("/bankid/v6/changeV3", changeV3(client))
 	e.POST("/bankid/v6/collect", collect(client))
+	e.POST("/bankid/v6/collectV3", collectV3(client))
 	e.POST("/bankid/v6/cancel", cancel(client))
 }
 
@@ -339,6 +343,7 @@ const (
 	errorEvent  = "error"
 )
 
+// Deprecated: Use either /bankid/v6/auth or /bankid/v6/authv3 endpoints
 func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder) func(echo.Context) error {
 	return func(c echo.Context) error {
 		b, err := io.ReadAll(c.Request().Body)
@@ -373,7 +378,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 			return c.JSON(400, createResponseFromError(res.OrderRef, err))
 		}
 
-		err = send(qrCodeEvent, createResponseFromAuthSign(res, 0))
+		err = send("", qrCodeEvent, createResponseFromAuthSign(res, 0))
 		if err != nil {
 			fmt.Printf("ERR: failed to write auth response to stream: %s\n", err.Error())
 			return c.JSON(400, createResponseFromError(res.OrderRef, err))
@@ -393,7 +398,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 		for {
 			select {
 			case <-updateQR.C:
-				err = send(qrCodeEvent, createResponseFromAuthSign(res, qrCount))
+				err = send("", qrCodeEvent, createResponseFromAuthSign(res, qrCount))
 				if err != nil {
 					fmt.Printf("ERR: failed to send updated QR code message: %v\n", err)
 					return echo.NewHTTPError(http.StatusInternalServerError, "failed to send updated QR code message")
@@ -409,7 +414,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 				if state.Err != nil {
 					// Something failed, channel will close after this...
 					fmt.Printf("ERR: collect returned error: %v\n", state.Err)
-					err = send(errorEvent, createResponseFromError(res.OrderRef, state.Err))
+					err = send("", errorEvent, createResponseFromError(res.OrderRef, state.Err))
 					if err != nil {
 						fmt.Printf("ERR: failed to send status update: %v\n", err)
 						return echo.NewHTTPError(http.StatusInternalServerError, "failed to send error message")
@@ -423,7 +428,7 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 				}
 
 				// Stream latest status to caller
-				err = send(statusEvent, createResponseFromCollect(state))
+				err = send("", statusEvent, createResponseFromCollect(state))
 				if err != nil {
 					fmt.Printf("ERR: failed to send status update: %v\n", err)
 					return echo.NewHTTPError(http.StatusInternalServerError, "failed to send status update")
@@ -436,5 +441,207 @@ func authSign(authSign authSignFn, watch watchFn, qrPeriod time.Duration, newStr
 				}
 			}
 		}
+	}
+}
+
+func readBody[T any](body io.ReadCloser) (*T, error) {
+	defer body.Close()
+	b, err := io.ReadAll(body)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request payload: %w", err)
+	}
+
+	var request T
+	err = json.Unmarshal(b, &request)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request payload content: %w", err)
+	}
+	return &request, nil
+}
+
+func errToBankIdV6Response(orderRef string, err error) api.BankIdV6Response {
+	if err != nil {
+		var bie bankid.BankIdError
+		if errors.As(err, &bie) {
+			return api.BankIdV6Response{
+				OrderRef:  orderRef,
+				Status:    api.StatusError,
+				ErrorCode: bie.ErrorCode,
+				ErrorText: bie.Details,
+			}
+		}
+		return api.BankIdV6Response{
+			OrderRef:  orderRef,
+			Status:    api.StatusError,
+			ErrorText: err.Error(),
+		}
+	}
+
+	return api.BankIdV6Response{OrderRef: orderRef, Status: api.StatusError, ErrorText: "no error"}
+}
+
+func authSignToBankIdV6Response(orderRef string, asr *bankid.AuthSignResponse, qrNo int) api.BankIdV6Response {
+	if asr == nil {
+		return api.BankIdV6Response{
+			OrderRef:  orderRef,
+			Status:    api.StatusError,
+			ErrorText: "no auth/sign data",
+		}
+	}
+
+	return api.BankIdV6Response{
+		OrderRef: orderRef,
+		Status:   api.StatusQrCode,
+		URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", asr.AutoStartToken),
+		QR:       asr.BuildQrCode(qrNo),
+	}
+}
+
+func collectToBankIdV6Response(orderRef string, collectResponse *bankid.CollectResponse) api.BankIdV6Response {
+	if collectResponse == nil {
+		return api.BankIdV6Response{
+			OrderRef:  orderRef,
+			Status:    api.StatusError,
+			ErrorText: "no collect data",
+		}
+	}
+
+	switch collectResponse.Status {
+	// Status == pending, only send status and hint updates
+	case bankid.Pending:
+		return api.BankIdV6Response{
+			OrderRef: orderRef,
+			Status:   api.StatusPending,
+			HintCode: string(collectResponse.HintCode),
+		}
+	// Status == failed, only send status and hint updates
+	case bankid.Failed:
+		return api.BankIdV6Response{
+			OrderRef: orderRef,
+			Status:   api.StatusFailed,
+			HintCode: string(collectResponse.HintCode),
+		}
+	// Status == complete, send complete message
+	case bankid.Complete:
+		return api.BankIdV6Response{
+			OrderRef: orderRef,
+			Status:   api.StatusComplete,
+			HintCode: string(collectResponse.HintCode),
+			CompletionData: &api.BankIdV6CompletionData{
+				User:            api.BankIdV6User(collectResponse.CompletionData.User),
+				Device:          api.BankIdV6Device(collectResponse.CompletionData.Device),
+				BankIdIssueDate: collectResponse.CompletionData.BankIdIssueDate,
+				StepUp:          api.BankIdV6StepUp(collectResponse.CompletionData.StepUp),
+				Signature:       collectResponse.CompletionData.Signature,
+				OcspResponse:    collectResponse.CompletionData.OcspResponse,
+			},
+		}
+	// Unknown status
+	default:
+		return api.BankIdV6Response{OrderRef: orderRef,
+			Status:    api.StatusError,
+			HintCode:  string(collectResponse.HintCode),
+			ErrorText: fmt.Sprintf("unknown collect response status: %v", collectResponse.Status),
+		}
+	}
+}
+
+// Similar to the /bankid/v6/auth and /bankid/v6/sign endpoints.
+// The biggest difference is that it won't call the BankID collect API to watch for changes, since
+// a completed/failed orderRef can only be collected once, so this endpoint will continue to send
+// QR-codes for 30 seconds. All status updates must be handled outside twofer, by calling collect
+// or change endpoints after the first QR-code has been returned. This also always returns one or
+// more api.BankIdV6Response structs
+func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder) func(echo.Context) error {
+	return func(c echo.Context) error {
+		request, err := readBody[api.BankIdv6AuthSignRequest](c.Request().Body)
+		if err != nil {
+			fmt.Printf("ERR: failed to unmarshal auth request message: %v\n", err)
+			return c.JSON(http.StatusBadRequest, errToBankIdV6Response("", err))
+		}
+
+		// Convert from public API to internal struct
+		r := &bankid.AuthSignRequest{
+			EndUserIp:             request.EndUserIp,
+			Requirement:           bankid.Requirement(request.Requirement),
+			UserVisibleData:       request.UserVisibleData,
+			UserNonVisibleData:    request.UserNonVisibleData,
+			UserVisibleDataFormat: request.UserVisibleDataFormat,
+		}
+
+		res, err := authOrSignFn(c.Request().Context(), r)
+		if err != nil {
+			fmt.Printf("ERR: initiating auth/sign request against bankid: %v\n", err)
+			return c.JSON(http.StatusBadRequest, errToBankIdV6Response("", err))
+		}
+
+		// In the case a client wants to initiate a new request every second instead of relying on SSE
+		// we respond with the first entry and then close the connection
+		response := c.QueryParam("type")
+		if response == "once" {
+			return c.JSON(http.StatusOK, authSignToBankIdV6Response(res.OrderRef, res, 0))
+		}
+
+		// Create SSE / NDJSON event stream
+		send, err := newStreamEncoder(c.Response())
+		if err != nil {
+			fmt.Printf("ERR: failed to setup auth response stream: %s\n", err.Error())
+			return c.JSON(http.StatusInternalServerError, errToBankIdV6Response(res.OrderRef, err))
+		}
+
+		// Stream new QR codes for about 30 seconds
+		for i := 0; i < 30; i++ {
+			err = send(strconv.Itoa(i), "message", authSignToBankIdV6Response(res.OrderRef, res, i))
+			if err != nil {
+				fmt.Printf("ERR: failed to send QR-code message: %s\n", err.Error())
+				return c.JSON(http.StatusInternalServerError, "failed to send response message")
+			}
+			time.Sleep(qrPeriod)
+		}
+		return nil
+	}
+}
+
+// Pretty much the same as change, except that we always return the twofer public api.BankIdV6Response struct
+func changeV3(client *bankid.API) func(echo.Context) error {
+	return func(c echo.Context) error {
+		request, err := readBody[api.BankIdv6ChangeRequest](c.Request().Body)
+		if err != nil {
+			fmt.Printf("ERR: failed to unmarshal change request message: %v\n", err)
+			return c.JSON(http.StatusBadRequest, errToBankIdV6Response("", err))
+		}
+
+		// Convert from public API to internal struct
+		r := &bankid.ChangeRequest{
+			OrderRef:          request.OrderRef,
+			WaitUntilFinished: request.WaitUntilFinished,
+		}
+
+		res, err := client.Change(c.Request().Context(), r)
+		if err != nil {
+			fmt.Printf("ERR: initiating change request against bankid: %v\n", err)
+			return c.JSON(http.StatusBadRequest, errToBankIdV6Response(request.OrderRef, err))
+		}
+
+		return c.JSON(http.StatusOK, collectToBankIdV6Response(request.OrderRef, res))
+	}
+}
+
+// Pretty much the same as collect, except that we always return the twofer public api.BankIdV6Response struct
+func collectV3(client *bankid.API) func(echo.Context) error {
+	return func(c echo.Context) error {
+		request, err := readBody[api.BankIdv6CollectRequest](c.Request().Body)
+		if err != nil {
+			fmt.Printf("ERR: failed to unmarshal collect request message: %s\n", err.Error())
+			return c.JSON(http.StatusBadRequest, errToBankIdV6Response("", err))
+		}
+
+		res, err := client.Collect(c.Request().Context(), &bankid.CollectRequest{OrderRef: request.OrderRef})
+		if err != nil {
+			fmt.Printf("ERR: initiating collect request against bankid: %s\n", err.Error())
+			return c.JSON(http.StatusBadRequest, errToBankIdV6Response(request.OrderRef, err))
+		}
+
+		return c.JSON(http.StatusOK, collectToBankIdV6Response(request.OrderRef, res))
 	}
 }
