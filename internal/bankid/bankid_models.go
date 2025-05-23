@@ -200,12 +200,13 @@ func (c *CancelRequest) Validate() error {
 }
 
 type BankIdError struct {
-	ErrorCode string `json:"errorCode"`
-	Details   string `json:"details"`
+	StatusCode int    `json:"-"`
+	ErrorCode  string `json:"errorCode"`
+	Details    string `json:"details"`
 }
 
 func (e BankIdError) Error() string {
-	return fmt.Sprintf("bankid: %s, %s", e.ErrorCode, e.Details)
+	return fmt.Sprintf("bankid: (%d) %s, %s", e.StatusCode, e.ErrorCode, e.Details)
 }
 
 type Empty struct{}

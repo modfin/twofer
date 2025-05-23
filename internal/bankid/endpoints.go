@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
 	"time"
@@ -107,6 +108,49 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 
 		if r.WaitUntilFinished && resp.Status != Pending {
 			return resp, nil
+		}
+
+		if resp.HintCode != startState.HintCode {
+			return resp, nil
+		}
+	}
+}
+
+func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest) (*CollectResponse, error) {
+	err := r.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	collectRequest := &CollectRequest{OrderRef: r.OrderRef}
+
+	startState, err := a.Collect(ctx, collectRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	if startState.Status == Complete || startState.Status == Failed {
+		return startState, nil
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(a.pollInterval):
+		}
+
+		var resp *CollectResponse
+		resp, err = a.Collect(ctx, collectRequest)
+		if err != nil {
+			return nil, err
+		}
+
+		if r.WaitUntilFinished {
+			if resp.Status != Pending {
+				return resp, nil
+			}
+			continue
 		}
 
 		if resp.HintCode != startState.HintCode {
@@ -255,12 +299,14 @@ func post[Request any, Response any](ctx context.Context, client *http.Client, r
 	if res.StatusCode != 200 {
 		fmt.Printf("%s returned status code %d with data: %s\n", url, res.StatusCode, body)
 		var bidError BankIdError
-		err = json.Unmarshal(body, &bidError)
-		if err == nil {
-			err = bidError
+		if res.Header.Get(echo.HeaderContentType) == echo.MIMEApplicationJSON {
+			err = json.Unmarshal(body, &bidError)
+			if err != nil {
+				fmt.Printf("failed to unmarshal BankIdError, error: %v\n", err)
+			}
 		}
-
-		return nil, err
+		bidError.StatusCode = res.StatusCode
+		return nil, bidError
 	}
 
 	var response Response
