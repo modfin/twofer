@@ -41,7 +41,7 @@ func NewEncoder(w http.ResponseWriter) (stream.Encoder, error) {
 	return enc.SendJSON, nil
 }
 
-func (w *Writer) SendJSON(_ string, data any) error {
+func (w *Writer) SendJSON(_, _ string, data any) error {
 	if data == nil {
 		return nil
 	}

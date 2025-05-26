@@ -72,7 +72,7 @@ func TestWriter_SendEvent(t *testing.T) {
 				t.Fatalf("Failed to create new writer: %v", err)
 			}
 
-			err = w.SendJSON("", tt.data)
+			err = w.SendJSON("", "", tt.data)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("SendJSON() error = %v, wantErr %v", err, tt.wantErr)
 			}

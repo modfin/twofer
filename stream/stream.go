@@ -2,7 +2,7 @@ package stream
 
 type (
 	Writer interface {
-		SendJSON(string, any) error
+		SendJSON(string, string, any) error
 	}
-	Encoder func(string, any) error
+	Encoder func(id string, event string, data any) error
 )

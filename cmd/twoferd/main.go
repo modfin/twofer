@@ -146,6 +146,7 @@ func startEid(e *echo.Echo) {
 		PemRootCA:     config.Get().BankID.GetRootCA(),
 		PemClientCert: config.Get().BankID.GetClientCert(),
 		PemClientKey:  config.Get().BankID.GetClientKey(),
+		PollInterval:  config.Get().BankID.PollInterval,
 	})
 	if err != nil {
 		fmt.Printf("failed to initate bankId %v", err)

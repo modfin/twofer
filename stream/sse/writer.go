@@ -59,7 +59,7 @@ func writeField(buf *bytes.Buffer, field, data string) {
 	hasLineBreaks := strings.ContainsAny(data, "\n\r")
 	if !hasLineBreaks {
 		buf.WriteString(field)
-		buf.WriteString(":")
+		buf.WriteString(": ")
 		buf.WriteString(data)
 		buf.WriteString("\n")
 		return
@@ -105,10 +105,10 @@ func (w *Writer) SendEvent(event, data, id, retry string) error {
 	return nil
 }
 
-func (w *Writer) SendJSON(event string, data any) error {
+func (w *Writer) SendJSON(id, event string, data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	return w.SendEvent(event, string(b), "", "")
+	return w.SendEvent(event, string(b), id, "")
 }
