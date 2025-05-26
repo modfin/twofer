@@ -59,7 +59,7 @@ func writeField(buf *bytes.Buffer, field, data string) {
 	hasLineBreaks := strings.ContainsAny(data, "\n\r")
 	if !hasLineBreaks {
 		buf.WriteString(field)
-		buf.WriteString(":")
+		buf.WriteString(": ")
 		buf.WriteString(data)
 		buf.WriteString("\n")
 		return
