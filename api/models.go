@@ -42,6 +42,10 @@ type (
 		// EndUserIp The user IP address as it is seen by your service
 		EndUserIp string `json:"endUserIp"`
 
+		// ReturnUrl Orders started on the same device as where the user's BankID is stored (started with autostart
+		// token) will call this URL when the order is completed
+		ReturnUrl string `json:"returnUrl,omitempty"`
+
 		// UserNonVisibleData Data that you wish to include but not display to the user
 		UserNonVisibleData string `json:"userNonVisibleData,omitempty"`
 

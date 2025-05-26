@@ -505,6 +505,7 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 		}
 		r := &bankid.AuthSignRequest{
 			EndUserIp:             request.EndUserIp,
+			ReturnUrl:             request.ReturnUrl,
 			Requirement:           br,
 			UserVisibleData:       request.UserVisibleData,
 			UserNonVisibleData:    request.UserNonVisibleData,
