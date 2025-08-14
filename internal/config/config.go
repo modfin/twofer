@@ -36,15 +36,18 @@ type OTP struct {
 }
 
 type BankID struct {
-	Enabled        bool          `env:"EID_BANKID_ENABLE" envDefault:"FALSE"`
-	URL            *url.URL      `env:"EID_BANKID_URL"`
-	RootCA         string        `env:"EID_BANKID_ROOT_CA_PEM"`
-	RootCAFile     string        `env:"EID_BANKID_ROOT_CA_PEM_FILE,file"`
-	ClientCert     string        `env:"EID_BANKID_CLIENT_CERT"`
-	ClientCertFile string        `env:"EID_BANKID_CLIENT_CERT_FILE,file"`
-	ClientKey      string        `env:"EID_BANKID_CLIENT_KEY"`
-	ClientKeyFile  string        `env:"EID_BANKID_CLIENT_KEY_FILE,file"`
-	PollInterval   time.Duration `env:"EID_BANKID_POLL_INTERVAL" envDefault:"2s"` // Poll BankID every two seconds as default (according to their spec)
+	Enabled                 bool          `env:"EID_BANKID_ENABLE" envDefault:"FALSE"`
+	URL                     *url.URL      `env:"EID_BANKID_URL"`
+	RootCA                  string        `env:"EID_BANKID_ROOT_CA_PEM"`
+	RootCAFile              string        `env:"EID_BANKID_ROOT_CA_PEM_FILE,file"`
+	ClientCert              string        `env:"EID_BANKID_CLIENT_CERT"`
+	ClientCertFile          string        `env:"EID_BANKID_CLIENT_CERT_FILE,file"`
+	ClientKey               string        `env:"EID_BANKID_CLIENT_KEY"`
+	ClientKeyFile           string        `env:"EID_BANKID_CLIENT_KEY_FILE,file"`
+	PollInterval            time.Duration `env:"EID_BANKID_POLL_INTERVAL" envDefault:"2s"` // Poll BankID every two seconds as default (according to their spec)
+	OrderTokenEncryptionKey []string      `env:"EID_BANKID_ORDER_TOKEN_ENCRYPTION_KEY" envSeparator:" "`
+	OrderTokenJwtEc256      string        `env:"EID_BANKID_ORDER_TOKEN_JWT_EC_256"`
+	OrderTokenJwtEc256Pub   string        `env:"EID_BANKID_ORDER_TOKEN_JWT_EC_256_PUB"`
 }
 
 func (b BankID) GetRootCA() []byte {

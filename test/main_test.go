@@ -1,7 +1,14 @@
 package test
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,6 +19,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/modfin/twofer/internal/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
+	"github.com/modfin/twofer/internal/ordertoken"
+	"github.com/modfin/twofer/stream/sse"
 	"github.com/modfin/twofer/test/fakes"
 	"github.com/stretchr/testify/suite"
 )
@@ -59,7 +68,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 func (s *IntegrationTestSuite) TearDownSuite() {
 	slog.Info("Tearing down test suite")
-	d := 1 * time.Second
+	d := 2 * time.Second
 	go func() {
 		err := s.bankidv6.Stop(d)
 		if err != nil {
@@ -87,8 +96,56 @@ func InitApplication(bankIDV6URL string) (*echo.Echo, error) {
 
 	client := &http.Client{}
 
+	key, err := generateKey(16)
+	if err != nil {
+		return nil, err
+	}
+	ec, ecPub, err := generateEcKey()
+	if err != nil {
+		return nil, fmt.Errorf("error generating ec key for test: %v", err)
+	}
+	otm, err := ordertoken.NewManager(ec, ecPub, []string{fmt.Sprintf("1:aes:%s", key)})
+	if err != nil {
+		return nil, fmt.Errorf("error creating ordertoken manager: %v", err)
+	}
+
 	twoferBankIDAPI := bankid.NewAPI(client, bankIDV6URL, time.Second)
-	httpserve.RegisterBankIDServer(e, twoferBankIDAPI, nil)
+	httpserve.RegisterBankIDServer(e, twoferBankIDAPI, otm, sse.NewEncoder)
 
 	return e, nil
+}
+
+func generateEcKey() (string, string, error) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", "", err
+	}
+	priv, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		return "", "", err
+	}
+	pub, err := x509.MarshalPKIXPublicKey(key.Public())
+	if err != nil {
+		return "", "", err
+	}
+	var privOut bytes.Buffer
+	var pubOut bytes.Buffer
+	err = pem.Encode(&privOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: priv})
+	if err != nil {
+		return "", "", err
+	}
+	err = pem.Encode(&pubOut, &pem.Block{Type: "PUBLIC KEY", Bytes: pub})
+	if err != nil {
+		return "", "", err
+	}
+	return privOut.String(), pubOut.String(), nil
+}
+
+func generateKey(len int) ([]byte, error) {
+	b := make([]byte, len)
+	_, err := rand.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(base64.StdEncoding.EncodeToString(b)), nil
 }

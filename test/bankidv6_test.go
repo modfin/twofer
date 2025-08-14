@@ -11,7 +11,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/modfin/twofer/api"
 	"github.com/modfin/twofer/internal/bankid"
 	"github.com/modfin/twofer/internal/sse"
 )
@@ -475,7 +477,7 @@ func (s *IntegrationTestSuite) TestChange() {
 		}
 
 		var changeBuf bytes.Buffer
-		err = json.NewEncoder(&changeBuf).Encode(changeRequest)
+		err := json.NewEncoder(&changeBuf).Encode(changeRequest)
 		if err != nil {
 			s.NoError(err, "error reading cancel request into buffer")
 		}
@@ -533,4 +535,86 @@ func (s *IntegrationTestSuite) TestChange() {
 
 	s.Equal("failed", string(o.Status))
 	s.Equal("userCancel", o.HintCode)
+}
+
+func (s *IntegrationTestSuite) TestCollectV3WithOrderToken() {
+	authRequest := &api.BankIdv6AuthSignRequestV3{
+		EndUserIp:        "127.0.0.1",
+		Once:             true,
+		OrderTokenExpire: time.Minute,
+	}
+
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(authRequest)
+	if err != nil {
+		s.NoError(err, "error reading auth request into buffer")
+	}
+
+	resp, err := http.Post(s.twoferURL+"/bankid/v6/authv3", "application/json", &buf)
+	if err != nil {
+		s.NoError(err, "error sending auth request")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		s.FailNow("Received invalid status code from auth endpoint", strconv.Itoa(resp.StatusCode), s.twoferURL+"/bankid/v6/auth")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		s.NoError(err, "error reading auth request response")
+	}
+
+	var res api.BankIdV6AuthSignResponseV3
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		s.NoError(err, "error unmarshaling auth response")
+	}
+
+	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+		s.FailNow("Order ref could not be found in fake bankid current orders map")
+	}
+
+	// Send collect request for the auth request using order token
+	collectRequest := &api.BankIdv6CollectRequestV3{
+		OrderToken: res.OrderToken,
+		EndUserIp:  "127.0.0.1",
+	}
+
+	var collectBuf bytes.Buffer
+	err = json.NewEncoder(&collectBuf).Encode(collectRequest)
+	if err != nil {
+		s.NoError(err, "error reading collect request into buffer")
+	}
+
+	collectUrl := s.twoferURL + "/bankid/v6/collectV3"
+	collectResp, err := http.Post(collectUrl, "application/json", &collectBuf)
+	if err != nil {
+		s.NoError(err, "error sending collect request")
+	}
+
+	if collectResp.StatusCode != http.StatusOK {
+		s.FailNow("Received invalid status code from auth endpoint", strconv.Itoa(collectResp.StatusCode), collectUrl)
+	}
+
+	collectBody, err := io.ReadAll(collectResp.Body)
+	defer collectResp.Body.Close()
+	if err != nil {
+		s.NoError(err, "error reading collect request response")
+	}
+
+	var collectRes api.BankIdV6CollectResponseV3
+	err = json.Unmarshal(collectBody, &collectRes)
+	if err != nil {
+		s.NoError(err, "error unmarshaling auth response")
+	}
+
+	o, ok := s.bankidv6.Orders[collectRes.OrderRef]
+
+	if !ok {
+		s.FailNow("Order no longer in fake bankid orders map")
+	}
+
+	s.Equal("pending", string(o.Status))
+	s.Equal("outstandingTransaction", o.HintCode)
 }

@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/modfin/twofer/internal/bankid"
 	"io"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/modfin/twofer/internal/bankid"
 )
 
 type BankIDV6Fake struct {
@@ -29,10 +30,14 @@ const (
 )
 
 type order struct {
-	Ref             string      `json:"orderRef"`
-	Status          orderStatus `json:"status"`
-	HintCode        string      `json:"hintCode"`
-	IP              string
+	Ref            string      `json:"orderRef"`
+	Status         orderStatus `json:"status"`
+	HintCode       string      `json:"hintCode"`
+	CompletionData struct {
+		Device struct {
+			IpAddress string `json:"ipAddress"`
+		} `json:"device"`
+	} `json:"completionData"`
 	UserVisibleData string
 	AutoStartToken  string
 	QrStartToken    string
@@ -118,11 +123,11 @@ func (fake *BankIDV6Fake) handleAuth(w http.ResponseWriter, r *http.Request) {
 		Ref:            uuid.NewString(),
 		Status:         pending,
 		HintCode:       "outstandingTransaction",
-		IP:             req.EndUserIp,
 		QrStartToken:   uuid.NewString(),
 		QrStartSecret:  uuid.NewString(),
 		AutoStartToken: uuid.NewString(),
 	}
+	o.CompletionData.Device.IpAddress = req.EndUserIp
 
 	fake.mut.Lock()
 	fake.Orders[o.Ref] = &o
@@ -183,12 +188,12 @@ func (fake *BankIDV6Fake) handleSign(w http.ResponseWriter, r *http.Request) {
 		Ref:             uuid.NewString(),
 		Status:          pending,
 		HintCode:        "outstandingTransaction",
-		IP:              req.EndUserIp,
 		UserVisibleData: req.UserVisibleData,
 		QrStartToken:    uuid.NewString(),
 		QrStartSecret:   uuid.NewString(),
 		AutoStartToken:  uuid.NewString(),
 	}
+	o.CompletionData.Device.IpAddress = req.EndUserIp
 
 	fake.mut.Lock()
 	fake.Orders[o.Ref] = &o
