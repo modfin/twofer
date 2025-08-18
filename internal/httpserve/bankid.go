@@ -34,7 +34,7 @@ func RegisterBankIDServer(e *echo.Echo, client *bankid.API, otm *ordertoken.Mana
 	e.POST("/bankid/v6/collect", collect(client))
 	e.POST("/bankid/v6/collectV3", collectV3(client, otm))
 	e.POST("/bankid/v6/cancel", cancel(client))
-	e.POST("/bankid/v6/cancelV3", cancelV3(client))
+	e.POST("/bankid/v6/cancelV3", cancelV3(client, otm))
 }
 
 func auth(client *bankid.API) func(echo.Context) error {
@@ -630,12 +630,23 @@ func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) e
 
 // Pretty much the same as cancel, except that it will api.BankIdv6CancelResponseV3 struct for a successful request,
 // for failed requests, an api.BankIdv6ErrorResponseV3 is returned instead.
-func cancelV3(client *bankid.API) func(echo.Context) error {
+func cancelV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) error {
 	return func(c echo.Context) error {
 		request, err := readBody[api.BankIdv6CancelRequestV3](c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: read request body error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "read request body error"))
+		}
+
+		if otm != nil {
+			claims, err := otm.Parse(request.OrderToken, request.EndUserIp)
+			if err != nil && errors.Is(err, ordertoken.ErrOrderIpMismatch) {
+				return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "order token ip mismatch with request ip"))
+			}
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "error parsing order token"))
+			}
+			request.OrderRef = claims.OrderRef
 		}
 
 		err = client.Cancel(c.Request().Context(), &bankid.CancelRequest{OrderRef: request.OrderRef})

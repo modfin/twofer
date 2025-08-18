@@ -120,6 +120,11 @@ type (
 	BankIdv6CancelRequestV3 struct {
 		// OrderRef A reference ID for an order
 		OrderRef string `json:"orderRef"`
+
+		// OrderToken optionally pass an order token. This is an alternative to OrderRef.
+		// If you use this the end user IP of the user who triggered collect is required for verification
+		OrderToken string `json:"orderToken"`
+		EndUserIp  string `json:"endUserIp"`
 	}
 
 	BankIdv6CancelResponseV3 struct {
