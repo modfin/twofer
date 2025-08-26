@@ -500,7 +500,7 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "read request body error"))
 		}
 		if ip := net.ParseIP(request.EndUserIp); ip == nil {
-			fmt.Printf("ERR: error parsing endUserIp\n")
+			fmt.Printf("ERR: error parsing endUserIp: '%v'\n", request.EndUserIp)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "error parsing endUserIp"))
 		}
 		// Convert from public API to internal struct
@@ -605,7 +605,7 @@ func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) e
 			fmt.Printf("ERR: collect request error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "collect request error"))
 		}
-		if otm != nil && res.CompletionData.Device.IpAddress != request.EndUserIp {
+		if otm != nil && res.Status == bankid.Complete && res.CompletionData.Device.IpAddress != request.EndUserIp {
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "order token ip mismatch with device ip"))
 		}
 
