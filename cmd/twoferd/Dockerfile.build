@@ -1,15 +1,11 @@
-FROM golang:1.23.3-alpine3.20 AS builder
-
-#RUN apk add --no-cache git curl build-base bash shadow
+FROM golang:1.24.6-alpine3.22 AS builder
 
 RUN mkdir -p /go/src/twofer
 WORKDIR /go/src/twofer
 
 COPY . /go/src/twofer
 
-RUN ls
-
-RUN CGO_ENABLE=0 go build -o /twoferd ./cmd/twoferd/main.go
+RUN CGO_ENABLE=0 go build -ldflags="-s -w" -o /twoferd ./cmd/twoferd/main.go
 
 FROM scratch
 EXPOSE 8080

@@ -1,0 +1,24 @@
+permissions:
+  contents: read
+name: tests
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+      - order-ref-token
+  workflow_dispatch: {}
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: run
+        run: |-
+          cd test
+          go test --race -v .

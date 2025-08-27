@@ -13,10 +13,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-
 	"github.com/modfin/twofer/internal/config"
 	"github.com/modfin/twofer/internal/eid/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
+	"github.com/modfin/twofer/internal/ordertoken"
 	"github.com/modfin/twofer/internal/servotp"
 	"github.com/modfin/twofer/internal/servpwd"
 	"github.com/modfin/twofer/internal/servqr"
@@ -153,6 +153,16 @@ func startEid(e *echo.Echo) {
 		return
 	}
 
+	bankIdCfg := config.Get().BankID
+	var otm *ordertoken.Manager
+	if bankIdCfg.OrderTokenJwtEc256 != "" || bankIdCfg.OrderTokenJwtEc256Pub != "" || len(bankIdCfg.OrderTokenEncryptionKey) > 0 {
+		fmt.Println("  - Enabling BankId Order Token support")
+		otm, err = ordertoken.NewManager(bankIdCfg.OrderTokenJwtEc256, bankIdCfg.OrderTokenJwtEc256Pub, bankIdCfg.OrderTokenEncryptionKey)
+		if err != nil {
+			fmt.Printf("failed to initate bankId order token support %v", err)
+		}
+	}
+
 	//err = bankid.APIv51.Ping()
 	//if err != nil {
 	//	fmt.Printf("  - Err: Could not ping bankid v5.1. %v", err)
@@ -164,7 +174,7 @@ func startEid(e *echo.Echo) {
 
 	fmt.Println("  - Adding BankId v6.0")
 	fmt.Println("  - BankId Client Cert NotAfter:", bankid.ParsedClientCert().NotAfter)
-	httpserve.RegisterBankIDServer(e, bankid.APIv60, getStreamEncoder(config.Get().StreamEncoder))
+	httpserve.RegisterBankIDServer(e, bankid.APIv60, otm, getStreamEncoder(config.Get().StreamEncoder))
 	err = bankid.APIv60.Ping()
 	if err != nil {
 		fmt.Printf("  - Err: Could not ping bankid. %v", err)

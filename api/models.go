@@ -1,5 +1,7 @@
 package api
 
+import "time"
+
 type (
 	// BankIdV6Response used as a catch all response for V2
 	// Deprecated: stick to V1 or move to V3
@@ -39,7 +41,7 @@ type (
 
 	// BankIdv6AuthSignRequestV3 is used to start either an auth or sign request against BankID
 	BankIdv6AuthSignRequestV3 struct {
-		// EndUserIp The user IP address as it is seen by your service
+		// EndUserIp The user IP address as it is seen by your service. Required.
 		EndUserIp string `json:"endUserIp"`
 
 		// ReturnUrl Orders started on the same device as where the user's BankID is stored (started with autostart
@@ -64,6 +66,9 @@ type (
 		// Once if true, will start an auth/sign and just return a single QR code, if false, auth/sign endpoint return
 		// an SSE / NDJSON stream and send a new QR-code each second, for 30 seconds before returning
 		Once bool `json:"once,omitempty"`
+
+		// OrderTokenExpire if order tokens are enabled, sets token expire time.
+		OrderTokenExpire time.Duration `json:"order_token_expire,omitempty"`
 	}
 
 	// BankIdV6AuthSignResponseV3 is sent as a successful reply to an auth or sign request. If SSE / NDJSON is used, a
@@ -77,6 +82,9 @@ type (
 
 		// QR contain the data for the QR-code
 		QR string `json:"qr"`
+
+		// OrderToken is returned if order token support is enabled.
+		OrderToken string `json:"orderToken,omitempty"`
 	}
 
 	// BankIdv6CollectRequestV3 is used to collect status on a started auth / sign request
@@ -90,6 +98,11 @@ type (
 		// WaitUntilFinished allows the request to wait until the referenced request has either completed or failed,
 		// and will not return on state changes during the ongoing process.
 		WaitUntilFinished bool `json:"waitUntilFinished"`
+
+		// OrderToken optionally pass an order token. This is an alternative to OrderRef.
+		// If you use this the end user IP of the user who triggered collect is required for verification
+		OrderToken string `json:"orderToken"`
+		EndUserIp  string `json:"endUserIp"`
 	}
 
 	// BankIdV6CollectResponseV3 is sent for a successful collect, if WaitUntilFinished is set in the request, it will
@@ -107,6 +120,11 @@ type (
 	BankIdv6CancelRequestV3 struct {
 		// OrderRef A reference ID for an order
 		OrderRef string `json:"orderRef"`
+
+		// OrderToken optionally pass an order token. This is an alternative to OrderRef.
+		// If you use this the end user IP of the user who triggered collect is required for verification
+		OrderToken string `json:"orderToken"`
+		EndUserIp  string `json:"endUserIp"`
 	}
 
 	BankIdv6CancelResponseV3 struct {

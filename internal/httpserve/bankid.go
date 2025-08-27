@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/modfin/twofer/api"
 	"github.com/modfin/twofer/internal/bankid"
+	"github.com/modfin/twofer/internal/ordertoken"
 	"github.com/modfin/twofer/internal/sse"
 	"github.com/modfin/twofer/stream"
 )
@@ -21,18 +23,18 @@ const qrCodeUpdatePeriod = time.Second
 
 type NewStreamEncoder func(http.ResponseWriter) (stream.Encoder, error)
 
-func RegisterBankIDServer(e *echo.Echo, client *bankid.API, newEncoder NewStreamEncoder) {
+func RegisterBankIDServer(e *echo.Echo, client *bankid.API, otm *ordertoken.Manager, newEncoder NewStreamEncoder) {
 	e.POST("/bankid/v6/auth", auth(client))
 	e.POST("/bankid/v6/authv2", authSign(client.Auth, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder)) // Deprecated: Don't use
-	e.POST("/bankid/v6/authv3", authSignV3(client.Auth, qrCodeUpdatePeriod, newEncoder))                        // Same as 'auth' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
+	e.POST("/bankid/v6/authv3", authSignV3(client.Auth, qrCodeUpdatePeriod, newEncoder, otm))                   // Same as 'auth' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
 	e.POST("/bankid/v6/sign", sign(client))
 	e.POST("/bankid/v6/signv2", authSign(client.Sign, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder)) // Deprecated: Don't use
-	e.POST("/bankid/v6/signv3", authSignV3(client.Sign, qrCodeUpdatePeriod, newEncoder))                        // Same as 'sign' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
+	e.POST("/bankid/v6/signv3", authSignV3(client.Sign, qrCodeUpdatePeriod, newEncoder, otm))                   // Same as 'sign' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
 	e.POST("/bankid/v6/change", change(client))
 	e.POST("/bankid/v6/collect", collect(client))
-	e.POST("/bankid/v6/collectV3", collectV3(client))
+	e.POST("/bankid/v6/collectV3", collectV3(client, otm))
 	e.POST("/bankid/v6/cancel", cancel(client))
-	e.POST("/bankid/v6/cancelV3", cancelV3(client))
+	e.POST("/bankid/v6/cancelV3", cancelV3(client, otm))
 }
 
 func auth(client *bankid.API) func(echo.Context) error {
@@ -490,14 +492,17 @@ func bankIdv6ErrorResponseV3(err error, detail string) api.BankIdv6ErrorResponse
 // or change endpoints after the first QR-code has been returned. It also returns one or more
 // api.BankIdV6AuthSignResponseV3 structs for a successful auth/sign request. For failed requests,
 // a api.BankIdv6ErrorResponseV3 is returned instead.
-func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder) func(echo.Context) error {
+func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder, otm *ordertoken.Manager) func(echo.Context) error {
 	return func(c echo.Context) error {
 		request, err := readBody[api.BankIdv6AuthSignRequestV3](c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: read request body error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "read request body error"))
 		}
-
+		if ip := net.ParseIP(request.EndUserIp); ip == nil {
+			fmt.Printf("ERR: error parsing endUserIp: '%v'\n", request.EndUserIp)
+			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "error parsing endUserIp"))
+		}
 		// Convert from public API to internal struct
 		br := bankid.Requirement{
 			PinCode:        request.PinCode,
@@ -518,11 +523,25 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "auth/sign request error"))
 		}
 
+		orderToken := ""
+		if otm != nil {
+			t, err := otm.Create(request.OrderTokenExpire, ordertoken.Payload{
+				OrderRef:  res.OrderRef,
+				EndUserIp: request.EndUserIp,
+			})
+			if err != nil {
+				fmt.Printf("ERR: error creating order token: %v\n", err)
+				return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "error creating order token"))
+			}
+			orderToken = t
+		}
+
 		bankIdV6AuthSignResponseV3 := func(r *bankid.AuthSignResponse, qrNo int) api.BankIdV6AuthSignResponseV3 {
 			return api.BankIdV6AuthSignResponseV3{
-				OrderRef: r.OrderRef,
-				URI:      fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", r.AutoStartToken),
-				QR:       r.BuildQrCode(qrNo),
+				OrderRef:   r.OrderRef,
+				URI:        fmt.Sprintf("bankid:///?autostarttoken=%s&redirect=null", r.AutoStartToken),
+				QR:         r.BuildQrCode(qrNo),
+				OrderToken: orderToken,
 			}
 		}
 
@@ -554,12 +573,23 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 
 // Pretty much the same as collect and change, except that it will return an api.BankIdV6CollectResponseV3 struct for
 // successful requests, for failed requests, an api.BankIdv6ErrorResponseV3 is returned instead.
-func collectV3(client *bankid.API) func(echo.Context) error {
+func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) error {
 	return func(c echo.Context) error {
 		request, err := readBody[api.BankIdv6CollectRequestV3](c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: read request body error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "read request body error"))
+		}
+
+		if otm != nil {
+			claims, err := otm.Parse(request.OrderToken, request.EndUserIp)
+			if err != nil && errors.Is(err, ordertoken.ErrOrderIpMismatch) {
+				return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "order token ip mismatch with request ip"))
+			}
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "error parsing order token"))
+			}
+			request.OrderRef = claims.OrderRef
 		}
 
 		var res *bankid.CollectResponse
@@ -574,6 +604,9 @@ func collectV3(client *bankid.API) func(echo.Context) error {
 		if err != nil {
 			fmt.Printf("ERR: collect request error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "collect request error"))
+		}
+		if otm != nil && res.Status == bankid.Complete && res.CompletionData.Device.IpAddress != request.EndUserIp {
+			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "order token ip mismatch with device ip"))
 		}
 
 		reply := api.BankIdV6CollectResponseV3{
@@ -597,12 +630,23 @@ func collectV3(client *bankid.API) func(echo.Context) error {
 
 // Pretty much the same as cancel, except that it will api.BankIdv6CancelResponseV3 struct for a successful request,
 // for failed requests, an api.BankIdv6ErrorResponseV3 is returned instead.
-func cancelV3(client *bankid.API) func(echo.Context) error {
+func cancelV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) error {
 	return func(c echo.Context) error {
 		request, err := readBody[api.BankIdv6CancelRequestV3](c.Request().Body)
 		if err != nil {
 			fmt.Printf("ERR: read request body error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "read request body error"))
+		}
+
+		if otm != nil {
+			claims, err := otm.Parse(request.OrderToken, request.EndUserIp)
+			if err != nil && errors.Is(err, ordertoken.ErrOrderIpMismatch) {
+				return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "order token ip mismatch with request ip"))
+			}
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "error parsing order token"))
+			}
+			request.OrderRef = claims.OrderRef
 		}
 
 		err = client.Cancel(c.Request().Context(), &bankid.CancelRequest{OrderRef: request.OrderRef})
