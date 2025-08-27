@@ -68,7 +68,11 @@ type (
 		Once bool `json:"once,omitempty"`
 
 		// OrderTokenExpire if order tokens are enabled, sets token expire time.
-		OrderTokenExpire time.Duration `json:"order_token_expire,omitempty"`
+		OrderTokenExpire time.Duration `json:"orderTokenExpire,omitempty"`
+
+		// SameDevice indicates that the request is initiated on the same device as where the BankID app is installed.
+		// If true and order token support is enabled: CompletionData.Device.IpAddress must match EndUserIp.
+		SameDevice bool `json:"sameDevice,omitempty"`
 	}
 
 	// BankIdV6AuthSignResponseV3 is sent as a successful reply to an auth or sign request. If SSE / NDJSON is used, a

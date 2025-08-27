@@ -17,8 +17,9 @@ type claims struct {
 }
 
 type Payload struct {
-	OrderRef  string `json:"orderRef"`
-	EndUserIp string `json:"endUserIp"`
+	OrderRef   string `json:"orderRef"`
+	EndUserIp  string `json:"endUserIp"`
+	SameDevice bool   `json:"sameDevice"`
 }
 
 type Manager struct {

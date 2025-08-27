@@ -542,6 +542,7 @@ func (s *IntegrationTestSuite) TestCollectV3WithOrderToken() {
 		EndUserIp:        "127.0.0.1",
 		Once:             true,
 		OrderTokenExpire: time.Minute,
+		SameDevice:       true,
 	}
 
 	var buf bytes.Buffer
@@ -624,6 +625,7 @@ func (s *IntegrationTestSuite) TestCollectV3WithOrderTokenWrongIP() {
 		EndUserIp:        "127.0.0.1",
 		Once:             true,
 		OrderTokenExpire: time.Minute,
+		SameDevice:       true,
 	}
 
 	var buf bytes.Buffer
@@ -701,6 +703,7 @@ func (s *IntegrationTestSuite) TestCancelV3WithOrderToken() {
 		EndUserIp:        "127.0.0.1",
 		Once:             true,
 		OrderTokenExpire: time.Minute,
+		SameDevice:       true,
 	}
 
 	var buf bytes.Buffer

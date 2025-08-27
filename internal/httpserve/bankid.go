@@ -526,8 +526,9 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 		orderToken := ""
 		if otm != nil {
 			t, err := otm.Create(request.OrderTokenExpire, ordertoken.Payload{
-				OrderRef:  res.OrderRef,
-				EndUserIp: request.EndUserIp,
+				OrderRef:   res.OrderRef,
+				EndUserIp:  request.EndUserIp,
+				SameDevice: request.SameDevice,
 			})
 			if err != nil {
 				fmt.Printf("ERR: error creating order token: %v\n", err)
@@ -581,6 +582,7 @@ func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) e
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "read request body error"))
 		}
 
+		orderTokenSameDeviceCheck := false
 		if otm != nil {
 			claims, err := otm.Parse(request.OrderToken, request.EndUserIp)
 			if err != nil && errors.Is(err, ordertoken.ErrOrderIpMismatch) {
@@ -590,6 +592,7 @@ func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) e
 				return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "error parsing order token"))
 			}
 			request.OrderRef = claims.OrderRef
+			orderTokenSameDeviceCheck = claims.SameDevice
 		}
 
 		var res *bankid.CollectResponse
@@ -605,7 +608,7 @@ func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) e
 			fmt.Printf("ERR: collect request error: %v\n", err)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "collect request error"))
 		}
-		if otm != nil && res.Status == bankid.Complete && res.CompletionData.Device.IpAddress != request.EndUserIp {
+		if orderTokenSameDeviceCheck && res.Status == bankid.Complete && res.CompletionData.Device.IpAddress != request.EndUserIp {
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "order token ip mismatch with device ip"))
 		}
 
