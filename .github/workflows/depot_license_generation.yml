@@ -12,6 +12,8 @@ on:
       - '!**/node_modules/**'
 jobs:
   license_check:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
