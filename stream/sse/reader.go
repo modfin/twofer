@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 )
 
 func NewReader(ctx context.Context, rc io.ReadCloser) <-chan Event {
@@ -71,10 +72,12 @@ func readField(s *bufio.Scanner) (string, string, bool, error) {
 }
 
 func process(ctx context.Context, rc io.ReadCloser, ec chan<- Event) {
-	defer rc.Close()
+	// Closing the body unblocks a read that is waiting for the next line, so
+	// rc.Close may run during a Read. Once keeps it to a single call.
+	closeBody := sync.OnceValue(rc.Close)
+	defer closeBody()
 	defer close(ec)
-	// Closing the body unblocks a read that is waiting for the next line.
-	stop := context.AfterFunc(ctx, func() { _ = rc.Close() })
+	stop := context.AfterFunc(ctx, func() { _ = closeBody() })
 	defer stop()
 	buf := bufio.NewScanner(rc)
 	buf.Split(scanLines)

@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -291,9 +292,11 @@ type closeSignal struct {
 	io.ReadCloser
 	once   sync.Once
 	closed chan struct{}
+	calls  atomic.Int32
 }
 
 func (c *closeSignal) Close() error {
+	c.calls.Add(1)
 	c.once.Do(func() { close(c.closed) })
 	return c.ReadCloser.Close()
 }
@@ -329,16 +332,21 @@ func TestNewReader_exits_when_ctx_is_done(t *testing.T) {
 				t.Fatal("reader goroutine did not close the body after ctx was cancelled")
 			}
 
-			timeout := time.After(2 * time.Second)
-			for {
-				select {
-				case _, ok := <-events:
-					if !ok {
-						return
-					}
-				case <-timeout:
-					t.Fatal("event channel not closed after ctx was cancelled")
+			// The goroutine must drop its pending send rather than wait for a
+			// receiver, so nothing may arrive once it has had time to exit.
+			time.Sleep(50 * time.Millisecond)
+			select {
+			case e, ok := <-events:
+				if ok {
+					t.Fatalf("got event %+v after ctx was cancelled", e)
 				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("event channel not closed after ctx was cancelled")
+			}
+
+			// io.Closer leaves a second Close undefined
+			if n := body.calls.Load(); n != 1 {
+				t.Errorf("body closed %d times, want 1", n)
 			}
 		})
 	}
