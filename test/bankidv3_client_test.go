@@ -20,10 +20,10 @@ import (
 
 const clientTestIP = "127.0.0.1"
 
-func (s *IntegrationTestSuite) client() (*twofer.BankIdClient, context.Context) {
+func (s *IntegrationTestSuite) client() (*twofer.BankIdV3Client, context.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	s.T().Cleanup(cancel)
-	return twofer.NewBankIdClient(s.twoferURL), ctx
+	return twofer.NewBankIdV3Client(s.twoferURL), ctx
 }
 
 func clientAuthRequest(pnr string) api.BankIdv6AuthSignRequestV3 {
@@ -77,7 +77,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamNDJSON() {
 	const pnr = "199001010102"
 	_, ctx := s.client()
 
-	stream, err := twofer.NewBankIdClient(s.twoferNDJSON.URL).AuthV3(ctx, clientAuthRequest(pnr))
+	stream, err := twofer.NewBankIdV3Client(s.twoferNDJSON.URL).AuthV3(ctx, clientAuthRequest(pnr))
 	s.Require().NoError(err)
 	defer stream.Close()
 
@@ -232,7 +232,7 @@ func (s *IntegrationTestSuite) TestClientErrorBodyIsCapped() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := twofer.NewBankIdClient(srv.URL).AuthV3Once(ctx, clientAuthRequest("199001010110"))
+	_, err := twofer.NewBankIdV3Client(srv.URL).AuthV3Once(ctx, clientAuthRequest("199001010110"))
 	var be *twofer.BankIdError
 	s.Require().True(errors.As(err, &be), "%v", err)
 	s.Equal(http.StatusBadGateway, be.HTTPStatus)
@@ -260,7 +260,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			stream, err := twofer.NewBankIdClient(srv.URL).AuthV3(ctx, clientAuthRequest("199001010111"))
+			stream, err := twofer.NewBankIdV3Client(srv.URL).AuthV3(ctx, clientAuthRequest("199001010111"))
 			s.Require().NoError(err)
 			defer stream.Close()
 
