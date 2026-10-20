@@ -21,13 +21,15 @@ func New(config config.WebAuthn) (*Server, error) {
 		defaultConfig: &webauthn.Config{
 			RPDisplayName: config.RPDisplayName,
 			RPID:          config.RPID,
-			RPOrigin:      config.RPOrigin,
-			RPIcon:        "",
+			RPOrigins:     []string{config.RPOrigin},
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: toUserVerification(config.UserVerification),
 			},
-			Timeout: int(config.Timeout.Milliseconds()),
-			Debug:   false,
+			Timeouts: webauthn.TimeoutsConfig{
+				Login:        webauthn.TimeoutConfig{Timeout: config.Timeout, TimeoutUVD: config.Timeout},
+				Registration: webauthn.TimeoutConfig{Timeout: config.Timeout, TimeoutUVD: config.Timeout},
+			},
+			Debug: false,
 		},
 	}
 	_, err := webauthn.New(s.defaultConfig)
@@ -57,7 +59,7 @@ func (s *Server) create(c interface{ GetCfg() *Config }) (*webauthn.WebAuthn, er
 	return webauthn.New(&webauthn.Config{
 		RPDisplayName: cfg.RPDisplayName,
 		RPID:          cfg.RPID,
-		RPOrigin:      cfg.RPOrigin,
+		RPOrigins:     []string{cfg.RPOrigin},
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			UserVerification: toUserVerification(cfg.UserVerification),
 		},

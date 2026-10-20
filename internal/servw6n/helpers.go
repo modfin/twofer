@@ -30,7 +30,7 @@ type User struct {
 	Id          string       `json:"id"`
 	Name        string       `json:"name"`
 	DisplayName string       `json:"display_name"`
-	Credentials []Credential `json:"credentials, omitempty"`
+	Credentials []Credential `json:"credentials,omitempty"`
 }
 
 type Credential struct {
