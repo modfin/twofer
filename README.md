@@ -91,45 +91,6 @@ OTP_SKEW_TIME=1 # Default: 1`
 * gRPC `Auth`, update/persist returning userBlob in database coupled with the user
 
  
-## WebAuthn
-WebAuthn is a protocol to verify a user through, among other thins, the browser by eg. using a FIDO2 key.
-See https://webauthn.io/ or https://www.w3.org/TR/webauthn/ for more information. While 
-
-**State**
-The WebAuthn relies on a state in order to verify a user, this means the user must persist the userblob when provided. This 
-since the state must be passed to twofer when called
-
-**Config**
-* Generate a HMAC key, eg `$ echo $(openssl rand -base64 32)`
-
-```bash
-WEBAUTHN_ENABLED=true
-WEBAUTHN_RP_ID=localhost
-WEBAUTHN_RP_DISPLAYNAME=localhost
-WEBAUTHN_RP_ORIGIN=http://localhost:8080
-WEBAUTHN_HMAC_KEY=+SoWOS6kLTe8OOVTBXnQ+lMAsUH0hncsnCJUQ2javqw=
-
-# Can be discouraged/proffered/required 
-WEBAUTHN_USER_VERIFICATION=discouraged # Default: discouraged `
-
-# How many api calls can be made for the same user per minute
-WEBAUTHN_RATE_LIMIT=10 # Default: 10
-
-# Once a session is issues, for how long is it valid
-WEBAUTHN_TIMEOUT=60s # Default: 60s
-```
-
-**Use**
-* gRPC `EnrollInit`, pass in the current userBlob, if it exist. It creates a session and json, the json shall be passed to the frontend for the authenticator to interact with. 
-* gRPC `EnrollFinal`, the session that from EnrollInit creates shall be passed coupled with the signature (the frontend response). 
-  This returns a userBlob on success, this blob should be persisted and used in the auth requests. If a user blob existed prior to the enrollment it 
-  shall be replaced by the returning one. This allows for a user to have multiple authenticators.
-* gRPC `AuthInit`, pass in the current userBlob. It creates a session and json, the json shall be passed to the frontend for the authenticator to interact with.
-* gRPC `AuthFinal`, the session that from AuthInit creates shall be passed coupled with the signature (the frontend response). 
-  If successful it returns valid = true
-}
-
-
 ## QR
 Since both BankID and OTP have a QR-code components, a gRPC api is included which turns test in to a png QR code image
 

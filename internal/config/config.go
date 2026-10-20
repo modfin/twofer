@@ -17,7 +17,6 @@ type Config struct {
 
 	QREnabled bool `env:"QR_ENABLE" envDefault:"TRUE"`
 	OTP       OTP
-	WebAuthn  WebAuthn
 	PWD       PWD
 
 	StreamEncoder string `env:"STREAM_ENCODER" envDefault:"SSE"`
@@ -67,18 +66,6 @@ func (b BankID) GetClientKey() []byte {
 		return []byte(b.ClientKeyFile)
 	}
 	return []byte(b.ClientKey)
-}
-
-type WebAuthn struct {
-	Enabled          bool   `env:"WEBAUTHN_ENABLED" envDefault:"FALSE"`
-	RPDisplayName    string `env:"WEBAUTHN_RP_DISPLAYNAME"`
-	RPID             string `env:"WEBAUTHN_RP_ID"`
-	RPOrigin         string `env:"WEBAUTHN_RP_ORIGIN"`
-	HMACKey          string `env:"WEBAUTHN_HMAC_KEY"`
-	UserVerification string `env:"WEBAUTHN_USER_VERIFICATION" envDefault:"discouraged"`
-
-	RateLimit uint          `env:"WEBAUTHN_RATE_LIMIT" envDefault:"10"`
-	Timeout   time.Duration `env:"WEBAUTHN_TIMEOUT" envDefault:"60s"`
 }
 
 type PWD struct {
