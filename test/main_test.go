@@ -77,7 +77,8 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 
 	go func() {
 		parentCtx := context.Background()
-		ctx, _ := context.WithTimeout(parentCtx, d)
+		ctx, cancel := context.WithTimeout(parentCtx, d)
+		defer cancel()
 		err := s.twofer.Shutdown(ctx)
 		if err != nil {
 			fmt.Println("Error stopping twofer server.", err.Error())
