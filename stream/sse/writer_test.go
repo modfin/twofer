@@ -46,13 +46,13 @@ func Test_writeField(t *testing.T) {
 			name:  "vanilla",
 			field: "data",
 			data:  "vanilla",
-			want:  "data:vanilla\n",
+			want:  "data: vanilla\n",
 		},
 		{
 			name:  "multi-line",
 			field: "data",
 			data:  "multi\nline",
-			want:  "data:multi\ndata:line\n",
+			want:  "data: multi\ndata: line\n",
 		},
 		{
 			name:  "empty_data",
@@ -97,13 +97,13 @@ func TestWriter_SendEvent(t *testing.T) {
 			id:        "1",
 			retry:     "1",
 			wantFlush: true,
-			wantData:  "event:e1\ndata:d1\nid:1\nretry:1\n\n",
+			wantData:  "event: e1\ndata: d1\nid: 1\nretry: 1\n\n",
 		},
 		{
 			name:      "multiline_data",
 			data:      "multi\nline\ndata",
 			wantFlush: true,
-			wantData:  "data:multi\ndata:line\ndata:data\n\n",
+			wantData:  "data: multi\ndata: line\ndata: data\n\n",
 		},
 		{
 			name:      "only_default_event_type", // This should not send anything
@@ -115,7 +115,7 @@ func TestWriter_SendEvent(t *testing.T) {
 			name:      "only_non_default_event_type",
 			event:     "ping",
 			wantFlush: true,
-			wantData:  "event:ping\n\n",
+			wantData:  "event: ping\n\n",
 		},
 	}
 	for _, tt := range tests {

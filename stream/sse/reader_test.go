@@ -235,12 +235,12 @@ func Test_process(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pr, pw := io.Pipe()
 			eventChan := make(chan Event)
-			var terminated bool
+			terminated := make(chan struct{})
 			go func() {
 				t.Log("start async process...")
 				process(context.Background(), pr, eventChan)
-				terminated = true
 				t.Log("async process have terminated...")
+				close(terminated)
 			}()
 			for i, s := range tt.sends {
 				_, err := pw.Write([]byte(s.buffer))
@@ -277,11 +277,10 @@ func Test_process(t *testing.T) {
 				t.Fatalf("failed to close pipe, error: %v", err)
 			}
 
-			// wait a short time so that the async process have time to shutdown after we've closed the reader
-			time.Sleep(time.Millisecond * 100)
-
 			// Check that the async process ended so that it's go-routine can exit cleanly
-			if !terminated {
+			select {
+			case <-terminated:
+			case <-time.After(time.Second):
 				t.Errorf("the async process didn't terminate after reader had been closed")
 			}
 		})
