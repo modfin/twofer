@@ -114,7 +114,8 @@ func (c *BankIdV3Client) AuthV3Once(ctx context.Context, req api.BankIdv6AuthSig
 //
 // BankID hands out a finished order once. A ctx that ends a wait just after
 // twofer collected the result loses it, and the next collect gets
-// invalidParameters "No such order".
+// invalidParameters "No such order". Bound a wait with MaxWait instead, and
+// give ctx enough headroom for twofer's last BankID poll.
 func (c *BankIdV3Client) CollectV3(ctx context.Context, req api.BankIdv6CollectRequestV3) (api.BankIdV6CollectResponseV3, error) {
 	resp, err := c.post(ctx, "collectV3", req)
 	if err != nil {

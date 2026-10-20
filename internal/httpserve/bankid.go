@@ -615,7 +615,7 @@ func collectV3(client *bankid.API, otm *ordertoken.Manager) func(echo.Context) e
 			res, err = client.ChangeV3(c.Request().Context(), &bankid.ChangeRequest{
 				OrderRef:          request.OrderRef,
 				WaitUntilFinished: request.WaitUntilFinished,
-			})
+			}, request.MaxWait)
 		} else {
 			res, err = client.Collect(c.Request().Context(), &bankid.CollectRequest{OrderRef: request.OrderRef})
 		}
