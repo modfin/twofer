@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/modfin/twofer/internal/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
 	"github.com/modfin/twofer/internal/ordertoken"
+	"github.com/modfin/twofer/stream/ndjson"
 	"github.com/modfin/twofer/stream/sse"
 	"github.com/stretchr/testify/suite"
 )
@@ -29,6 +31,8 @@ type IntegrationTestSuite struct {
 	suite.Suite
 	twofer    *echo.Echo
 	twoferURL string
+	// the same handlers with twofer's other STREAM_ENCODER
+	twoferNDJSON *httptest.Server
 
 	bankidv6 *bankidtest.BankID
 }
@@ -40,7 +44,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.bankidv6 = bankidtest.New()
 
 	//TWOFER
-	app, err := InitApplication(s.bankidv6.URL())
+	app, err := InitApplication(s.bankidv6.URL(), sse.NewEncoder)
 	if err != nil {
 		fmt.Println("Error setting up twofer in SetupSuite", err)
 	}
@@ -55,6 +59,12 @@ func (s *IntegrationTestSuite) SetupSuite() {
 		}
 	}()
 
+	ndjsonApp, err := InitApplication(s.bankidv6.URL(), ndjson.NewEncoder)
+	if err != nil {
+		fmt.Println("Error setting up NDJSON twofer in SetupSuite", err)
+	}
+	s.twoferNDJSON = httptest.NewServer(ndjsonApp)
+
 	// Arbitrary wait for servers to start
 	time.Sleep(1 * time.Second)
 }
@@ -63,6 +73,7 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	slog.Info("Tearing down test suite")
 	d := 2 * time.Second
 	go s.bankidv6.Close()
+	go s.twoferNDJSON.Close()
 
 	go func() {
 		parentCtx := context.Background()
@@ -79,7 +90,7 @@ func TestInit(t *testing.T) {
 	suite.Run(t, new(IntegrationTestSuite))
 }
 
-func InitApplication(bankIDV6URL string) (*echo.Echo, error) {
+func InitApplication(bankIDV6URL string, newEncoder httpserve.NewStreamEncoder) (*echo.Echo, error) {
 	e := echo.New()
 
 	client := &http.Client{}
@@ -98,7 +109,7 @@ func InitApplication(bankIDV6URL string) (*echo.Echo, error) {
 	}
 
 	twoferBankIDAPI := bankid.NewAPI(client, bankIDV6URL, time.Second)
-	httpserve.RegisterBankIDServer(e, twoferBankIDAPI, otm, sse.NewEncoder)
+	httpserve.RegisterBankIDServer(e, twoferBankIDAPI, otm, newEncoder)
 
 	return e, nil
 }
