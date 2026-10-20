@@ -1,10 +1,13 @@
 package test
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -231,6 +234,65 @@ func (s *IntegrationTestSuite) TestClientSameDeviceChecksDeviceIP() {
 			s.Equal("order token ip mismatch with device ip", be.Detail)
 		})
 	}
+}
+
+// A plain QR login starts the order without a personnummer, BankID learns who
+// it is from the scan.
+func (s *IntegrationTestSuite) TestClientQROrderWithoutPersonnummer() {
+	const signer = "199001010113"
+	c, ctx := s.client()
+
+	ar, err := c.AuthV3Once(ctx, clientAuthRequest(""))
+	s.Require().NoError(err)
+	s.Error(s.bankidv6.CompleteOrder(ar.OrderRef), "the fake cannot know who signed")
+	s.Require().NoError(s.bankidv6.CompleteOrder(ar.OrderRef, bankidtest.By(signer)))
+
+	cr, err := c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP})
+	s.Require().NoError(err)
+	s.Equal(api.StatusComplete, cr.Status)
+	s.Require().NotNil(cr.CompletionData)
+	s.Equal(signer, cr.CompletionData.User.PersonalNumber)
+
+	ar, err = c.AuthV3Once(ctx, clientAuthRequest(""))
+	s.Require().NoError(err)
+	s.Require().NoError(s.bankidv6.FailOrder(ar.OrderRef, "userCancel"))
+	cr, err = c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP})
+	s.Require().NoError(err)
+	s.Equal(api.StatusFailed, cr.Status)
+	s.Equal("userCancel", cr.HintCode)
+}
+
+func (s *IntegrationTestSuite) TestClientOrderLockedToPersonnummer() {
+	const pnr = "199001010114"
+	c, ctx := s.client()
+
+	ar, err := c.AuthV3Once(ctx, clientAuthRequest(pnr))
+	s.Require().NoError(err)
+	s.Error(s.bankidv6.CompleteOrder(ar.OrderRef, bankidtest.By("199001010115")), "only the required person may sign")
+
+	o, ok := s.bankidv6.Order(ar.OrderRef)
+	s.Require().True(ok)
+	s.Equal("pending", o.Status)
+	s.Require().NoError(s.bankidv6.CompleteOrder(ar.OrderRef))
+}
+
+func (s *IntegrationTestSuite) TestSignV3ReachesBankID() {
+	const pnr = "199001010116"
+	req := clientAuthRequest(pnr)
+	req.Once = true
+	req.UserVisibleData = "Text shown to user"
+	b, err := json.Marshal(req)
+	s.Require().NoError(err)
+
+	resp, err := http.Post(s.twoferURL+"/bankid/v6/signv3", "application/json", bytes.NewReader(b))
+	s.Require().NoError(err)
+	defer resp.Body.Close()
+	s.Require().Equal(http.StatusOK, resp.StatusCode)
+
+	// twofer passes the text on base64 encoded, as BankID requires
+	visible := base64.StdEncoding.EncodeToString([]byte(req.UserVisibleData))
+	s.Equal([]bankidtest.AuthRequest{{EndUserIP: clientTestIP, PersonalNumber: pnr, UserVisibleData: visible}}, s.bankidv6.Signs(pnr))
+	s.Empty(s.bankidv6.Auths(pnr))
 }
 
 // The order token needs the order ref, so twofer must refuse a bad expiry before
