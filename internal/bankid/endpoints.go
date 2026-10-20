@@ -161,7 +161,9 @@ func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest) (*CollectResponse,
 }
 
 func (a *API) WatchForChange(ctx context.Context, orderRef string) <-chan WatchResponse {
-	watch := make(chan WatchResponse)
+	// Buffered for the single send, so the goroutine ends even when the handler
+	// has stopped reading, e.g. after its last QR frame.
+	watch := make(chan WatchResponse, 1)
 
 	go func() {
 		changeRequest := &ChangeRequest{
