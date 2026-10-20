@@ -52,7 +52,7 @@ func (s *IntegrationTestSuite) TestAuthCallOnce() {
 
 	s.True(res.OrderRef != "")
 
-	truth, ok := s.bankidv6.Orders[res.OrderRef]
+	truth, ok := s.bankidv6.Order(res.OrderRef)
 	s.True(ok, "no matching order in bankid fake")
 
 	mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
@@ -138,7 +138,7 @@ func (s *IntegrationTestSuite) TestAuthCall() {
 
 		s.True(res.OrderRef != "")
 
-		truth, ok := s.bankidv6.Orders[res.OrderRef]
+		truth, ok := s.bankidv6.Order(res.OrderRef)
 		s.True(ok, "no matching order in bankid fake")
 
 		mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
@@ -185,7 +185,7 @@ func (s *IntegrationTestSuite) TestCollect() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+	if _, ok := s.bankidv6.Order(res.OrderRef); !ok {
 		s.FailNow("Order ref could not be found in fake bankid current orders map")
 	}
 
@@ -221,7 +221,7 @@ func (s *IntegrationTestSuite) TestCollect() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	o, ok := s.bankidv6.Orders[collectRes.OrderRef]
+	o, ok := s.bankidv6.Order(collectRes.OrderRef)
 
 	if !ok {
 		s.FailNow("Order no longer in fake bankid orders map")
@@ -263,7 +263,7 @@ func (s *IntegrationTestSuite) TestCancel() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+	if _, ok := s.bankidv6.Order(res.OrderRef); !ok {
 		s.FailNow("Order ref could not be found in fake bankid current orders map")
 	}
 
@@ -287,14 +287,19 @@ func (s *IntegrationTestSuite) TestCancel() {
 		s.FailNow("Received invalid status code from auth endpoint", strconv.Itoa(resp.StatusCode), s.twoferURL+"/bankid/v6/cancel")
 	}
 
-	o, ok := s.bankidv6.Orders[res.OrderRef]
+	o, ok := s.bankidv6.Order(res.OrderRef)
 
 	if !ok {
 		s.FailNow("Order no longer in fake bankid orders map")
 	}
 
-	s.Equal("failed", string(o.Status))
-	s.Equal("userCancel", o.HintCode)
+	s.True(o.Cancelled, "cancel did not reach the fake bankid")
+
+	// Like BankID, the fake no longer knows a cancelled order
+	collectResp, err := http.Post(s.twoferURL+"/bankid/v6/collect", "application/json", strings.NewReader(`{"orderRef":"`+res.OrderRef+`"}`))
+	s.Require().NoError(err, "error sending collect request")
+	defer collectResp.Body.Close()
+	s.Equal(http.StatusInternalServerError, collectResp.StatusCode)
 }
 
 func (s *IntegrationTestSuite) TestSignCallOnce() {
@@ -332,7 +337,7 @@ func (s *IntegrationTestSuite) TestSignCallOnce() {
 
 	s.True(res.OrderRef != "")
 
-	truth, ok := s.bankidv6.Orders[res.OrderRef]
+	truth, ok := s.bankidv6.Order(res.OrderRef)
 	s.True(ok, "no matching order in bankid fake")
 
 	mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
@@ -419,7 +424,7 @@ func (s *IntegrationTestSuite) TestSignCall() {
 
 		s.True(res.OrderRef != "")
 
-		truth, ok := s.bankidv6.Orders[res.OrderRef]
+		truth, ok := s.bankidv6.Order(res.OrderRef)
 		s.True(ok, "no matching order in bankid fake")
 
 		mac := hmac.New(sha256.New, []byte(truth.QrStartSecret))
@@ -435,8 +440,10 @@ func (s *IntegrationTestSuite) TestSignCall() {
 }
 
 func (s *IntegrationTestSuite) TestChange() {
+	const pnr = "199001010001"
 	authRequest := &bankid.AuthSignRequest{
-		EndUserIp: "127.0.0.1",
+		EndUserIp:   "127.0.0.1",
+		Requirement: bankid.Requirement{PersonalNumber: pnr},
 	}
 
 	var buf bytes.Buffer
@@ -466,11 +473,17 @@ func (s *IntegrationTestSuite) TestChange() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+	if _, ok := s.bankidv6.Order(res.OrderRef); !ok {
 		s.FailNow("Order ref could not be found in fake bankid current orders map")
 	}
 
-	// Start change request while we wait for cancel
+	// Start change request while the user cancels in the BankID app
+	type changeResult struct {
+		status int
+		body   []byte
+		err    error
+	}
+	changed := make(chan changeResult, 1)
 	go func() {
 		changeRequest := &bankid.ChangeRequest{
 			OrderRef: res.OrderRef,
@@ -479,55 +492,44 @@ func (s *IntegrationTestSuite) TestChange() {
 		var changeBuf bytes.Buffer
 		err := json.NewEncoder(&changeBuf).Encode(changeRequest)
 		if err != nil {
-			s.NoError(err, "error reading cancel request into buffer")
+			changed <- changeResult{err: err}
+			return
 		}
 
-		resp, err = http.Post(s.twoferURL+"/bankid/v6/change", "application/json", &changeBuf)
+		resp, err := http.Post(s.twoferURL+"/bankid/v6/change", "application/json", &changeBuf)
 		if err != nil {
-			s.NoError(err, "error sending change request")
+			changed <- changeResult{err: err}
+			return
 		}
-
-		if resp.StatusCode != http.StatusOK {
-			s.FailNow("Received invalid status code from change endpoint", strconv.Itoa(resp.StatusCode), s.twoferURL+"/bankid/v6/cancel")
-		}
-
-		body, err := io.ReadAll(resp.Body)
 		defer resp.Body.Close()
-		if err != nil {
-			s.NoError(err, "error reading change request response")
-		}
-
-		var changeRes bankid.CollectResponse
-		err = json.Unmarshal(body, &changeRes)
-		if err != nil {
-			s.NoError(err, "error unmarshaling change response")
-		}
-
-		s.Equal(changeRes.OrderRef, res.OrderRef)
-		s.Equal("failed", string(changeRes.Status))       // Because of cancel
-		s.Equal("userCancel", string(changeRes.HintCode)) // Because of cancel
+		body, err := io.ReadAll(resp.Body)
+		changed <- changeResult{status: resp.StatusCode, body: body, err: err}
 	}()
 
-	// Send cancel request for the auth request
-	cancelRequest := &bankid.CancelRequest{
-		OrderRef: res.OrderRef,
+	s.Require().NoError(s.bankidv6.Fail(pnr, "userCancel"))
+
+	var cr changeResult
+	select {
+	case cr = <-changed:
+	case <-time.After(10 * time.Second):
+		s.FailNow("change request did not return")
+	}
+	s.Require().NoError(cr.err, "error sending change request")
+	if cr.status != http.StatusOK {
+		s.FailNow("Received invalid status code from change endpoint", strconv.Itoa(cr.status), s.twoferURL+"/bankid/v6/change")
 	}
 
-	var cancelBuf bytes.Buffer
-	err = json.NewEncoder(&cancelBuf).Encode(cancelRequest)
+	var changeRes bankid.CollectResponse
+	err = json.Unmarshal(cr.body, &changeRes)
 	if err != nil {
-		s.NoError(err, "error reading cancel request into buffer")
+		s.NoError(err, "error unmarshaling change response")
 	}
 
-	resp, err = http.Post(s.twoferURL+"/bankid/v6/cancel", "application/json", &cancelBuf)
-	if err != nil {
-		s.NoError(err, "error sending cancel request")
-	}
-	if resp.StatusCode != http.StatusNoContent {
-		s.FailNow("Received invalid status code from auth endpoint", strconv.Itoa(resp.StatusCode), s.twoferURL+"/bankid/v6/cancel")
-	}
+	s.Equal(changeRes.OrderRef, res.OrderRef)
+	s.Equal("failed", string(changeRes.Status))       // Because of cancel
+	s.Equal("userCancel", string(changeRes.HintCode)) // Because of cancel
 
-	o, ok := s.bankidv6.Orders[res.OrderRef]
+	o, ok := s.bankidv6.Order(res.OrderRef)
 
 	if !ok {
 		s.FailNow("Order no longer in fake bankid orders map")
@@ -572,7 +574,7 @@ func (s *IntegrationTestSuite) TestCollectV3WithOrderToken() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+	if _, ok := s.bankidv6.Order(res.OrderRef); !ok {
 		s.FailNow("Order ref could not be found in fake bankid current orders map")
 	}
 
@@ -610,7 +612,7 @@ func (s *IntegrationTestSuite) TestCollectV3WithOrderToken() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	o, ok := s.bankidv6.Orders[collectRes.OrderRef]
+	o, ok := s.bankidv6.Order(collectRes.OrderRef)
 
 	if !ok {
 		s.FailNow("Order no longer in fake bankid orders map")
@@ -655,7 +657,7 @@ func (s *IntegrationTestSuite) TestCollectV3WithOrderTokenWrongIP() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+	if _, ok := s.bankidv6.Order(res.OrderRef); !ok {
 		s.FailNow("Order ref could not be found in fake bankid current orders map")
 	}
 
@@ -733,7 +735,7 @@ func (s *IntegrationTestSuite) TestCancelV3WithOrderToken() {
 		s.NoError(err, "error unmarshaling auth response")
 	}
 
-	if _, ok := s.bankidv6.Orders[res.OrderRef]; !ok {
+	if _, ok := s.bankidv6.Order(res.OrderRef); !ok {
 		s.FailNow("Order ref could not be found in fake bankid current orders map")
 	}
 
@@ -765,12 +767,24 @@ func (s *IntegrationTestSuite) TestCancelV3WithOrderToken() {
 	}
 	s.Equal(r.Status, api.StatusComplete)
 
-	o, ok := s.bankidv6.Orders[res.OrderRef]
+	o, ok := s.bankidv6.Order(res.OrderRef)
 
 	if !ok {
 		s.FailNow("Order no longer in fake bankid orders map")
 	}
 
-	s.Equal("failed", string(o.Status))
-	s.Equal("userCancel", o.HintCode)
+	s.True(o.Cancelled, "cancel did not reach the fake bankid")
+
+	// Like BankID, the fake no longer knows a cancelled order
+	collectBody, err := json.Marshal(api.BankIdv6CollectRequestV3{OrderToken: res.OrderToken, EndUserIp: "127.0.0.1"})
+	s.Require().NoError(err)
+	collectResp, err := http.Post(s.twoferURL+"/bankid/v6/collectV3", "application/json", bytes.NewReader(collectBody))
+	s.Require().NoError(err, "error sending collect request")
+	defer collectResp.Body.Close()
+	s.Equal(http.StatusBadRequest, collectResp.StatusCode)
+	var collectErr api.BankIdv6ErrorResponseV3
+	s.Require().NoError(json.NewDecoder(collectResp.Body).Decode(&collectErr))
+	s.Equal(api.ErrorOriginBankIDv6, collectErr.Origin)
+	s.Equal("invalidParameters", collectErr.Code)
+	s.Equal("No such order", collectErr.Detail)
 }
