@@ -503,6 +503,14 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 			fmt.Printf("ERR: error parsing endUserIp: '%v'\n", request.EndUserIp)
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "error parsing endUserIp"))
 		}
+		// The order token needs the order ref, so it is made after the order is
+		// started. Refuse an expiry it would reject first, or the started order
+		// could not be cancelled and the person's next order would hit
+		// alreadyInProgress.
+		if otm != nil && request.OrderTokenExpire <= 0 {
+			fmt.Printf("ERR: orderTokenExpire not positive: %v\n", request.OrderTokenExpire)
+			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "orderTokenExpire must be positive"))
+		}
 		// Convert from public API to internal struct
 		br := bankid.Requirement{
 			PinCode:        request.PinCode,
@@ -564,8 +572,10 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 		for i := 0; i < 30; i++ {
 			err = send(strconv.Itoa(i), "message", bankIdV6AuthSignResponseV3(res, i))
 			if err != nil {
+				// The stream is committed, an error reply would reach the client as
+				// one more frame. Ending the stream is all that is left.
 				fmt.Printf("ERR: failed to send QR-code message: %v\n", err)
-				return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "failed to send response message"))
+				return nil
 			}
 			select {
 			case <-ctx.Done():
