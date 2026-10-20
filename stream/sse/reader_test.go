@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -282,6 +283,63 @@ func Test_process(t *testing.T) {
 			// Check that the async process ended so that it's go-routine can exit cleanly
 			if !terminated {
 				t.Errorf("the async process didn't terminate after reader had been closed")
+			}
+		})
+	}
+}
+
+type closeSignal struct {
+	io.ReadCloser
+	once   sync.Once
+	closed chan struct{}
+}
+
+func (c *closeSignal) Close() error {
+	c.once.Do(func() { close(c.closed) })
+	return c.ReadCloser.Close()
+}
+
+func TestNewReader_exits_when_ctx_is_done(t *testing.T) {
+	tests := []struct {
+		name   string
+		buffer string
+	}{
+		// the goroutine holds an event nobody receives
+		{name: "blocked_on_send", buffer: "data:1\n\ndata:2\n\n"},
+		// the goroutine waits for a line that never comes
+		{name: "blocked_on_read", buffer: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pr, pw := io.Pipe()
+			defer pw.Close()
+			body := &closeSignal{ReadCloser: pr, closed: make(chan struct{})}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			events := NewReader(ctx, body)
+
+			if tt.buffer != "" {
+				go func() { _, _ = pw.Write([]byte(tt.buffer)) }()
+			}
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+
+			select {
+			case <-body.closed:
+			case <-time.After(2 * time.Second):
+				t.Fatal("reader goroutine did not close the body after ctx was cancelled")
+			}
+
+			timeout := time.After(2 * time.Second)
+			for {
+				select {
+				case _, ok := <-events:
+					if !ok {
+						return
+					}
+				case <-timeout:
+					t.Fatal("event channel not closed after ctx was cancelled")
+				}
 			}
 		})
 	}
