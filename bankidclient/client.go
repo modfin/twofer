@@ -1,4 +1,4 @@
-package twofer
+package bankidclient
 
 import (
 	"bufio"

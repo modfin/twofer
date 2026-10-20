@@ -13,17 +13,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/modfin/twofer"
 	"github.com/modfin/twofer/api"
+	"github.com/modfin/twofer/bankidclient"
 	"github.com/modfin/twofer/bankidtest"
 )
 
 const clientTestIP = "127.0.0.1"
 
-func (s *IntegrationTestSuite) client() (*twofer.BankIdV3Client, context.Context) {
+func (s *IntegrationTestSuite) client() (*bankidclient.BankIdV3Client, context.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	s.T().Cleanup(cancel)
-	return twofer.NewBankIdV3Client(s.twoferURL), ctx
+	return bankidclient.NewBankIdV3Client(s.twoferURL), ctx
 }
 
 func clientAuthRequest(pnr string) api.BankIdv6AuthSignRequestV3 {
@@ -40,7 +40,7 @@ func expectedQR(o bankidtest.Order, i int) string {
 	return "bankid." + o.QrStartToken + "." + strconv.Itoa(i) + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
-func (s *IntegrationTestSuite) assertQRFrames(stream *twofer.AuthV3Stream, frames int) {
+func (s *IntegrationTestSuite) assertQRFrames(stream *bankidclient.AuthV3Stream, frames int) {
 	var orderRef string
 	for i := 0; i < frames; i++ {
 		f, err := stream.Next()
@@ -77,7 +77,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamNDJSON() {
 	const pnr = "199001010102"
 	_, ctx := s.client()
 
-	stream, err := twofer.NewBankIdV3Client(s.twoferNDJSON.URL).AuthV3(ctx, clientAuthRequest(pnr))
+	stream, err := bankidclient.NewBankIdV3Client(s.twoferNDJSON.URL).AuthV3(ctx, clientAuthRequest(pnr))
 	s.Require().NoError(err)
 	defer stream.Close()
 
@@ -137,7 +137,7 @@ func (s *IntegrationTestSuite) TestClientCancelV3() {
 	s.True(o.Cancelled)
 
 	_, err = c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP})
-	var be *twofer.BankIdError
+	var be *bankidclient.BankIdError
 	s.Require().ErrorAs(err, &be)
 	s.Equal("collectV3", be.Endpoint)
 	s.Equal(http.StatusBadRequest, be.HTTPStatus)
@@ -155,7 +155,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3AlreadyInProgress() {
 	s.Require().NoError(err)
 
 	_, err = c.AuthV3Once(ctx, clientAuthRequest(pnr))
-	var be *twofer.BankIdError
+	var be *bankidclient.BankIdError
 	s.Require().ErrorAs(err, &be)
 	s.Equal(api.ErrorOriginBankIDv6, be.Origin)
 	s.Equal("alreadyInProgress", be.Code)
@@ -175,7 +175,7 @@ func (s *IntegrationTestSuite) TestClientOrderTokenBoundToIP() {
 	s.Require().NoError(err)
 
 	_, err = c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: otherIP})
-	var be *twofer.BankIdError
+	var be *bankidclient.BankIdError
 	s.Require().ErrorAs(err, &be)
 	s.Equal(http.StatusBadRequest, be.HTTPStatus)
 	s.Equal(api.ErrorOriginTwofer, be.Origin)
@@ -213,7 +213,7 @@ func (s *IntegrationTestSuite) TestClientSameDeviceChecksDeviceIP() {
 				s.Equal(api.StatusComplete, cr.Status)
 				return
 			}
-			var be *twofer.BankIdError
+			var be *bankidclient.BankIdError
 			s.Require().ErrorAs(err, &be)
 			s.Equal(api.ErrorOriginTwofer, be.Origin)
 			s.Equal("order token ip mismatch with device ip", be.Detail)
@@ -232,8 +232,8 @@ func (s *IntegrationTestSuite) TestClientErrorBodyIsCapped() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := twofer.NewBankIdV3Client(srv.URL).AuthV3Once(ctx, clientAuthRequest("199001010110"))
-	var be *twofer.BankIdError
+	_, err := bankidclient.NewBankIdV3Client(srv.URL).AuthV3Once(ctx, clientAuthRequest("199001010110"))
+	var be *bankidclient.BankIdError
 	s.Require().True(errors.As(err, &be), "%v", err)
 	s.Equal(http.StatusBadGateway, be.HTTPStatus)
 	s.Equal(body[:4096], be.Body)
@@ -260,7 +260,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			stream, err := twofer.NewBankIdV3Client(srv.URL).AuthV3(ctx, clientAuthRequest("199001010111"))
+			stream, err := bankidclient.NewBankIdV3Client(srv.URL).AuthV3(ctx, clientAuthRequest("199001010111"))
 			s.Require().NoError(err)
 			defer stream.Close()
 
