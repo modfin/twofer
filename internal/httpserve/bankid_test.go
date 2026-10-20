@@ -399,7 +399,7 @@ func testAuthSignV3(tt authSignTestV3, newContext newContextFn) func(t *testing.
 		res := httptest.NewRecorder()
 		ctx := newContext(req, res)
 
-		echoHandler := authSignV3(tt.authSign(t), time.Millisecond, tt.encoder)
+		echoHandler := authSignV3(tt.authSign(t), time.Millisecond, tt.encoder, nil)
 		err = echoHandler(ctx)
 		if err != nil {
 			t.Fatalf("got error: %v", err)
@@ -412,6 +412,31 @@ func testAuthSignV3(tt authSignTestV3, newContext newContextFn) func(t *testing.
 		}
 
 		tt.testDecoder(t, req.Context(), response.Body, tt)
+	}
+}
+
+func Test_authSignV3_stops_when_client_leaves(t *testing.T) {
+	body, err := json.Marshal(api.BankIdv6AuthSignRequestV3{EndUserIp: testIP})
+	if err != nil {
+		t.Fatalf("ERROR: Failed to marshal request: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodPost, "http://test.local/bankid/v6/authv3", bytes.NewReader(body)).WithContext(ctx)
+	res := httptest.NewRecorder()
+
+	// with an hour between QR codes, only a handler that watches the request returns in time
+	handler := authSignV3(authSignTestMock(authResponseOK, nil)(t), time.Hour, sse.NewEncoder, nil)
+	done := make(chan error, 1)
+	go func() { done <- handler(echo.New().NewContext(req, res)) }()
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("got error: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("handler kept streaming after the client left")
 	}
 }
 

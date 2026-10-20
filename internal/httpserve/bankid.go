@@ -559,14 +559,19 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 			return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "failed to setup response stream"))
 		}
 
-		// Stream new QR codes for about 30 seconds
+		// Stream new QR codes for about 30 seconds, or until the client leaves
+		ctx := c.Request().Context()
 		for i := 0; i < 30; i++ {
 			err = send(strconv.Itoa(i), "message", bankIdV6AuthSignResponseV3(res, i))
 			if err != nil {
 				fmt.Printf("ERR: failed to send QR-code message: %v\n", err)
 				return c.JSON(http.StatusInternalServerError, bankIdv6ErrorResponseV3(err, "failed to send response message"))
 			}
-			time.Sleep(qrPeriod)
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(qrPeriod):
+			}
 		}
 		return nil
 	}
