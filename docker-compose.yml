@@ -17,13 +17,6 @@ services:
       OTP_ENCRYPTION_KEY: |-
         1:aes:Hg44JefQsFJMI1F0zhWMpw== 2:aes:ZS7MqnYbM3zL0ERjE0kFMWC5zuEwzFg5
 
-      WEBAUTHN_ENABLED: "true"
-      WEBAUTHN_RP_ID: "localhost"
-      WEBAUTHN_RP_ORIGIN: "http://localhost:8080"
-      WEBAUTHN_RP_DISPLAYNAME: "localhost"
-      WEBAUTHN_USER_VERIFICATION: "discouraged"
-      WEBAUTHN_HMAC_KEY: "SfWAuZk23Rrm2Wgvq2nf"
-
       PWD_ENABLE: "true"
       PWD_ALG: 3
       PWD_ENCRYPTION_KEY: |-
@@ -36,15 +29,6 @@ services:
       - .:/go/src/github.com/modfin/twofer:cached
       - gopkg:/go/pkg:cached
 
-  webauthn-example:
-    build:
-      context: ./example
-      dockerfile: webauthn/Dockerfile.dev
-    ports:
-      - "8081:8080"
-    volumes:
-      - .:/go/src/github.com/modfin/twofer:cached
-      - gopkg:/go/pkg:cached
   example:
     build:
       context: ./example

@@ -64,18 +64,6 @@ func main() {
 		startEid(e)
 	}
 
-	if cfg.WebAuthn.Enabled {
-		/*
-			fmt.Println("- Enabling WebAuthn")
-			authn, err := servw6n.New(cfg.WebAuthn)
-			if err != nil {
-				fmt.Println("WebAuthn", err)
-			} else {
-				// TODO: gw6n.RegisterWebAuthnServer(grpcServer, authn)
-			}
-		*/
-	}
-
 	if cfg.PWD.Enabled {
 		fmt.Println("- Enabling PWD")
 		_servpwd, err := servpwd.New(servpwd.PWDConfig{
