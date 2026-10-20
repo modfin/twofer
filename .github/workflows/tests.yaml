@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 'stable'
+      - name: vet
+        run: go vet ./...
       - name: run
-        run: |-
-          cd test
-          go test --race -v .
+        run: go test --race -v ./...
