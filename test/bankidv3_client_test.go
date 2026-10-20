@@ -113,8 +113,20 @@ func (s *IntegrationTestSuite) TestClientCollectV3RoundTrip() {
 	s.Equal("outstandingTransaction", cr.HintCode)
 	s.Nil(cr.CompletionData)
 
+	// the wait starts on a pending order and returns once it completes
+	type collected struct {
+		cr  api.BankIdV6CollectResponseV3
+		err error
+	}
+	waited := make(chan collected, 1)
+	go func() {
+		cr, err := c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP, WaitForChange: true})
+		waited <- collected{cr, err}
+	}()
+	time.Sleep(300 * time.Millisecond)
 	s.Require().NoError(s.bankidv6.Complete(pnr))
-	cr, err = c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP, WaitForChange: true})
+	got := <-waited
+	cr, err = got.cr, got.err
 	s.Require().NoError(err)
 	s.Equal(ar.OrderRef, cr.OrderRef)
 	s.Equal(api.StatusComplete, cr.Status)
@@ -221,6 +233,26 @@ func (s *IntegrationTestSuite) TestClientSameDeviceChecksDeviceIP() {
 	}
 }
 
+// The order token needs the order ref, so twofer must refuse a bad expiry before
+// it starts an order nobody could cancel.
+func (s *IntegrationTestSuite) TestClientAuthV3NeedsOrderTokenExpire() {
+	const pnr = "199001010112"
+	c, ctx := s.client()
+
+	req := clientAuthRequest(pnr)
+	req.OrderTokenExpire = 0
+	_, err := c.AuthV3Once(ctx, req)
+	var be *bankidclient.BankIdError
+	s.Require().True(errors.As(err, &be), "%v", err)
+	s.Equal(http.StatusBadRequest, be.HTTPStatus)
+	s.Equal(api.ErrorOriginTwofer, be.Origin)
+	s.Empty(s.bankidv6.Auths(pnr))
+
+	// no order was left pending, so the corrected request is not alreadyInProgress
+	_, err = c.AuthV3Once(ctx, clientAuthRequest(pnr))
+	s.NoError(err)
+}
+
 func (s *IntegrationTestSuite) TestClientErrorBodyIsCapped() {
 	body := strings.Repeat("x", 10000)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -242,13 +274,60 @@ func (s *IntegrationTestSuite) TestClientErrorBodyIsCapped() {
 
 // twofer ends the stream after ~30s, too long to wait for against the real handlers.
 func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
+	const (
+		frameA   = `{"orderRef":"a","qr":"qa"}`
+		frameB   = `{"orderRef":"b","qr":"qb"}`
+		errReply = `{"origin":"Twofer","code":"boom","detail":"failed to send response message"}`
+	)
 	tests := []struct {
 		name        string
 		contentType string
 		body        string
+		check       func(err error)
 	}{
-		{name: "sse", contentType: "text/event-stream", body: "id: 0\ndata: {\"orderRef\":\"a\"}\n\nid: 1\ndata: {\"orderRef\":\"b\"}\n\n"},
-		{name: "ndjson", contentType: "application/x-json-stream", body: "{\"orderRef\":\"a\"}\n{\"orderRef\":\"b\"}\n"},
+		{
+			name:        "sse",
+			contentType: "text/event-stream",
+			body:        "id: 0\ndata: " + frameA + "\n\nid: 1\ndata: " + frameB + "\n\n",
+			check:       func(err error) { s.ErrorIs(err, io.EOF) },
+		},
+		{
+			name:        "ndjson",
+			contentType: "application/x-json-stream",
+			body:        frameA + "\n" + frameB + "\n",
+			check:       func(err error) { s.ErrorIs(err, io.EOF) },
+		},
+		// older twofer appends an error reply to a stream it fails to continue
+		{
+			name:        "sse error reply",
+			contentType: "text/event-stream",
+			body:        "id: 0\ndata: " + frameA + "\n\nid: 1\ndata: " + frameB + "\n\n" + errReply,
+			check:       s.assertStreamError,
+		},
+		{
+			name:        "ndjson error reply",
+			contentType: "application/x-json-stream",
+			body:        frameA + "\n" + frameB + "\n" + errReply,
+			check:       s.assertStreamError,
+		},
+		{
+			name:        "sse cut off mid event",
+			contentType: "text/event-stream",
+			body:        "id: 0\ndata: " + frameA + "\n\nid: 1\ndata: " + frameB + "\n\ndata: {\"orderRef\":\"c",
+			check: func(err error) {
+				s.ErrorIs(err, io.ErrUnexpectedEOF)
+				s.NotErrorIs(err, io.EOF)
+			},
+		},
+		{
+			name:        "ndjson cut off mid frame",
+			contentType: "application/x-json-stream",
+			body:        frameA + "\n" + frameB + "\n{\"orderRef\":\"c",
+			check: func(err error) {
+				s.ErrorIs(err, io.ErrUnexpectedEOF)
+				s.NotErrorIs(err, io.EOF)
+			},
+		},
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
@@ -270,7 +349,15 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
 				s.Equal(want, f.OrderRef)
 			}
 			_, err = stream.Next()
-			s.ErrorIs(err, io.EOF)
+			tt.check(err)
 		})
 	}
+}
+
+func (s *IntegrationTestSuite) assertStreamError(err error) {
+	var be *bankidclient.BankIdError
+	s.Require().True(errors.As(err, &be), "%v", err)
+	s.Equal(api.ErrorOriginTwofer, be.Origin)
+	s.Equal("boom", be.Code)
+	s.Equal(http.StatusOK, be.HTTPStatus)
 }
