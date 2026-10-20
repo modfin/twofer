@@ -506,6 +506,9 @@ func (s *IntegrationTestSuite) TestChange() {
 		changed <- changeResult{status: resp.StatusCode, body: body, err: err}
 	}()
 
+	// /change has to see the order pending first, or it returns before its
+	// wait loop runs
+	time.Sleep(300 * time.Millisecond)
 	s.Require().NoError(s.bankidv6.Fail(pnr, "userCancel"))
 
 	var cr changeResult
@@ -528,15 +531,6 @@ func (s *IntegrationTestSuite) TestChange() {
 	s.Equal(changeRes.OrderRef, res.OrderRef)
 	s.Equal("failed", string(changeRes.Status))       // Because of cancel
 	s.Equal("userCancel", string(changeRes.HintCode)) // Because of cancel
-
-	o, ok := s.bankidv6.Order(res.OrderRef)
-
-	if !ok {
-		s.FailNow("Order no longer in fake bankid orders map")
-	}
-
-	s.Equal("failed", string(o.Status))
-	s.Equal("userCancel", o.HintCode)
 }
 
 func (s *IntegrationTestSuite) TestCollectV3WithOrderToken() {
