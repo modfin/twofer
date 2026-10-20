@@ -17,11 +17,11 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/modfin/twofer/bankidtest"
 	"github.com/modfin/twofer/internal/bankid"
 	"github.com/modfin/twofer/internal/httpserve"
 	"github.com/modfin/twofer/internal/ordertoken"
 	"github.com/modfin/twofer/stream/sse"
-	"github.com/modfin/twofer/test/fakes"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -30,24 +30,17 @@ type IntegrationTestSuite struct {
 	twofer    *echo.Echo
 	twoferURL string
 
-	bankidv6 *fakes.BankIDV6Fake
+	bankidv6 *bankidtest.BankID
 }
 
 func (s *IntegrationTestSuite) SetupSuite() {
 	slog.Info("Setting up test suite")
 
 	// BANKID v6
-	s.bankidv6 = fakes.CreateBankIDV6Fake()
-	go func() {
-		slog.Info("Starting bankid v6 fake")
-		err := s.bankidv6.Start()
-		if err != nil && !errors.Is(http.ErrServerClosed, err) {
-			fmt.Println("Error starting bankid v6 server.", err.Error())
-		}
-	}()
+	s.bankidv6 = bankidtest.New()
 
 	//TWOFER
-	app, err := InitApplication(s.bankidv6.URL)
+	app, err := InitApplication(s.bankidv6.URL())
 	if err != nil {
 		fmt.Println("Error setting up twofer in SetupSuite", err)
 	}
@@ -69,12 +62,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 func (s *IntegrationTestSuite) TearDownSuite() {
 	slog.Info("Tearing down test suite")
 	d := 2 * time.Second
-	go func() {
-		err := s.bankidv6.Stop(d)
-		if err != nil {
-			fmt.Println("Error stopping bankid v6 server.", err.Error())
-		}
-	}()
+	go s.bankidv6.Close()
 
 	go func() {
 		parentCtx := context.Background()
