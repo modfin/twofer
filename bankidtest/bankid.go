@@ -30,9 +30,10 @@ type BankID struct {
 	mu     sync.Mutex
 	orders map[string]*order // by orderRef, kept after BankID forgets them
 	auths  []AuthRequest
+	signs  []AuthRequest
 }
 
-// AuthRequest is what twofer sent BankID to start an auth order.
+// AuthRequest is what twofer sent BankID to start an auth or sign order.
 type AuthRequest struct {
 	EndUserIP      string
 	PersonalNumber string
@@ -57,6 +58,8 @@ type Order struct {
 type order struct {
 	Order
 	deviceIP string
+	// signer is who BankID reports as having signed
+	signer string
 	// gone orders get "No such order" from BankID
 	gone bool
 }
@@ -68,6 +71,12 @@ type CompleteOption func(*order)
 // it was started with, as when the autostart link was opened elsewhere.
 func FromIP(ip string) CompleteOption {
 	return func(o *order) { o.deviceIP = ip }
+}
+
+// By has BankID report pnr as the person who signed. An order started without
+// a personnummer, as in a plain QR login, needs it.
+func By(pnr string) CompleteOption {
+	return func(o *order) { o.signer = pnr }
 }
 
 // New starts the fake on a local port. Close it when done.
@@ -104,10 +113,21 @@ func (b *BankID) Close() {
 func (b *BankID) Auths(pnr string) []AuthRequest {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	return forPnr(b.auths, pnr)
+}
+
+// Signs returns the sign requests BankID received for pnr.
+func (b *BankID) Signs(pnr string) []AuthRequest {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return forPnr(b.signs, pnr)
+}
+
+func forPnr(reqs []AuthRequest, pnr string) []AuthRequest {
 	var out []AuthRequest
-	for _, a := range b.auths {
-		if a.PersonalNumber == pnr {
-			out = append(out, a)
+	for _, r := range reqs {
+		if r.PersonalNumber == pnr {
+			out = append(out, r)
 		}
 	}
 	return out
@@ -132,10 +152,39 @@ func (b *BankID) Complete(pnr string, opts ...CompleteOption) error {
 	if err != nil {
 		return err
 	}
-	o.Status, o.HintCode = statusComplete, ""
-	for _, opt := range opts {
-		opt(o)
+	return complete(o, opts)
+}
+
+// CompleteOrder signs the pending order orderRef. Use By for an order started
+// without a personnummer.
+func (b *BankID) CompleteOrder(orderRef string, opts ...CompleteOption) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	o, err := b.pendingRef(orderRef)
+	if err != nil {
+		return err
 	}
+	return complete(o, opts)
+}
+
+// complete must be called with mu held. It leaves o untouched on error.
+func complete(o *order, opts []CompleteOption) error {
+	c := *o
+	for _, opt := range opts {
+		opt(&c)
+	}
+	if c.signer == "" {
+		c.signer = c.PersonalNumber
+	}
+	if c.signer == "" {
+		return errors.New("order has no personnummer, pass By to say who signs")
+	}
+	// BankID lets only the required person sign
+	if c.PersonalNumber != "" && c.signer != c.PersonalNumber {
+		return fmt.Errorf("order is locked to personnummer %s", c.PersonalNumber)
+	}
+	c.Status, c.HintCode = statusComplete, ""
+	*o = c
 	return nil
 }
 
@@ -150,6 +199,27 @@ func (b *BankID) Fail(pnr, hintCode string) error {
 	}
 	o.Status, o.HintCode = statusFailed, hintCode
 	return nil
+}
+
+// FailOrder ends the pending order orderRef with hintCode.
+func (b *BankID) FailOrder(orderRef, hintCode string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	o, err := b.pendingRef(orderRef)
+	if err != nil {
+		return err
+	}
+	o.Status, o.HintCode = statusFailed, hintCode
+	return nil
+}
+
+// pendingRef must be called with mu held.
+func (b *BankID) pendingRef(orderRef string) (*order, error) {
+	o, ok := b.orders[orderRef]
+	if !ok || o.gone || o.Status != statusPending {
+		return nil, fmt.Errorf("no pending bankid order %s", orderRef)
+	}
+	return o, nil
 }
 
 // pending must be called with mu held.
@@ -212,6 +282,14 @@ func (b *BankID) sign(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, "invalidParameters", "Missing userVisibleData")
 		return
 	}
+
+	b.mu.Lock()
+	b.signs = append(b.signs, AuthRequest{
+		EndUserIP:       req.EndUserIP,
+		PersonalNumber:  req.Requirement.PersonalNumber,
+		UserVisibleData: req.UserVisibleData,
+	})
+	b.mu.Unlock()
 
 	b.start(w, req)
 }
@@ -277,7 +355,7 @@ func (b *BankID) collect(w http.ResponseWriter, r *http.Request) {
 			deviceIP = o.deviceIP
 		}
 		res["completionData"] = map[string]any{
-			"user":            map[string]string{"personalNumber": o.PersonalNumber, "name": "Test Person", "givenName": "Test", "surname": "Person"},
+			"user":            map[string]string{"personalNumber": o.signer, "name": "Test Person", "givenName": "Test", "surname": "Person"},
 			"device":          map[string]string{"ipAddress": deviceIP},
 			"bankIdIssueDate": "2026-01-01",
 			"signature":       base64.StdEncoding.EncodeToString([]byte("signature")),
