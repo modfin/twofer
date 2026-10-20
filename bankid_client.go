@@ -17,15 +17,15 @@ import (
 // maxErrorBody caps the raw error reply kept on BankIdError, it ends up in logs.
 const maxErrorBody = 4096
 
-// BankIdClient calls twofer's BankID V3 API: /bankid/v6/authv3, collectV3 and
+// BankIdV3Client calls twofer's BankID V3 API: /bankid/v6/authv3, collectV3 and
 // cancelV3.
-type BankIdClient struct {
+type BankIdV3Client struct {
 	c       *http.Client
 	baseUrl string
 }
 
-func NewBankIdClient(baseurl string) *BankIdClient {
-	return &BankIdClient{
+func NewBankIdV3Client(baseurl string) *BankIdV3Client {
+	return &BankIdV3Client{
 		// No Timeout: authv3 streams for ~30s and collectV3 long-polls.
 		// Callers bound each request with ctx instead.
 		c:       &http.Client{},
@@ -48,7 +48,7 @@ func (e *BankIdError) Error() string {
 	return fmt.Sprintf("twofer %s returned status %d: %s", e.Endpoint, e.HTTPStatus, e.Body)
 }
 
-func (c *BankIdClient) post(ctx context.Context, endpoint string, body any) (*http.Response, error) {
+func (c *BankIdV3Client) post(ctx context.Context, endpoint string, body any) (*http.Response, error) {
 	b, err := json.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("err marshal twofer %s request: %w", endpoint, err)
@@ -77,7 +77,7 @@ func (c *BankIdClient) post(ctx context.Context, endpoint string, body any) (*ht
 
 // AuthV3 starts an auth order. twofer then streams a fresh QR frame each
 // second for ~30 seconds. Close the stream when done with it.
-func (c *BankIdClient) AuthV3(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (*AuthV3Stream, error) {
+func (c *BankIdV3Client) AuthV3(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (*AuthV3Stream, error) {
 	req.Once = false
 	resp, err := c.post(ctx, "authv3", req)
 	if err != nil {
@@ -88,7 +88,7 @@ func (c *BankIdClient) AuthV3(ctx context.Context, req api.BankIdv6AuthSignReque
 
 // AuthV3Once starts an auth order and returns its first frame only, e.g. for
 // an order opened in the BankID app on the same device rather than scanned.
-func (c *BankIdClient) AuthV3Once(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (api.BankIdV6AuthSignResponseV3, error) {
+func (c *BankIdV3Client) AuthV3Once(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (api.BankIdV6AuthSignResponseV3, error) {
 	req.Once = true
 	resp, err := c.post(ctx, "authv3", req)
 	if err != nil {
@@ -106,7 +106,7 @@ func (c *BankIdClient) AuthV3Once(ctx context.Context, req api.BankIdv6AuthSignR
 
 // CollectV3 returns the order's status. With WaitForChange or
 // WaitUntilFinished set, twofer holds the request until the status changes.
-func (c *BankIdClient) CollectV3(ctx context.Context, req api.BankIdv6CollectRequestV3) (api.BankIdV6CollectResponseV3, error) {
+func (c *BankIdV3Client) CollectV3(ctx context.Context, req api.BankIdv6CollectRequestV3) (api.BankIdV6CollectResponseV3, error) {
 	resp, err := c.post(ctx, "collectV3", req)
 	if err != nil {
 		return api.BankIdV6CollectResponseV3{}, err
@@ -121,7 +121,7 @@ func (c *BankIdClient) CollectV3(ctx context.Context, req api.BankIdv6CollectReq
 	return cr, nil
 }
 
-func (c *BankIdClient) CancelV3(ctx context.Context, req api.BankIdv6CancelRequestV3) error {
+func (c *BankIdV3Client) CancelV3(ctx context.Context, req api.BankIdv6CancelRequestV3) error {
 	resp, err := c.post(ctx, "cancelV3", req)
 	if err != nil {
 		return err

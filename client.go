@@ -31,14 +31,14 @@ func NewClient(baseurl string) Client {
 
 // EidClient calls twofer's /v1/eid routes.
 //
-// Deprecated: twoferd no longer serves /v1/eid. Use BankIdClient, which calls
+// Deprecated: twoferd no longer serves /v1/eid. Use BankIdV3Client, which calls
 // the BankID V3 API.
 type EidClient struct {
 	c       *http.Client
 	baseUrl string
 }
 
-// Deprecated: twoferd no longer serves /v1/eid. Use NewBankIdClient.
+// Deprecated: twoferd no longer serves /v1/eid. Use NewBankIdV3Client.
 func NewEidClient(baseurl string) *EidClient {
 	return &EidClient{
 		c:       http.DefaultClient,
