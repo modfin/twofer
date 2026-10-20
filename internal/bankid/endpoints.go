@@ -117,7 +117,11 @@ func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, e
 	}
 }
 
-func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest) (*CollectResponse, error) {
+// ChangeV3 waits for the order to change, or with WaitUntilFinished to finish.
+// After maxWait, if positive, it returns the order's last seen state. maxWait is
+// only checked between polls, since cancelling a poll in flight could lose a
+// finished order.
+func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest, maxWait time.Duration) (*CollectResponse, error) {
 	err := r.Validate()
 	if err != nil {
 		return nil, err
@@ -134,10 +138,20 @@ func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest) (*CollectResponse,
 		return startState, nil
 	}
 
+	var deadline <-chan time.Time
+	if maxWait > 0 {
+		t := time.NewTimer(maxWait)
+		defer t.Stop()
+		deadline = t.C
+	}
+
+	last := startState
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
+		case <-deadline:
+			return last, nil
 		case <-time.After(a.pollInterval):
 		}
 
@@ -147,16 +161,14 @@ func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest) (*CollectResponse,
 			return nil, err
 		}
 
-		if r.WaitUntilFinished {
-			if resp.Status != Pending {
-				return resp, nil
-			}
-			continue
-		}
-
-		if resp.HintCode != startState.HintCode {
+		// BankID does not hand out a finished order again
+		if resp.Status != Pending {
 			return resp, nil
 		}
+		if !r.WaitUntilFinished && resp.HintCode != startState.HintCode {
+			return resp, nil
+		}
+		last = resp
 	}
 }
 

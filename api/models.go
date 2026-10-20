@@ -103,6 +103,13 @@ type (
 		// and will not return on state changes during the ongoing process.
 		WaitUntilFinished bool `json:"waitUntilFinished"`
 
+		// MaxWait bounds a WaitForChange or WaitUntilFinished wait. Once it has
+		// passed, twofer replies with the order's current state instead of
+		// waiting on. Prefer it over cutting the request: BankID hands out a
+		// finished order once, and a cut request can lose it. Zero waits without
+		// a bound.
+		MaxWait time.Duration `json:"maxWait,omitempty"`
+
 		// OrderToken optionally pass an order token. This is an alternative to OrderRef.
 		// If you use this the end user IP of the user who triggered collect is required for verification
 		OrderToken string `json:"orderToken"`

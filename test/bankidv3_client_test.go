@@ -236,6 +236,26 @@ func (s *IntegrationTestSuite) TestClientSameDeviceChecksDeviceIP() {
 	}
 }
 
+func (s *IntegrationTestSuite) TestClientCollectV3MaxWait() {
+	const pnr = "199001010117"
+	c, ctx := s.client()
+
+	ar, err := c.AuthV3Once(ctx, clientAuthRequest(pnr))
+	s.Require().NoError(err)
+
+	start := time.Now()
+	cr, err := c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP, WaitUntilFinished: true, MaxWait: 200 * time.Millisecond})
+	s.Require().NoError(err)
+	s.Equal(api.StatusPending, cr.Status)
+	s.Less(time.Since(start), 2*time.Second)
+
+	// the bounded wait left the order to collect
+	s.Require().NoError(s.bankidv6.Complete(pnr))
+	cr, err = c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP})
+	s.Require().NoError(err)
+	s.Equal(api.StatusComplete, cr.Status)
+}
+
 // A plain QR login starts the order without a personnummer, BankID learns who
 // it is from the scan.
 func (s *IntegrationTestSuite) TestClientQROrderWithoutPersonnummer() {
