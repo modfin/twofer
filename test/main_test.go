@@ -2,14 +2,12 @@ package test
 
 import (
 	"bytes"
-	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -29,7 +27,7 @@ import (
 
 type IntegrationTestSuite struct {
 	suite.Suite
-	twofer    *echo.Echo
+	twofer    *httptest.Server
 	twoferURL string
 	// the same handlers with twofer's other STREAM_ENCODER
 	twoferNDJSON *httptest.Server
@@ -45,45 +43,20 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	//TWOFER
 	app, err := InitApplication(s.bankidv6.URL(), sse.NewEncoder)
-	if err != nil {
-		fmt.Println("Error setting up twofer in SetupSuite", err)
-	}
-	s.twofer = app
-	s.twoferURL = "http://127.0.0.1:8999"
-
-	go func() {
-		slog.Info("Starting twofer")
-		err := s.twofer.Start(":8999")
-		if !errors.Is(err, http.ErrServerClosed) {
-			fmt.Println("Error starting twofer", err.Error())
-		}
-	}()
+	s.Require().NoError(err, "set up twofer")
+	s.twofer = httptest.NewServer(app)
+	s.twoferURL = s.twofer.URL
 
 	ndjsonApp, err := InitApplication(s.bankidv6.URL(), ndjson.NewEncoder)
-	if err != nil {
-		fmt.Println("Error setting up NDJSON twofer in SetupSuite", err)
-	}
+	s.Require().NoError(err, "set up NDJSON twofer")
 	s.twoferNDJSON = httptest.NewServer(ndjsonApp)
-
-	// Arbitrary wait for servers to start
-	time.Sleep(1 * time.Second)
 }
 
 func (s *IntegrationTestSuite) TearDownSuite() {
 	slog.Info("Tearing down test suite")
-	d := 2 * time.Second
-	go s.bankidv6.Close()
-	go s.twoferNDJSON.Close()
-
-	go func() {
-		parentCtx := context.Background()
-		ctx, cancel := context.WithTimeout(parentCtx, d)
-		defer cancel()
-		err := s.twofer.Shutdown(ctx)
-		if err != nil {
-			fmt.Println("Error stopping twofer server.", err.Error())
-		}
-	}()
+	s.twofer.Close()
+	s.twoferNDJSON.Close()
+	s.bankidv6.Close()
 }
 
 func TestInit(t *testing.T) {
