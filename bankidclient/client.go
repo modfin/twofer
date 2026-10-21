@@ -132,10 +132,10 @@ func (c *BankIdV3Client) startOnce(ctx context.Context, endpoint string, req api
 // with hintCode userSign once the QR is scanned. WaitUntilFinished holds it
 // until the order is complete or failed.
 //
-// BankID hands out a finished order once. A ctx that ends a wait just after
-// twofer collected the result loses it, and the next collect gets
-// invalidParameters "No such order". Bound a wait with MaxWait instead, and
-// give ctx enough headroom for twofer's last BankID poll.
+// BankID hands out a finished order once. twofer finishes a poll even when the
+// request is cut and keeps a finished order for a minute, so a repeated collect
+// gets it, but older twofer servers lose it. Bound a wait with MaxWait rather
+// than ctx, and give ctx headroom for twofer's last BankID poll.
 func (c *BankIdV3Client) CollectV3(ctx context.Context, req api.BankIdv6CollectRequestV3) (api.BankIdV6CollectResponseV3, error) {
 	resp, err := c.post(ctx, "collectV3", req)
 	if err != nil {
@@ -171,46 +171,39 @@ func (c *BankIdV3Client) CancelV3(ctx context.Context, req api.BankIdv6CancelReq
 type AuthV3Stream struct {
 	endpoint string
 	body     io.ReadCloser
-	status   int
 	next     func() ([]byte, error)
 }
 
 func newAuthV3Stream(endpoint string, resp *http.Response) *AuthV3Stream {
-	s := &AuthV3Stream{endpoint: endpoint, body: resp.Body, status: resp.StatusCode}
+	s := &AuthV3Stream{endpoint: endpoint, body: resp.Body, next: ndjsonData(json.NewDecoder(resp.Body))}
 	if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") {
 		s.next = sseData(bufio.NewReader(resp.Body))
-		return s
 	}
-	s.next = ndjsonData(json.NewDecoder(resp.Body))
 	return s
 }
 
-// Next returns the next frame, or io.EOF once twofer has ended the stream.
-// A stream that breaks off returns another error, and twofer failing mid-stream
-// returns a *BankIdError.
+// Next returns the next frame, or io.EOF once twofer has ended the stream. A
+// stream that breaks off returns another error. Frames without a QR code are
+// skipped, so a newer twofer can add other frames.
 func (s *AuthV3Stream) Next() (api.BankIdV6AuthSignResponseV3, error) {
-	b, err := s.next()
-	if err != nil {
-		return api.BankIdV6AuthSignResponseV3{}, err
-	}
+	for {
+		b, err := s.next()
+		if errors.Is(err, io.EOF) {
+			return api.BankIdV6AuthSignResponseV3{}, io.EOF
+		}
+		if err != nil {
+			return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err read twofer %s stream: %w", s.endpoint, err)
+		}
 
-	var ar api.BankIdV6AuthSignResponseV3
-	err = json.Unmarshal(b, &ar)
-	if err != nil {
-		return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err decode twofer %s frame: %w", s.endpoint, err)
+		var ar api.BankIdV6AuthSignResponseV3
+		err = json.Unmarshal(b, &ar)
+		if err != nil {
+			return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err decode twofer %s frame: %w", s.endpoint, err)
+		}
+		if ar.QR != "" {
+			return ar, nil
+		}
 	}
-	if ar.QR != "" {
-		return ar, nil
-	}
-
-	// Every frame carries a QR code. Older twofer appends an error reply to a
-	// stream it fails to continue, which decodes to an empty frame.
-	if len(b) > maxErrorBody {
-		b = b[:maxErrorBody]
-	}
-	be := &BankIdError{Endpoint: s.endpoint, HTTPStatus: s.status, Body: string(b)}
-	_ = json.Unmarshal(b, &be.BankIdv6ErrorResponseV3)
-	return api.BankIdV6AuthSignResponseV3{}, be
 }
 
 func (s *AuthV3Stream) Close() error {
@@ -231,25 +224,19 @@ func sseData(r *bufio.Reader) func() ([]byte, error) {
 			if errors.Is(err, io.EOF) && len(data) == 0 && strings.TrimSpace(line) == "" {
 				return nil, io.EOF
 			}
-			if err != nil && !errors.Is(err, io.EOF) {
-				return nil, fmt.Errorf("err read twofer sse line: %w", err)
-			}
-			eof := err != nil
-			line = strings.TrimRight(line, "\r\n")
-
-			// not SSE: an error reply written onto the stream as raw JSON
-			if len(data) == 0 && strings.HasPrefix(line, "{") {
-				return []byte(line), nil
-			}
 			// an event cut off by the end of the body is a broken stream, not its end
-			if eof {
+			if errors.Is(err, io.EOF) {
 				return nil, fmt.Errorf("err read twofer sse line: %w", io.ErrUnexpectedEOF)
 			}
+			if err != nil {
+				return nil, fmt.Errorf("err read twofer sse line: %w", err)
+			}
+			line = strings.TrimRight(line, "\r\n")
 
+			if line == "" && len(data) > 0 {
+				return []byte(strings.Join(data, "\n")), nil
+			}
 			if line == "" {
-				if len(data) > 0 {
-					return []byte(strings.Join(data, "\n")), nil
-				}
 				continue
 			}
 			field, value, _ := strings.Cut(line, ":")
