@@ -26,10 +26,10 @@ type NewStreamEncoder func(http.ResponseWriter) (stream.Encoder, error)
 func RegisterBankIDServer(e *echo.Echo, client *bankid.API, otm *ordertoken.Manager, newEncoder NewStreamEncoder) {
 	e.POST("/bankid/v6/auth", auth(client))
 	e.POST("/bankid/v6/authv2", authSign(client.Auth, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder)) // Deprecated: Don't use
-	e.POST("/bankid/v6/authv3", authSignV3(client.Auth, qrCodeUpdatePeriod, newEncoder, otm))                   // Same as 'auth' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
+	e.POST("/bankid/v6/authv3", authSignV3(client.Auth, client.Cancel, qrCodeUpdatePeriod, newEncoder, otm))    // Same as 'auth' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
 	e.POST("/bankid/v6/sign", sign(client))
 	e.POST("/bankid/v6/signv2", authSign(client.Sign, client.WatchForChangeV2, qrCodeUpdatePeriod, newEncoder)) // Deprecated: Don't use
-	e.POST("/bankid/v6/signv3", authSignV3(client.Sign, qrCodeUpdatePeriod, newEncoder, otm))                   // Same as 'sign' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
+	e.POST("/bankid/v6/signv3", authSignV3(client.Sign, client.Cancel, qrCodeUpdatePeriod, newEncoder, otm))    // Same as 'sign' except won't poll BankID collect API (since a completed/failed orderRef can only be collected once)
 	e.POST("/bankid/v6/change", change(client))
 	e.POST("/bankid/v6/collect", collect(client))
 	e.POST("/bankid/v6/collectV3", collectV3(client, otm))
@@ -115,7 +115,11 @@ func auth(client *bankid.API) func(echo.Context) error {
 			}
 
 			// Optimally subtract time that has elapsed, but no need to be that exact
-			time.Sleep(time.Second)
+			select {
+			case <-e.Request().Context().Done():
+				return nil
+			case <-time.After(time.Second):
+			}
 		}
 
 		return e.JSON(http.StatusOK, bankid.Empty{})
@@ -199,7 +203,11 @@ func sign(client *bankid.API) func(echo.Context) error {
 			}
 
 			// Optimally subtract time that has elapsed, but no need to be that exact
-			time.Sleep(time.Second)
+			select {
+			case <-e.Request().Context().Done():
+				return nil
+			case <-time.After(time.Second):
+			}
 		}
 
 		return e.JSON(http.StatusOK, bankid.Empty{})
@@ -337,6 +345,7 @@ func createResponseFromError(orderRef string, err error) api.BankIdV6Response {
 
 type (
 	authSignFn func(context.Context, *bankid.AuthSignRequest) (*bankid.AuthSignResponse, error)
+	cancelFn   func(context.Context, *bankid.CancelRequest) error
 	watchFn    func(context.Context, string) (<-chan bankid.Change, error)
 )
 
@@ -492,7 +501,7 @@ func bankIdv6ErrorResponseV3(err error, detail string) api.BankIdv6ErrorResponse
 // or change endpoints after the first QR-code has been returned. It also returns one or more
 // api.BankIdV6AuthSignResponseV3 structs for a successful auth/sign request. For failed requests,
 // a api.BankIdv6ErrorResponseV3 is returned instead.
-func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder, otm *ordertoken.Manager) func(echo.Context) error {
+func authSignV3(authOrSignFn authSignFn, cancelFn cancelFn, qrPeriod time.Duration, newStreamEncoder NewStreamEncoder, otm *ordertoken.Manager) func(echo.Context) error {
 	return func(c echo.Context) error {
 		request, err := readBody[api.BankIdv6AuthSignRequestV3](c.Request().Body)
 		if err != nil {
@@ -504,12 +513,13 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "error parsing endUserIp"))
 		}
 		// The order token needs the order ref, so it is made after the order is
-		// started. Refuse an expiry it would reject first, or the started order
-		// could not be cancelled and the person's next order would hit
-		// alreadyInProgress.
-		if otm != nil && request.OrderTokenExpire <= 0 {
-			fmt.Printf("ERR: orderTokenExpire not positive: %v\n", request.OrderTokenExpire)
-			return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(nil, "orderTokenExpire must be positive"))
+		// started. Refuse an expiry it would reject before starting one.
+		if otm != nil {
+			err = ordertoken.ValidateExpire(request.OrderTokenExpire)
+			if err != nil {
+				fmt.Printf("ERR: invalid orderTokenExpire: %v\n", err)
+				return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "invalid orderTokenExpire"))
+			}
 		}
 		// Convert from public API to internal struct
 		br := bankid.Requirement{
@@ -540,6 +550,14 @@ func authSignV3(authOrSignFn authSignFn, qrPeriod time.Duration, newStreamEncode
 			})
 			if err != nil {
 				fmt.Printf("ERR: error creating order token: %v\n", err)
+				// without a token nobody can cancel the started order, and the
+				// person's next order would hit alreadyInProgress
+				cctx, cancel := context.WithTimeout(context.WithoutCancel(c.Request().Context()), 5*time.Second)
+				defer cancel()
+				cerr := cancelFn(cctx, &bankid.CancelRequest{OrderRef: res.OrderRef})
+				if cerr != nil {
+					fmt.Printf("ERR: cancel order after token error: %v\n", cerr)
+				}
 				return c.JSON(http.StatusBadRequest, bankIdv6ErrorResponseV3(err, "error creating order token"))
 			}
 			orderToken = t

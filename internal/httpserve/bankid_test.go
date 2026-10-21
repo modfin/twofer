@@ -191,6 +191,8 @@ func testAuthSign(tt authSignTest, newContext newContextFn) func(t *testing.T) {
 	}
 }
 
+func noCancel(context.Context, *bankid.CancelRequest) error { return nil }
+
 func authSignTestMock(response bankid.AuthSignResponse, testErr error) authSignTestFn {
 	return func(t *testing.T) authSignFn {
 		return func(ctx context.Context, asr *bankid.AuthSignRequest) (*bankid.AuthSignResponse, error) {
@@ -399,7 +401,7 @@ func testAuthSignV3(tt authSignTestV3, newContext newContextFn) func(t *testing.
 		res := httptest.NewRecorder()
 		ctx := newContext(req, res)
 
-		echoHandler := authSignV3(tt.authSign(t), time.Millisecond, tt.encoder, nil)
+		echoHandler := authSignV3(tt.authSign(t), noCancel, time.Millisecond, tt.encoder, nil)
 		err = echoHandler(ctx)
 		if err != nil {
 			t.Fatalf("got error: %v", err)
@@ -425,7 +427,7 @@ func Test_authSignV3_stops_when_client_leaves(t *testing.T) {
 	res := httptest.NewRecorder()
 
 	// with an hour between QR codes, only a handler that watches the request returns in time
-	handler := authSignV3(authSignTestMock(authResponseOK, nil)(t), time.Hour, sse.NewEncoder, nil)
+	handler := authSignV3(authSignTestMock(authResponseOK, nil)(t), noCancel, time.Hour, sse.NewEncoder, nil)
 	done := make(chan error, 1)
 	go func() { done <- handler(echo.New().NewContext(req, res)) }()
 
