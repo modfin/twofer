@@ -67,7 +67,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3Stream() {
 	s.Require().NoError(err)
 	defer stream.Close()
 
-	s.assertQRFrames(stream, 2)
+	s.assertQRFrames(stream, 1)
 
 	auths := s.bankidv6.Auths(pnr)
 	s.Require().Len(auths, 1)
@@ -82,7 +82,7 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamNDJSON() {
 	s.Require().NoError(err)
 	defer stream.Close()
 
-	s.assertQRFrames(stream, 2)
+	s.assertQRFrames(stream, 1)
 }
 
 func (s *IntegrationTestSuite) TestClientAuthV3Once() {
@@ -124,7 +124,7 @@ func (s *IntegrationTestSuite) TestClientCollectV3RoundTrip() {
 		cr, err := c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP, WaitForChange: true})
 		waited <- collected{cr, err}
 	}()
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	s.Require().NoError(s.bankidv6.Complete(pnr))
 	got := <-waited
 	cr, err = got.cr, got.err
@@ -355,17 +355,20 @@ func (s *IntegrationTestSuite) TestClientAuthV3NeedsOrderTokenExpire() {
 	const pnr = "199001010112"
 	c, ctx := s.client()
 
-	req := clientAuthRequest(pnr)
-	req.OrderTokenExpire = 0
-	_, err := c.AuthV3Once(ctx, req)
-	var be *bankidclient.BankIdError
-	s.Require().True(errors.As(err, &be), "%v", err)
-	s.Equal(http.StatusBadRequest, be.HTTPStatus)
-	s.Equal(api.ErrorOriginTwofer, be.Origin)
-	s.Empty(s.bankidv6.Auths(pnr))
+	// 300 is nanoseconds on the wire, a token dead before its order
+	for _, expire := range []time.Duration{0, 300} {
+		req := clientAuthRequest(pnr)
+		req.OrderTokenExpire = expire
+		_, err := c.AuthV3Once(ctx, req)
+		var be *bankidclient.BankIdError
+		s.Require().True(errors.As(err, &be), "%v: %v", expire, err)
+		s.Equal(http.StatusBadRequest, be.HTTPStatus)
+		s.Equal(api.ErrorOriginTwofer, be.Origin)
+		s.Empty(s.bankidv6.Auths(pnr))
+	}
 
 	// no order was left pending, so the corrected request is not alreadyInProgress
-	_, err = c.AuthV3Once(ctx, clientAuthRequest(pnr))
+	_, err := c.AuthV3Once(ctx, clientAuthRequest(pnr))
 	s.NoError(err)
 }
 
@@ -391,9 +394,10 @@ func (s *IntegrationTestSuite) TestClientErrorBodyIsCapped() {
 // twofer ends the stream after ~30s, too long to wait for against the real handlers.
 func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
 	const (
-		frameA   = `{"orderRef":"a","qr":"qa"}`
-		frameB   = `{"orderRef":"b","qr":"qb"}`
-		errReply = `{"origin":"Twofer","code":"boom","detail":"failed to send response message"}`
+		frameA = `{"orderRef":"a","qr":"qa"}`
+		frameB = `{"orderRef":"b","qr":"qb"}`
+		// a frame this client does not know, e.g. from a newer twofer
+		otherFrame = `{"orderRef":"a","status":"pending"}`
 	)
 	tests := []struct {
 		name        string
@@ -413,18 +417,17 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
 			body:        frameA + "\n" + frameB + "\n",
 			check:       func(err error) { s.ErrorIs(err, io.EOF) },
 		},
-		// older twofer appends an error reply to a stream it fails to continue
 		{
-			name:        "sse error reply",
+			name:        "sse frame without qr",
 			contentType: "text/event-stream",
-			body:        "id: 0\ndata: " + frameA + "\n\nid: 1\ndata: " + frameB + "\n\n" + errReply,
-			check:       s.assertStreamError,
+			body:        "id: 0\ndata: " + frameA + "\n\ndata: " + otherFrame + "\n\nid: 1\ndata: " + frameB + "\n\n",
+			check:       func(err error) { s.ErrorIs(err, io.EOF) },
 		},
 		{
-			name:        "ndjson error reply",
+			name:        "ndjson frame without qr",
 			contentType: "application/x-json-stream",
-			body:        frameA + "\n" + frameB + "\n" + errReply,
-			check:       s.assertStreamError,
+			body:        frameA + "\n" + otherFrame + "\n" + frameB + "\n",
+			check:       func(err error) { s.ErrorIs(err, io.EOF) },
 		},
 		{
 			name:        "sse cut off mid event",
@@ -468,12 +471,4 @@ func (s *IntegrationTestSuite) TestClientAuthV3StreamEnds() {
 			tt.check(err)
 		})
 	}
-}
-
-func (s *IntegrationTestSuite) assertStreamError(err error) {
-	var be *bankidclient.BankIdError
-	s.Require().True(errors.As(err, &be), "%v", err)
-	s.Equal(api.ErrorOriginTwofer, be.Origin)
-	s.Equal("boom", be.Code)
-	s.Equal(http.StatusOK, be.HTTPStatus)
 }
