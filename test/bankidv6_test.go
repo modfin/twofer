@@ -508,7 +508,7 @@ func (s *IntegrationTestSuite) TestChange() {
 
 	// /change has to see the order pending first, or it returns before its
 	// wait loop runs
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	s.Require().NoError(s.bankidv6.Fail(pnr, "userCancel"))
 
 	var cr changeResult
