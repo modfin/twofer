@@ -213,6 +213,19 @@ func (b *BankID) FailOrder(orderRef, hintCode string) error {
 	return nil
 }
 
+// HintOrder gives the pending order orderRef a new hint, e.g. userSign once the
+// user has scanned the QR code.
+func (b *BankID) HintOrder(orderRef, hintCode string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	o, err := b.pendingRef(orderRef)
+	if err != nil {
+		return err
+	}
+	o.HintCode = hintCode
+	return nil
+}
+
 // pendingRef must be called with mu held.
 func (b *BankID) pendingRef(orderRef string) (*order, error) {
 	o, ok := b.orders[orderRef]
@@ -278,11 +291,8 @@ func (b *BankID) sign(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, "invalidParameters", "invalid json")
 		return
 	}
-	if req.UserVisibleData == "" {
-		errorResponse(w, "invalidParameters", "Missing userVisibleData")
-		return
-	}
 
+	// recorded before it is refused, so a test sees what twofer let through
 	b.mu.Lock()
 	b.signs = append(b.signs, AuthRequest{
 		EndUserIP:       req.EndUserIP,
@@ -291,6 +301,10 @@ func (b *BankID) sign(w http.ResponseWriter, r *http.Request) {
 	})
 	b.mu.Unlock()
 
+	if req.UserVisibleData == "" {
+		errorResponse(w, "invalidParameters", "Missing userVisibleData")
+		return
+	}
 	b.start(w, req)
 }
 
