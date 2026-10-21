@@ -67,7 +67,9 @@ type (
 		// an SSE / NDJSON stream and send a new QR-code each second, for 30 seconds before returning
 		Once bool `json:"once,omitempty"`
 
-		// OrderTokenExpire if order tokens are enabled, sets token expire time.
+		// OrderTokenExpire if order tokens are enabled, sets token expire time. It
+		// must be at least 30s, so the token outlives the order. In JSON it is
+		// nanoseconds: 300000000000 is 5 minutes.
 		OrderTokenExpire time.Duration `json:"orderTokenExpire,omitempty"`
 
 		// SameDevice indicates that the request is initiated on the same device as where the BankID app is installed.
@@ -96,18 +98,19 @@ type (
 		// OrderRef A reference ID for an order
 		OrderRef string `json:"orderRef"`
 
-		// WaitForChange allows the request to wait until a change is detected
+		// WaitForChange allows the request to wait until the status or the hint
+		// code changes, so the reply can still be pending.
 		WaitForChange bool `json:"waitForChange"`
 
 		// WaitUntilFinished allows the request to wait until the referenced request has either completed or failed,
-		// and will not return on state changes during the ongoing process.
+		// and will not return on hint changes during the ongoing process. With MaxWait the reply can still be pending.
 		WaitUntilFinished bool `json:"waitUntilFinished"`
 
-		// MaxWait bounds a WaitForChange or WaitUntilFinished wait. Once it has
-		// passed, twofer replies with the order's current state instead of
-		// waiting on. Prefer it over cutting the request: BankID hands out a
-		// finished order once, and a cut request can lose it. Zero waits without
-		// a bound.
+		// MaxWait bounds a WaitForChange or WaitUntilFinished wait, counted from
+		// the request. Once it has passed, twofer replies with the order's current
+		// state instead of waiting on; a negative value replies at once and zero
+		// waits without a bound. Prefer it over cutting the request. In JSON it is
+		// nanoseconds. twofer servers older than this field ignore it.
 		MaxWait time.Duration `json:"maxWait,omitempty"`
 
 		// OrderToken optionally pass an order token. This is an alternative to OrderRef.
@@ -116,9 +119,9 @@ type (
 		EndUserIp  string `json:"endUserIp"`
 	}
 
-	// BankIdV6CollectResponseV3 is sent for a successful collect, if WaitUntilFinished is set in the request, it will
-	// only return once the order have either completed or failed. If WaitUntilFinished isn't set, it will return once
-	// a change is detected.
+	// BankIdV6CollectResponseV3 is sent for a successful collect. A waiting request returns it once the order has
+	// changed, or with WaitUntilFinished once it has completed or failed, or with the current state once MaxWait has
+	// passed. twofer keeps a finished order for a minute, so a repeated collect gets it again.
 	BankIdV6CollectResponseV3 struct {
 		// OrderRef The reference ID for an order
 		OrderRef       string                  `json:"orderRef"`

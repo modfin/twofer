@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -20,10 +21,26 @@ const (
 	CancelUrl  = "/rp/v6.0/cancel"
 )
 
+const (
+	// collectTimeout bounds a BankID collect, which runs without the caller's ctx
+	collectTimeout = 10 * time.Second
+	// finishedTTL is how long a finished order stays collectable after BankID
+	// handed it out
+	finishedTTL = time.Minute
+)
+
 type API struct {
 	baseURL      string
 	client       *http.Client
 	pollInterval time.Duration
+
+	mu       sync.Mutex
+	finished map[string]finishedOrder // by orderRef
+}
+
+type finishedOrder struct {
+	res     *CollectResponse
+	expires time.Time
 }
 
 func NewAPI(client *http.Client, baseURL string, pollInterval time.Duration) *API {
@@ -31,6 +48,7 @@ func NewAPI(client *http.Client, baseURL string, pollInterval time.Duration) *AP
 		client:       client,
 		baseURL:      baseURL,
 		pollInterval: pollInterval,
+		finished:     map[string]finishedOrder{},
 	}
 }
 
@@ -62,113 +80,106 @@ func (a *API) Sign(ctx context.Context, r *AuthSignRequest) (*AuthSignResponse, 
 	return post[AuthSignRequest, AuthSignResponse](ctx, a.client, r, a.baseURL+SignUrl)
 }
 
+// Collect returns the order's status. BankID hands out a finished order once,
+// so the poll is not cut by the caller's ctx and a finished order is kept for
+// finishedTTL: a caller that went away before receiving it can collect it
+// again.
 func (a *API) Collect(ctx context.Context, r *CollectRequest) (*CollectResponse, error) {
 	err := r.Validate()
 	if err != nil {
 		return nil, err
 	}
+	if res, ok := a.finishedOrder(r.OrderRef); ok {
+		return res, nil
+	}
 
-	res, err := post[CollectRequest, CollectResponse](ctx, a.client, r, a.baseURL+CollectUrl)
+	pctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), collectTimeout)
+	defer cancel()
+	res, err := post[CollectRequest, CollectResponse](pctx, a.client, r, a.baseURL+CollectUrl)
 	if err != nil {
 		return nil, err
 	}
-
-	return res, err
+	if res.Status != Pending {
+		a.keepFinished(r.OrderRef, res)
+	}
+	return res, nil
 }
 
+func (a *API) finishedOrder(orderRef string) (*CollectResponse, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	f, ok := a.finished[orderRef]
+	if !ok || time.Now().After(f.expires) {
+		return nil, false
+	}
+	return f.res, true
+}
+
+func (a *API) keepFinished(orderRef string, res *CollectResponse) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	now := time.Now()
+	for ref, f := range a.finished {
+		if now.After(f.expires) {
+			delete(a.finished, ref)
+		}
+	}
+	a.finished[orderRef] = finishedOrder{res: res, expires: now.Add(finishedTTL)}
+}
+
+// Change waits for the order to change, or with WaitUntilFinished to finish,
+// without a bound.
 func (a *API) Change(ctx context.Context, r *ChangeRequest) (*CollectResponse, error) {
-	err := r.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-	collectRequest := &CollectRequest{OrderRef: r.OrderRef}
-
-	startState, err := a.Collect(ctx, collectRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	if startState.Status == Complete || startState.Status == Failed {
-		return startState, nil
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-			return nil, err
-		case <-time.After(a.pollInterval):
-		}
-
-		var resp *CollectResponse
-		resp, err = a.Collect(ctx, collectRequest)
-		if err != nil {
-			return nil, err
-		}
-
-		if r.WaitUntilFinished && resp.Status != Pending {
-			return resp, nil
-		}
-
-		if resp.HintCode != startState.HintCode {
-			return resp, nil
-		}
-	}
+	return a.ChangeV3(ctx, r, 0)
 }
 
 // ChangeV3 waits for the order to change, or with WaitUntilFinished to finish.
-// After maxWait, if positive, it returns the order's last seen state. maxWait is
-// only checked between polls, since cancelling a poll in flight could lose a
-// finished order.
+// A non-zero maxWait bounds the whole wait: once it has passed, ChangeV3
+// returns the order's current state, at once for a negative maxWait. The bound
+// is only checked between polls, since a poll carries what may be the order's
+// only finished state.
 func (a *API) ChangeV3(ctx context.Context, r *ChangeRequest, maxWait time.Duration) (*CollectResponse, error) {
 	err := r.Validate()
 	if err != nil {
 		return nil, err
 	}
 
-	collectRequest := &CollectRequest{OrderRef: r.OrderRef}
-
-	startState, err := a.Collect(ctx, collectRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	if startState.Status == Complete || startState.Status == Failed {
-		return startState, nil
-	}
-
 	var deadline <-chan time.Time
-	if maxWait > 0 {
-		t := time.NewTimer(maxWait)
+	if maxWait != 0 {
+		t := time.NewTimer(max(maxWait, 0))
 		defer t.Stop()
 		deadline = t.C
 	}
 
-	last := startState
+	collectRequest := &CollectRequest{OrderRef: r.OrderRef}
+	startState, err := a.Collect(ctx, collectRequest)
+	if err != nil {
+		return nil, err
+	}
+	if startState.Status != Pending {
+		return startState, nil
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-deadline:
-			return last, nil
+			// the current state, so a change since the last poll is not lost
+			return a.Collect(ctx, collectRequest)
 		case <-time.After(a.pollInterval):
 		}
 
-		var resp *CollectResponse
-		resp, err = a.Collect(ctx, collectRequest)
+		resp, err := a.Collect(ctx, collectRequest)
 		if err != nil {
 			return nil, err
 		}
-
-		// BankID does not hand out a finished order again
 		if resp.Status != Pending {
 			return resp, nil
 		}
 		if !r.WaitUntilFinished && resp.HintCode != startState.HintCode {
 			return resp, nil
 		}
-		last = resp
 	}
 }
 
