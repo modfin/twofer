@@ -146,8 +146,11 @@ func startEid(e *echo.Echo) {
 	if bankIdCfg.OrderTokenJwtEc256 != "" || bankIdCfg.OrderTokenJwtEc256Pub != "" || len(bankIdCfg.OrderTokenEncryptionKey) > 0 {
 		fmt.Println("  - Enabling BankId Order Token support")
 		otm, err = ordertoken.NewManager(bankIdCfg.OrderTokenJwtEc256, bankIdCfg.OrderTokenJwtEc256Pub, bankIdCfg.OrderTokenEncryptionKey)
+		// serving without the order tokens clients were configured for would
+		// break every order, so BankID stays off
 		if err != nil {
 			fmt.Printf("failed to initate bankId order token support %v", err)
+			return
 		}
 	}
 

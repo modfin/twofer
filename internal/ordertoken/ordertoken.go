@@ -30,6 +30,18 @@ type Manager struct {
 
 var ErrOrderIpMismatch = errors.New("order ip mismatch")
 
+// MinExpire is the shortest order token lifetime. A token has to outlive the
+// order it carries, or the order can be neither collected nor cancelled.
+const MinExpire = 30 * time.Second
+
+// ValidateExpire reports whether expire is a usable order token lifetime.
+func ValidateExpire(expire time.Duration) error {
+	if expire < MinExpire {
+		return fmt.Errorf("order token expire must be at least %v, got %v", MinExpire, expire)
+	}
+	return nil
+}
+
 func NewManager(ec256 string, ec256pub string, encryptionKey []string) (*Manager, error) {
 	privateKey, err := jwt.ParseECPrivateKeyFromPEM([]byte(ec256))
 	if err != nil {
@@ -43,11 +55,23 @@ func NewManager(ec256 string, ec256pub string, encryptionKey []string) (*Manager
 	if err != nil {
 		return nil, fmt.Errorf("unable to create crypt store: %w", err)
 	}
-	return &Manager{
+	m := &Manager{
 		privateKey: privateKey,
 		publicKey:  publicKey,
 		cryptStore: s,
-	}, nil
+	}
+
+	// keys that parse can still fail together, e.g. no encryption key, a curve
+	// other than P-256 or a public key from another pair
+	t, err := m.Create(MinExpire, Payload{OrderRef: "self-test", EndUserIp: "127.0.0.1"})
+	if err != nil {
+		return nil, fmt.Errorf("order token keys cannot create a token: %w", err)
+	}
+	_, err = m.Parse(t, "127.0.0.1")
+	if err != nil {
+		return nil, fmt.Errorf("order token keys cannot parse their own token: %w", err)
+	}
+	return m, nil
 }
 
 // Parse parses and validates an order token and returns it's encrypted payload
@@ -81,8 +105,9 @@ func (m *Manager) Parse(orderToken string, endUserIp string) (Payload, error) {
 }
 
 func (m *Manager) Create(expire time.Duration, payload Payload) (string, error) {
-	if expire <= 0 {
-		return "", errors.New("order token expire must be positive")
+	err := ValidateExpire(expire)
+	if err != nil {
+		return "", err
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
