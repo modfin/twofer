@@ -82,7 +82,8 @@ func InitApplication(bankIDV6URL string, newEncoder httpserve.NewStreamEncoder) 
 		return nil, fmt.Errorf("error creating ordertoken manager: %v", err)
 	}
 
-	twoferBankIDAPI := bankid.NewAPI(client, bankIDV6URL, time.Second)
+	// polls fast, so tests that wait on an order do not sit out a second
+	twoferBankIDAPI := bankid.NewAPI(client, bankIDV6URL, 10*time.Millisecond)
 	httpserve.RegisterBankIDServer(e, twoferBankIDAPI, otm, newEncoder)
 
 	return e, nil
