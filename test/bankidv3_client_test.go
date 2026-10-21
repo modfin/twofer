@@ -1,13 +1,11 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -296,23 +294,59 @@ func (s *IntegrationTestSuite) TestClientOrderLockedToPersonnummer() {
 	s.Require().NoError(s.bankidv6.CompleteOrder(ar.OrderRef))
 }
 
-func (s *IntegrationTestSuite) TestSignV3ReachesBankID() {
+func (s *IntegrationTestSuite) TestClientSignV3Once() {
 	const pnr = "199001010116"
-	req := clientAuthRequest(pnr)
-	req.Once = true
-	req.UserVisibleData = "Text shown to user"
-	b, err := json.Marshal(req)
-	s.Require().NoError(err)
+	c, ctx := s.client()
 
-	resp, err := http.Post(s.twoferURL+"/bankid/v6/signv3", "application/json", bytes.NewReader(b))
+	req := clientAuthRequest(pnr)
+	req.UserVisibleData = "Text shown to user"
+	ar, err := c.SignV3Once(ctx, req)
 	s.Require().NoError(err)
-	defer resp.Body.Close()
-	s.Require().Equal(http.StatusOK, resp.StatusCode)
+	o, ok := s.bankidv6.Order(ar.OrderRef)
+	s.Require().True(ok)
+	s.Equal(expectedQR(o, 0), ar.QR)
 
 	// twofer passes the text on base64 encoded, as BankID requires
 	visible := base64.StdEncoding.EncodeToString([]byte(req.UserVisibleData))
 	s.Equal([]bankidtest.AuthRequest{{EndUserIP: clientTestIP, PersonalNumber: pnr, UserVisibleData: visible}}, s.bankidv6.Signs(pnr))
 	s.Empty(s.bankidv6.Auths(pnr))
+
+	s.Require().NoError(s.bankidv6.Complete(pnr))
+	cr, err := c.CollectV3(ctx, api.BankIdv6CollectRequestV3{OrderToken: ar.OrderToken, EndUserIp: clientTestIP})
+	s.Require().NoError(err)
+	s.Equal(api.StatusComplete, cr.Status)
+	s.Require().NotNil(cr.CompletionData)
+	s.NotEmpty(cr.CompletionData.Signature)
+}
+
+func (s *IntegrationTestSuite) TestClientSignV3Stream() {
+	const pnr = "199001010118"
+	c, ctx := s.client()
+
+	req := clientAuthRequest(pnr)
+	req.UserVisibleData = "Text shown to user"
+	stream, err := c.SignV3(ctx, req)
+	s.Require().NoError(err)
+	defer stream.Close()
+
+	f, err := stream.Next()
+	s.Require().NoError(err)
+	o, ok := s.bankidv6.Order(f.OrderRef)
+	s.Require().True(ok)
+	s.Equal(expectedQR(o, 0), f.QR)
+	s.Len(s.bankidv6.Signs(pnr), 1)
+}
+
+// a sign order shows the user what they sign
+func (s *IntegrationTestSuite) TestClientSignV3NeedsVisibleData() {
+	const pnr = "199001010119"
+	c, ctx := s.client()
+
+	_, err := c.SignV3Once(ctx, clientAuthRequest(pnr))
+	var be *bankidclient.BankIdError
+	s.Require().True(errors.As(err, &be), "%v", err)
+	s.Equal(http.StatusBadRequest, be.HTTPStatus)
+	s.Empty(s.bankidv6.Signs(pnr))
 }
 
 // The order token needs the order ref, so twofer must refuse a bad expiry before
