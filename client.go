@@ -33,8 +33,7 @@ func NewClient(baseurl string) Client {
 // EidClient calls twofer's /v1/eid routes.
 //
 // Deprecated: twoferd no longer serves /v1/eid. Use bankidclient.BankIdV3Client,
-// which calls the BankID V3 API. It has no sign method yet, signing goes
-// through /bankid/v6/signv3.
+// which calls the BankID V3 API.
 type EidClient struct {
 	c       *http.Client
 	baseUrl string

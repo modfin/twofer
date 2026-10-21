@@ -17,8 +17,8 @@ import (
 // maxErrorBody caps the raw error reply kept on BankIdError, it ends up in logs.
 const maxErrorBody = 4096
 
-// BankIdV3Client calls twofer's BankID V3 API: /bankid/v6/authv3, collectV3 and
-// cancelV3.
+// BankIdV3Client calls twofer's BankID V3 API: /bankid/v6/authv3, signv3,
+// collectV3 and cancelV3.
 type BankIdV3Client struct {
 	c       *http.Client
 	baseUrl string
@@ -81,19 +81,39 @@ func (c *BankIdV3Client) post(ctx context.Context, endpoint string, body any) (*
 // AuthV3 starts an auth order. twofer then streams a fresh QR frame each
 // second for ~30 seconds. Close the stream when done with it.
 func (c *BankIdV3Client) AuthV3(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (*AuthV3Stream, error) {
-	req.Once = false
-	resp, err := c.post(ctx, "authv3", req)
-	if err != nil {
-		return nil, err
-	}
-	return newAuthV3Stream(resp), nil
+	return c.startStream(ctx, "authv3", req)
 }
 
 // AuthV3Once starts an auth order and returns its first frame only, e.g. for
 // an order opened in the BankID app on the same device rather than scanned.
 func (c *BankIdV3Client) AuthV3Once(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (api.BankIdV6AuthSignResponseV3, error) {
+	return c.startOnce(ctx, "authv3", req)
+}
+
+// SignV3 starts a sign order, streamed like AuthV3. BankID requires
+// UserVisibleData, the text the user signs.
+func (c *BankIdV3Client) SignV3(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (*AuthV3Stream, error) {
+	return c.startStream(ctx, "signv3", req)
+}
+
+// SignV3Once starts a sign order and returns its first frame only, like
+// AuthV3Once.
+func (c *BankIdV3Client) SignV3Once(ctx context.Context, req api.BankIdv6AuthSignRequestV3) (api.BankIdV6AuthSignResponseV3, error) {
+	return c.startOnce(ctx, "signv3", req)
+}
+
+func (c *BankIdV3Client) startStream(ctx context.Context, endpoint string, req api.BankIdv6AuthSignRequestV3) (*AuthV3Stream, error) {
+	req.Once = false
+	resp, err := c.post(ctx, endpoint, req)
+	if err != nil {
+		return nil, err
+	}
+	return newAuthV3Stream(endpoint, resp), nil
+}
+
+func (c *BankIdV3Client) startOnce(ctx context.Context, endpoint string, req api.BankIdv6AuthSignRequestV3) (api.BankIdV6AuthSignResponseV3, error) {
 	req.Once = true
-	resp, err := c.post(ctx, "authv3", req)
+	resp, err := c.post(ctx, endpoint, req)
 	if err != nil {
 		return api.BankIdV6AuthSignResponseV3{}, err
 	}
@@ -102,7 +122,7 @@ func (c *BankIdV3Client) AuthV3Once(ctx context.Context, req api.BankIdv6AuthSig
 	var ar api.BankIdV6AuthSignResponseV3
 	err = json.NewDecoder(resp.Body).Decode(&ar)
 	if err != nil {
-		return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err decode twofer authv3 response: %w", err)
+		return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err decode twofer %s response: %w", endpoint, err)
 	}
 	return ar, nil
 }
@@ -146,16 +166,17 @@ func (c *BankIdV3Client) CancelV3(ctx context.Context, req api.BankIdv6CancelReq
 	return nil
 }
 
-// AuthV3Stream reads the QR frames of an AuthV3 order. twofer sends them as SSE
-// or NDJSON depending on its STREAM_ENCODER setting.
+// AuthV3Stream reads the QR frames of an AuthV3 or SignV3 order. twofer sends
+// them as SSE or NDJSON depending on its STREAM_ENCODER setting.
 type AuthV3Stream struct {
-	body   io.ReadCloser
-	status int
-	next   func() ([]byte, error)
+	endpoint string
+	body     io.ReadCloser
+	status   int
+	next     func() ([]byte, error)
 }
 
-func newAuthV3Stream(resp *http.Response) *AuthV3Stream {
-	s := &AuthV3Stream{body: resp.Body, status: resp.StatusCode}
+func newAuthV3Stream(endpoint string, resp *http.Response) *AuthV3Stream {
+	s := &AuthV3Stream{endpoint: endpoint, body: resp.Body, status: resp.StatusCode}
 	if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") {
 		s.next = sseData(bufio.NewReader(resp.Body))
 		return s
@@ -176,7 +197,7 @@ func (s *AuthV3Stream) Next() (api.BankIdV6AuthSignResponseV3, error) {
 	var ar api.BankIdV6AuthSignResponseV3
 	err = json.Unmarshal(b, &ar)
 	if err != nil {
-		return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err decode twofer authv3 frame: %w", err)
+		return api.BankIdV6AuthSignResponseV3{}, fmt.Errorf("err decode twofer %s frame: %w", s.endpoint, err)
 	}
 	if ar.QR != "" {
 		return ar, nil
@@ -187,7 +208,7 @@ func (s *AuthV3Stream) Next() (api.BankIdV6AuthSignResponseV3, error) {
 	if len(b) > maxErrorBody {
 		b = b[:maxErrorBody]
 	}
-	be := &BankIdError{Endpoint: "authv3", HTTPStatus: s.status, Body: string(b)}
+	be := &BankIdError{Endpoint: s.endpoint, HTTPStatus: s.status, Body: string(b)}
 	_ = json.Unmarshal(b, &be.BankIdv6ErrorResponseV3)
 	return api.BankIdV6AuthSignResponseV3{}, be
 }
@@ -195,7 +216,7 @@ func (s *AuthV3Stream) Next() (api.BankIdV6AuthSignResponseV3, error) {
 func (s *AuthV3Stream) Close() error {
 	err := s.body.Close()
 	if err != nil {
-		return fmt.Errorf("err close twofer authv3 stream: %w", err)
+		return fmt.Errorf("err close twofer %s stream: %w", s.endpoint, err)
 	}
 	return nil
 }
