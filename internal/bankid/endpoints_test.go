@@ -196,26 +196,28 @@ func TestChangeV3_max_wait_keeps_the_poll_in_flight(t *testing.T) {
 	}
 }
 
-// BankID hands out a finished order once; a caller that went away before
-// receiving it can still collect it.
-func TestCollect_keeps_a_finished_order(t *testing.T) {
+// A finished order handed to its caller completes once, so a replayed collect
+// cannot log in a second time.
+func TestCollect_hands_out_a_finished_order_once(t *testing.T) {
 	fake, api, ref := fakeOrder(t, noPoll)
 	if err := fake.CompleteOrder(ref, bankidtest.By("199001010099")); err != nil {
 		t.Fatal(err)
 	}
 
-	for i := range 2 {
-		res, err := api.Collect(context.Background(), &CollectRequest{OrderRef: ref})
-		if err != nil {
-			t.Fatalf("collect %d: %v", i, err)
-		}
-		if res.Status != Complete {
-			t.Errorf("collect %d: got status %s, want complete", i, res.Status)
-		}
+	res, err := api.Collect(context.Background(), &CollectRequest{OrderRef: ref})
+	if err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	if res.Status != Complete {
+		t.Errorf("got status %s, want complete", res.Status)
+	}
+	if _, err := api.Collect(context.Background(), &CollectRequest{OrderRef: ref}); err == nil {
+		t.Error("a replayed collect got the finished order again")
 	}
 }
 
-// A caller cut while the completing poll is in flight must not lose the order.
+// A caller cut while the completing poll is in flight must not lose the order,
+// and its retry is the only one to get it.
 func TestCollect_survives_a_cut_caller(t *testing.T) {
 	srv := bankidStub(t, func(n int32) string {
 		if n == 1 {
@@ -237,7 +239,34 @@ func TestCollect_survives_a_cut_caller(t *testing.T) {
 	if res.Status != Complete {
 		t.Errorf("got status %s, want complete", res.Status)
 	}
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) == false {
+	if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		t.Error("the first collect was expected to outlive its caller")
+	}
+	if res, err := api.Collect(context.Background(), &CollectRequest{OrderRef: "ref-1"}); err == nil && res.Status == Complete {
+		t.Error("a replay after the retry got the finished order again")
+	}
+}
+
+// The v1 watcher sees the finish first; the consumer's collect must still get
+// the order, once.
+func TestWatchForChange_leaves_the_finished_order_to_collect(t *testing.T) {
+	fake, api, ref := fakeOrder(t, 10*time.Millisecond)
+	if err := fake.CompleteOrder(ref, bankidtest.By("199001010099")); err != nil {
+		t.Fatal(err)
+	}
+
+	w := <-api.WatchForChange(context.Background(), ref)
+	if w.Status != string(Complete) {
+		t.Fatalf("watcher got status %q, want complete", w.Status)
+	}
+	res, err := api.Collect(context.Background(), &CollectRequest{OrderRef: ref})
+	if err != nil {
+		t.Fatalf("collect after the watcher: %v", err)
+	}
+	if res.Status != Complete {
+		t.Errorf("got status %s, want complete", res.Status)
+	}
+	if _, err := api.Collect(context.Background(), &CollectRequest{OrderRef: ref}); err == nil {
+		t.Error("a replayed collect got the finished order again")
 	}
 }

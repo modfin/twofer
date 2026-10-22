@@ -24,8 +24,8 @@ const (
 const (
 	// collectTimeout bounds a BankID collect, which runs without the caller's ctx
 	collectTimeout = 10 * time.Second
-	// finishedTTL is how long a finished order stays collectable after BankID
-	// handed it out
+	// finishedTTL is how long a finished order its caller never received stays
+	// collectable
 	finishedTTL = time.Minute
 )
 
@@ -81,15 +81,16 @@ func (a *API) Sign(ctx context.Context, r *AuthSignRequest) (*AuthSignResponse, 
 }
 
 // Collect returns the order's status. BankID hands out a finished order once,
-// so the poll is not cut by the caller's ctx and a finished order is kept for
-// finishedTTL: a caller that went away before receiving it can collect it
-// again.
+// so the poll is not cut by the caller's ctx. A finished order whose caller
+// went away during the poll is kept for finishedTTL, for one retry. Otherwise
+// a finished order is handed out once, like BankID does, so a replayed collect
+// cannot complete it a second time.
 func (a *API) Collect(ctx context.Context, r *CollectRequest) (*CollectResponse, error) {
 	err := r.Validate()
 	if err != nil {
 		return nil, err
 	}
-	if res, ok := a.finishedOrder(r.OrderRef); ok {
+	if res, ok := a.takeFinished(r.OrderRef); ok {
 		return res, nil
 	}
 
@@ -99,16 +100,17 @@ func (a *API) Collect(ctx context.Context, r *CollectRequest) (*CollectResponse,
 	if err != nil {
 		return nil, err
 	}
-	if res.Status != Pending {
+	if res.Status != Pending && ctx.Err() != nil {
 		a.keepFinished(r.OrderRef, res)
 	}
 	return res, nil
 }
 
-func (a *API) finishedOrder(orderRef string) (*CollectResponse, bool) {
+func (a *API) takeFinished(orderRef string) (*CollectResponse, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	f, ok := a.finished[orderRef]
+	delete(a.finished, orderRef)
 	if !ok || time.Now().After(f.expires) {
 		return nil, false
 	}
@@ -214,6 +216,10 @@ func (a *API) WatchForChange(ctx context.Context, orderRef string) <-chan WatchR
 			return
 		}
 
+		// the watcher only reads the status; the consumer's collect gets the order
+		if check.Status != Pending {
+			a.keepFinished(orderRef, check)
+		}
 		watch <- WatchResponse{
 			Cancelled: false,
 			Status:    string(check.Status),

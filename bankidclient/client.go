@@ -132,10 +132,10 @@ func (c *BankIdV3Client) startOnce(ctx context.Context, endpoint string, req api
 // with hintCode userSign once the QR is scanned. WaitUntilFinished holds it
 // until the order is complete or failed.
 //
-// BankID hands out a finished order once. twofer finishes a poll even when the
-// request is cut and keeps a finished order for a minute, so a repeated collect
-// gets it, but older twofer servers lose it. Bound a wait with MaxWait rather
-// than ctx, and give ctx headroom for twofer's last BankID poll.
+// BankID hands out a finished order once, and so does twofer. If the request
+// is cut while twofer polls BankID, twofer finishes the poll and a retry within
+// a minute gets the order, but older twofer servers lose it. Bound a wait with
+// MaxWait rather than ctx, and give ctx headroom for twofer's last BankID poll.
 func (c *BankIdV3Client) CollectV3(ctx context.Context, req api.BankIdv6CollectRequestV3) (api.BankIdV6CollectResponseV3, error) {
 	resp, err := c.post(ctx, "collectV3", req)
 	if err != nil {
