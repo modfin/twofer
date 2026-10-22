@@ -121,7 +121,8 @@ type (
 
 	// BankIdV6CollectResponseV3 is sent for a successful collect. A waiting request returns it once the order has
 	// changed, or with WaitUntilFinished once it has completed or failed, or with the current state once MaxWait has
-	// passed. twofer keeps a finished order for a minute, so a repeated collect gets it again.
+	// passed. A finished order is handed out once. If the request was cut while twofer was polling BankID, a retry
+	// within a minute gets it.
 	BankIdV6CollectResponseV3 struct {
 		// OrderRef The reference ID for an order
 		OrderRef       string                  `json:"orderRef"`
